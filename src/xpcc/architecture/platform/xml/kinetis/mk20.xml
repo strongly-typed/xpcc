@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE rca SYSTEM "../devicefile.dtd">
+<rca version="1.0">
+	<device platform="kinetis" family="k" name="20">
+		<!-- Flash and RAM sizes -->
+		<flash device-size-id="32">32768</flash>
+		<flash device-size-id="64">65536</flash>
+		<flash device-size-id="128">131072</flash>
+		<ram>16384</ram>	<!--TODO: find out a good way to determine ram size-->
+		<!-- Linker Script -->
+		<linkerscript device-size-id="128">k20_128.ld</linkerscript>
+		<!-- Core -->
+		<core>cortex-m4</core>
+		<!-- Number of pins -->
+		<pin-count device-pin-id="fm">32</pin-count>	<!-- QFN -->
+		<pin-count device-pin-id="ft">48</pin-count>	<!-- QFN -->
+		<pin-count device-pin-id="lt">48</pin-count>	<!-- LQFP -->
+		<pin-count device-pin-id="lh">64</pin-count>	<!-- LQFP -->
+		<pin-count device-pin-id="mp">64</pin-count>	<!-- MAPBGA -->
+		<pin-count device-pin-id="lk">80</pin-count>	<!-- LQFP -->
+		<pin-count device-pin-id="mb">81</pin-count>	<!-- MAPBGA -->
+		<pin-count device-pin-id="ll">100</pin-count>	<!-- LQFP -->
+		<pin-count device-pin-id="ml">104</pin-count>	<!-- MAPBGA -->
+		<pin-count device-pin-id="mc">121</pin-count>	<!-- MAPBGA -->
+		<pin-count device-pin-id="lq">144</pin-count>	<!-- LQFP -->
+		<pin-count device-pin-id="md">144</pin-count>	<!-- MAPBGA -->
+		<pin-count device-pin-id="mj">256</pin-count>	<!-- MAPBGA -->
+		<!-- Headers to be included with the {{ include_device_headers }} substitution-->
+		<header>MK20DZ10.h</header>
+		<!-- Cpp Defines -->
+		<define>__ARM_STM32__</define>
+		<define>KINETIS_K20</define>
+		<!-- Core Driver -->
+		<driver type="core" name="cortex">
+			<parameter name="allocator">newlib</parameter>
+		</driver>
+		<!-- Peripheral Drivers -->
+		<driver type="gpio" name="kinetis">
+			<gpio port="C" id="5">
+			</gpio>
+		</driver>
+	</device>
+</rca>
