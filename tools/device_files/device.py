@@ -150,6 +150,12 @@ class DeviceFile:
 				self.log.error("Unknown family '%s' for platform %s."
 				" Valid families for this platform are: %s" %
 				(self.family, self.platform, families))
+		elif self.platform == 'kinetis':
+			families = ['k']
+			if self.family not in families:
+				self.log.error("Unknown family '%s' for platform %s."
+				" Valid families for this platform are: %s" %
+				(self.family, self.platform, families))
 		else:
 			self.log.error("Unknown platform '%s'" % self.platform)
 
