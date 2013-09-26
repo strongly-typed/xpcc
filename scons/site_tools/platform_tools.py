@@ -346,6 +346,9 @@ def generate(env, **kw):
 	def test_is_lpc(target):
 		return test_platform(target, 'lpc')
 	env.AddTemplateJinja2Test('lpc', test_is_lpc)
+	def test_is_kinetis(target):
+		return test_platform(target, 'kinetis')
+	env.AddTemplateJinja2Test('kinetis', test_is_kinetis)
 	def test_is_avr(target):
 		return test_platform(target, 'avr')
 	env.AddTemplateJinja2Test('avr', test_is_avr)
