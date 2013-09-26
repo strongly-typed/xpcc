@@ -62,7 +62,7 @@ def platform_tools_find_device_file(env):
 	if device in ['darwin', 'linux', 'windows']:
 		env['ARCHITECTURE'] = 'hosted/'+device
 		return
-	id = DeviceIdentifier(device)
+	id = DeviceIdentifier(device, env.GetLogger())
 	env.Debug("Device String: %s" % device)
 	# Find Device File
 	xml_path = os.path.join(env['XPCC_PLATFORM_PATH'], 'xml', id.platform)
