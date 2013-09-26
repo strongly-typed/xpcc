@@ -45,6 +45,8 @@
 %%	import 'stm32/stm32.macros' as platform with context
 %% elif target is lpc
 %%	import 'lpc/lpc.macros' as platform with context
+%% elif target is kinetis
+%%	import 'kinetis/kinetis.macros' as platform with context
 %% endif
 %# Set peripheralInterrupts variable that contains device specific interrupts
 {{ platform.appendInterrupts() }}
@@ -60,6 +62,8 @@
 #include "../../peripheral/gpio/stm32/gpio_enable.h"
 %%	elif target is lpc
 #include "../../peripheral/gpio/lpc/gpio_enable.h"
+%%	elif target is kinetis
+#include "../../peripheral/gpio/kinetis/gpio_enable.h"
 %%	endif
 %% endif
 
@@ -164,11 +168,18 @@ extern void __xpcc_initialize_memory(void);
 void
 Reset_Handler(void)
 {
+%% if target is kinetis
+	// Turn off watchdog and allow update
+	WDOG_UNLOCK  = 0x0000ffff & 0xC520;
+	WDOG_UNLOCK  = 0x0000ffff & 0xD928;
+	WDOG_STCTRLH = 0x0010;
+%% endif
+
 	// startup delay
 	for (volatile unsigned long i = 0; i < 500000; i++)
 	{
 	}
-	
+
 	// Copy functions to RAM (.fastcode)
 	uint32_t* src = &__fastcode_load;
 	uint32_t* dest = &__fastcode_start;
@@ -201,21 +212,28 @@ Reset_Handler(void)
 %% endif
 
 %% if target is cortex_m3 or target is cortex_m4
+	%% if target is kinetis
+		%% set nvic = "NVIC_BASE_PTR"
+		%% set scb  = "SystemControl_BASE_PTR"
+	%% else
+		%% set nvic = "NVIC"
+		%% set scb  = "SCB"
+	%% endif
 	// Setup NVIC
 	// Set vector table
 	const uint32_t offset = 0;
-	SCB->VTOR = 0x08000000 | (offset & 0x1FFFFF80);
+	{{ scb }}->VTOR = 0x08000000 | (offset & 0x1FFFFF80);
 
 	// Lower priority level for all peripheral interrupts to lowest possible
 	for (uint32_t i = 0; i < NR_INTERRUPTS; i++) {
 		const uint32_t priority = 0xF;
-		NVIC->IP[i] = (priority & 0xF) << 4;
+		{{ nvic }}->IP[i] = (priority & 0xF) << 4;
 	}
 
 	// Set the PRIGROUP[10:8] bits to
 	// - 4 bits for pre-emption priority,
 	// - 0 bits for subpriority
-	SCB->AIRCR = 0x05FA0000 | 0x300;
+	{{ scb }}->AIRCR = 0x05FA0000 | 0x300;
 
 	// Enable fault handlers
 	/*SCB->SHCSR |=
