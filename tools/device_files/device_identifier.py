@@ -133,6 +133,35 @@ class DeviceIdentifier:
 			self.log.debug("TODO: Handle ending: %s" % string[string.find('_'):])
 			if len(string) >= 7:
 				self.valid = True
+
+		# Kinetis Platform
+		# (let's hope nothing else will start with 'mk' ....)
+		elif string.startswith('mk') or string.startswith('pk'):
+			regex = re.compile(r"""^[mp]?		# qualification status
+				k(?P<name>[ilmw]?[0-9]{2})		# e.g. k20, ke02, kw20 ...
+				(?P<key_attribute>[df])			# D=cortex-m4, F=cortex-m4f
+				(?P<memory_type>[nx])			# flash or flash and flex
+				(?P<flash_size>([0-9]{2,3})|1m0)# number in kb
+				[za]?							# silicone revision (can be blank)
+				(?P<temperature_range>[vc])
+				(?P<package>[a-z]{2})			# two letter combination
+				(?P<max_frequency>[0-9]{1,2})	# e.g. 5 = 50MHz
+				(?P<packaging_type>r)?			# optional packaing type""", re.X)
+			match = regex.search(string)
+			if not match:
+				self.log.error("Invalid kinetis device string: %s" % string)
+			else:
+				self.platform = "kinetis"
+				self.name	  = match.group("name")
+				self.pin_id   = match.group("package")
+				self.size_id  = match.group("flash_size")
+				if self.name[1].isdigit():
+					self.family = self.name[:1]
+					self.name   = self.name[1:]
+				else:
+					self.family = self.name[:2]
+					self.name   = self.name[2:]
+				self.valid = True
 		else:
 			raise ParserException("Parse Error: unknown platform. Device string: %" % (string))
 
