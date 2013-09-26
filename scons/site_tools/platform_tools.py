@@ -257,7 +257,7 @@ def filter_get_ports(gpios):
 	port_ids = {}
 	for gpio in gpios:
 		if not gpio['port'] in port_ids:
-			port_ids[gpio['port']] = [0] * 16
+			port_ids[gpio['port']] = [0] * 32
 		port_ids[gpio['port']][int(gpio['id'])] = 1
 	# create port list
 	ports = []
@@ -269,7 +269,7 @@ def filter_get_ports(gpios):
 			# find start pin as well as width
 			ii = ids.index(1)
 			port['startPin'] = ii
-			while ii < 16 and ids[ii] == 1:
+			while ii < 32 and ids[ii] == 1:
 				ii = ii + 1
 			port['width'] = ii - port['startPin']
 			ports.append(port)
