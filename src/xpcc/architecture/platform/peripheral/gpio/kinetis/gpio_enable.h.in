@@ -1,0 +1,33 @@
+// coding: utf-8
+/* Copyright (c) 2013, Roboterclub Aachen e.V.
+ * All Rights Reserved.
+ *
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
+ */
+// ----------------------------------------------------------------------------
+#ifndef XPCC_KINETIS_GPIO_ENABLE_H
+#define XPCC_KINETIS_GPIO_ENABLE_H
+
+#include "../../../device.hpp"
+
+
+static void
+xpcc_gpio_enable(void)
+{
+	// FIXME: add possibility to switch individual clocks on and off
+	// Enable GPIO clock
+SIM_SCGC5 |=
+%% for port in gpios|xpcc.values('port')|sort
+%%	if not loop.last
+	SIM_SCGC5_PORT{{ port|upper }}_MASK |
+%%	else
+	SIM_SCGC5_PORT{{ port|upper }}_MASK;
+%%	endif
+%% endfor
+
+	// Reset GPIO peripheral
+	// TODO: is it possible to do this on kinetis??
+}
+
+#endif // XPCC_KINETIS_GPIO_ENABLE_H
