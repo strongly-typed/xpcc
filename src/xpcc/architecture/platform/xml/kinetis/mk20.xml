@@ -36,8 +36,35 @@
 		</driver>
 		<!-- Peripheral Drivers -->
 		<driver type="gpio" name="kinetis">
-			<gpio port="C" id="5">
-			</gpio>
+			<gpio port="A" id="0"></gpio>
+			<gpio port="A" id="1"></gpio>
+			<gpio port="A" id="2"></gpio>
+			<gpio port="A" id="3"></gpio>
+			<gpio port="A" id="4"></gpio>
+			<gpio port="A" id="18"></gpio>
+			<gpio port="A" id="19"></gpio>
+			<gpio port="B" id="0"></gpio>
+			<gpio port="B" id="1"></gpio>
+			<gpio port="B" id="2"></gpio>
+			<gpio port="B" id="3"></gpio>
+			<gpio port="B" id="16"></gpio>
+			<gpio port="B" id="17"></gpio>
+			<gpio port="C" id="0"></gpio>
+			<gpio port="C" id="1"></gpio>
+			<gpio port="C" id="2"></gpio>
+			<gpio port="C" id="3"></gpio>
+			<gpio port="C" id="4"></gpio>
+			<gpio port="C" id="5"></gpio>
+			<gpio port="C" id="6"></gpio>
+			<gpio port="C" id="7"></gpio>
+			<gpio port="D" id="0"></gpio>
+			<gpio port="D" id="1"></gpio>
+			<gpio port="D" id="2"></gpio>
+			<gpio port="D" id="3"></gpio>
+			<gpio port="D" id="4"></gpio>
+			<gpio port="D" id="5"></gpio>
+			<gpio port="D" id="6"></gpio>
+			<gpio port="D" id="7"></gpio>
 		</driver>
 	</device>
 </rca>
