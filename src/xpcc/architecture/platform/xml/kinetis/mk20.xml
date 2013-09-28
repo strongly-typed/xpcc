@@ -26,7 +26,8 @@
 		<pin-count device-pin-id="md">144</pin-count>	<!-- MAPBGA -->
 		<pin-count device-pin-id="mj">256</pin-count>	<!-- MAPBGA -->
 		<!-- Headers to be included with the {{ include_device_headers }} substitution-->
-		<header>MK20D5.h</header>
+		<header>k20.h</header>
+		<!--<header>core_cm4.h</header>-->
 		<!-- Cpp Defines -->
 		<define>__ARM_STM32__</define>
 		<define>KINETIS_K20</define>

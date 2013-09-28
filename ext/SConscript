@@ -70,7 +70,8 @@ if env['XPCC_DEVICE'].startswith('stm32f4'):
 # TODO: better way to determine kinetis K series
 if env['XPCC_DEVICE'].startswith('mk'):
 	globalIncludes += [
-		'kinetis_k/headers/']
+		'stm32f4xx_lib/CMSIS/Include',
+		'kinetis_k/']
 
 if 'stm32f' in env['XPCC_DEVICE'] and not env['XPCC_DEVICE'].startswith('stm32f0'):
 	sourcePath += ['freertos']		# FreeRTOS for STM32
