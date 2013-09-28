@@ -1,10 +1,6 @@
 
 #include <xpcc/architecture.hpp>
-
-// ----------------------------------------------------------------------------
-using namespace xpcc::kinetis;
-
-typedef GpioOutputC5 Led;
+#include "../mchck.hpp"
 
 // ----------------------------------------------------------------------------
 MAIN_FUNCTION
@@ -13,7 +9,7 @@ MAIN_FUNCTION
 	//StartupError err =
 	//	SystemClock<clockSource>::enable();
 
-	Led::setOutput(xpcc::Gpio::HIGH);
+	StatusLed::setOutput(xpcc::Gpio::HIGH);
 
 	// Output SystemClock on PA8
 	// ClockOut::setOutput(Gpio::PUSH_PULL);
@@ -22,7 +18,7 @@ MAIN_FUNCTION
 
 	while (1)
 	{
-		Led::toggle();
+		StatusLed::toggle();
 		xpcc::delay_ms(500);
 	}
 
