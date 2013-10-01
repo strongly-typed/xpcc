@@ -1,0 +1,194 @@
+// coding: utf-8
+/* Copyright (c) 2013, Roboterclub Aachen e.V.
+* All Rights Reserved.
+*
+* The file is part of the xpcc library and is released under the 3-clause BSD
+* license. See the file `LICENSE` for the full license governing this code.
+*/
+// ----------------------------------------------------------------------------
+
+#ifndef XPCC_KINETIS_UARTHAL_{{ id }}_HPP
+#define XPCC_KINETIS_UARTHAL_{{ id }}_HPP
+
+#include <stdint.h>
+#include "../../../type_ids.hpp"
+#include "../../../device.hpp"
+#include "uart_base.hpp"
+
+namespace xpcc
+{
+namespace kinetis
+{
+/**
+ * Universal asynchronous receiver transmitter (Uart{{  id }})
+ *
+ * Very basic implementation that exposes more hardware features than
+ * the regular Usart classes.
+ *
+ * @author		Kevin Laeufer
+ * @ingroup		kinetis
+ */
+class UartHal{{ id }} : public UartBase
+{
+public:
+	/// TypeId used to connect GPIO pins to this peripheral's rx.
+	static const TypeId::Uart{{ id }}Rx Rx;
+	/// TypeId used to connect GPIO pins to this peripheral's tx.
+	static const TypeId::Uart{{ id }}Tx Tx;
+
+public:
+	/// Enables the clock, resets the hardware and sets the UE bit
+	static inline void
+	enable();
+
+	/// Disables the hw module (by disabling its clock line)
+	static inline void
+	disable();
+
+	/**
+	 * Initialize Uart HAL Peripheral
+	 *
+	 * Enables clocks, the UART peripheral (but neither TX nor RX)
+	 * Sets baudrate and parity.
+	 */
+	template<class clockSource, uint32_t baudrate>
+	static inline void
+	initialize(Parity parity = Parity::Disable);
+
+	/**
+	 * \brief	Write a single byte to the transmit register
+	 *
+	 * @warning 	This method does NOT do any sanity checks!!
+	 *				It is your responsibility to check if the register
+	 *				is empty!
+	 */
+	static inline void
+	write(uint8_t data);
+
+	/**
+	 * Returns the value of the receive register
+	 *
+	 * @warning 	This method does NOT do any sanity checks!!
+	 *				It is your responsibility to check if the register
+	 *				contains something useful!
+	 */
+	static inline void
+	read(uint8_t &data);
+
+	/**
+	 * Disable Parity or Enable Odd/Even Parity
+	 *
+	 * This method assumes 8 databits + 1 parity bit
+	 */
+	static inline void
+	setParity(const Parity parity);
+
+	/// Set baudrate.
+	template<class clockSource, uint32_t baudrate>
+	static inline void
+	setBaudrate();
+
+	/// Enable/Disable Transmitter
+	static inline void
+	setTransmitterEnable(const bool enable);
+
+	/// Enable/Disable Receiver
+	static inline void
+	setReceiverEnable(const bool enable);
+
+	/// Returns true if data has been received
+	static inline bool
+	isReceiveRegisterNotEmpty();
+
+	/// Returns true if data can be written
+	static inline bool
+	isTransmitRegisterEmpty();
+
+	static inline void
+	enableInterruptVector(bool enable, uint32_t priority);
+
+	static inline void
+	enableInterrupt(Interrupt interrupt);
+
+	static inline void
+	disableInterrupt(Interrupt interrupt);
+
+	static inline InterruptFlag
+	getInterruptFlags();
+
+	/**
+	 * Returns the value of the receive register
+	 *
+	 * @warning 	Not all InterruptFlags can be cleared this way.
+	 */
+	static inline void
+	acknowledgeInterruptFlag(InterruptFlag flags);
+
+	/// @name FIFO
+	///@{
+
+	static inline void
+	setTransmitFifoEnable(const bool enable);
+
+	static inline void
+	setReceiveFifoEnable(const bool enable);
+
+	static inline void
+	setTransmitFifoDepth(const TransmitFifoDepth depth);
+
+	static inline void
+	setReceiveFifoDepth(const ReceiveFifoDepth depth);
+
+	/// When the number of words in the transmit buffer
+	/// is <= watermark a TxEmpty Interrupt is generated.
+	/// For correct operation the value has to be less than
+	/// the size of the transmit buffer.
+	/// Can only be written if transmitter is disabled
+	static inline void
+	setTransmitWatermark(const uint8_t watermark);
+
+	static inline uint8_t
+	getTransmitCount();
+
+	/// When the number of words in the receive buffer
+	/// is >= watermark a RxFull Interrupt is generated.
+	/// For correct operation the value has to be less than
+	/// the size of the receive buffer.
+	/// Can only be written if receiver is disabled
+	static inline void
+	setReceiveWatermark(const uint8_t watermark);
+
+	static inline uint8_t
+	getReceiveCount();
+
+	/// Discard all data in transmit buffer.
+	/// This does not include data in the shift register.
+	static inline void
+	flushTransmitFifo();
+
+	/// Discard all data in receive buffer.
+	/// This does not include data in the shift register.
+	static inline void
+	flushReceiveFifo();
+
+	static inline void
+	enableFifoInterrupt(FifoInterrupt interrupt);
+
+	static inline void
+	disableFifoInterrupt(FifoInterrupt interrupt);
+
+	static inline FifoInterruptFlag
+	getFifoInterruptFlags();
+
+	static inline FifoStatusFlag
+	getFifoStatusFlags();
+
+	///@}
+
+};
+}
+}
+
+#include "uart_hal_{{ id }}_impl.hpp"
+
+#endif // #define XPCC_KINETIS_UARTHAL_{{ id }}_HPP

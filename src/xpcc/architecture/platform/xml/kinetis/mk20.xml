@@ -36,10 +36,15 @@
 			<parameter name="allocator">newlib</parameter>
 		</driver>
 		<!-- Peripheral Drivers -->
+		<driver type="uart" name="kinetis" instances="0,1,2" />
 		<driver type="gpio" name="kinetis">
 			<gpio port="A" id="0"></gpio>
-			<gpio port="A" id="1"></gpio>
-			<gpio port="A" id="2"></gpio>
+			<gpio port="A" id="1">
+				<af id="2" peripheral="Uart0" name="Rx" type="in"/>
+			</gpio>
+			<gpio port="A" id="2">
+				<af id="2" peripheral="Uart0" name="Tx" type="out"/>
+			</gpio>
 			<gpio port="A" id="3"></gpio>
 			<gpio port="A" id="4"></gpio>
 			<gpio port="A" id="18"></gpio>
