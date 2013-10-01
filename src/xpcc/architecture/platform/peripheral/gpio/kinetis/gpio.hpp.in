@@ -115,7 +115,7 @@ private:
 	ALWAYS_INLINE static void
 	setAlternateFunction(AlternateFunction alt) {
 		{{reg_pcr}} =
-				({{reg_pcr}} & static_cast<uint32_t>(AlternateFunction::Mask))
+				({{reg_pcr}} & ~static_cast<uint32_t>(AlternateFunction::Mask))
 				| static_cast<uint32_t>(alt);
 	}
 
@@ -130,7 +130,7 @@ public:
 		}
 	}
 	ALWAYS_INLINE static void configure(InputType type) {
-		{{reg_pcr}} =	({{reg_pcr}} & 0b11 << PORT_PCR_PS_SHIFT)
+		{{reg_pcr}} =	({{reg_pcr}} & ~(0b11 << PORT_PCR_PS_SHIFT))
 						| static_cast<uint32_t>(type);
 	}
 		%% for af in gpio.afs

@@ -28,6 +28,9 @@ SIM_SCGC5 |=
 
 	// Reset GPIO peripheral
 	// TODO: is it possible to do this on kinetis??
+	//       Maybe we should initialize all PORTx_PCRn reg with 0
+	//       because according to the reference manual the reset value
+	//       is undefined.
 }
 
 #endif // XPCC_KINETIS_GPIO_ENABLE_H
