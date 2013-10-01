@@ -212,28 +212,21 @@ Reset_Handler(void)
 %% endif
 
 %% if target is cortex_m3 or target is cortex_m4
-	%% if target is kinetis
-		%% set nvic = "NVIC_BASE_PTR"
-		%% set scb  = "SystemControl_BASE_PTR"
-	%% else
-		%% set nvic = "NVIC"
-		%% set scb  = "SCB"
-	%% endif
 	// Setup NVIC
 	// Set vector table
 	const uint32_t offset = 0;
-	{{ scb }}->VTOR = 0x08000000 | (offset & 0x1FFFFF80);
+	SCB->VTOR = 0x08000000 | (offset & 0x1FFFFF80);
 
 	// Lower priority level for all peripheral interrupts to lowest possible
 	for (uint32_t i = 0; i < NR_INTERRUPTS; i++) {
 		const uint32_t priority = 0xF;
-		{{ nvic }}->IP[i] = (priority & 0xF) << 4;
+		NVIC->IP[i] = (priority & 0xF) << 4;
 	}
 
 	// Set the PRIGROUP[10:8] bits to
 	// - 4 bits for pre-emption priority,
 	// - 0 bits for subpriority
-	{{ scb }}->AIRCR = 0x05FA0000 | 0x300;
+	SCB->AIRCR = 0x05FA0000 | 0x300;
 
 	// Enable fault handlers
 	/*SCB->SHCSR |=

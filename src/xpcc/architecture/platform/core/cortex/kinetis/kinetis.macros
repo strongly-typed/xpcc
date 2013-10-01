@@ -37,9 +37,15 @@
 
 
 %% macro appendInterrupts()
-
-
-
+%% do i.update({15: ["UART0_LON_IRQHandler", ""]})
+%% do i.update({16: ["UART0_RX_TX_IRQHandler", ""]})
+%% do i.update({45: ["UART0_RX_TX_IRQHandler_2", ""]})
+%% do i.update({17: ["UART0_ERR_IRQHandler", ""]})
+%% do i.update({18: ["UART1_RX_TX_IRQHandler", ""]})
+%% do i.update({19: ["UART1_ERR_IRQHandler", ""]})
+%% do i.update({20: ["UART2_RX_TX_IRQHandler", ""]})
+%% do i.update({21: ["UART2_ERR_IRQHandler", ""]})
+%% do i.update({30: ["PIT0_IRQHandler", ""]})
 %% endmacro
 
 

@@ -63,6 +63,7 @@ namespace xpcc
 			MHz17       =   17 * MHz1,
 			MHz18       =   18 * MHz1,
 			MHz20       =   20 * MHz1,
+			MHz21       =   21 * MHz1,
 			MHz24       =   24 * MHz1,
 			MHz25       =   25 * MHz1,
 			MHz26       =   26 * MHz1,
