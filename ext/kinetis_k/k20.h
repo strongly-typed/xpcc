@@ -9,16 +9,25 @@ typedef enum IRQn
 {
 /******  Cortex-M# Processor Exceptions Numbers ******************************/
 
-	NonMaskableInt_IRQn   = -14,      ///<  2 Non Maskable Interrupt
-	MemoryManagement_IRQn = -12,      ///<  4 Memory Management Interrupt
-	BusFault_IRQn         = -11,      ///<  5 Bus Fault Interrupt
-	UsageFault_IRQn       = -10,      ///<  6 Usage Fault Interrupt
-	SVCall_IRQn           = -5,       ///< 11 SV Call Interrupt
-	DebugMonitor_IRQn     = -4,       ///< 12 Debug Monitor Interrupt
-	PendSV_IRQn           = -2,       ///< 14 Pend SV Interrupt
-	SysTick_IRQn          = -1,       ///< 15 System Tick Interrupt
+	NonMaskableInt_IRQn		= -14,		///<  2 Non Maskable Interrupt
+	MemoryManagement_IRQn	= -12,		///<  4 Memory Management Interrupt
+	BusFault_IRQn			= -11,		///<  5 Bus Fault Interrupt
+	UsageFault_IRQn			= -10,		///<  6 Usage Fault Interrupt
+	SVCall_IRQn				=  -5,		///< 11 SV Call Interrupt
+	DebugMonitor_IRQn		=  -4,		///< 12 Debug Monitor Interrupt
+	PendSV_IRQn				=  -2,		///< 14 Pend SV Interrupt
+	SysTick_IRQn			=  -1,		///< 15 System Tick Interrupt
 
 /******  Device Specific Interrupt Numbers ***********************************/
+	UART0_RX_TX_IRQn = 16,
+	UART0_ERR_IRQn = 17,
+	UART1_RX_TX_IRQn = 18,
+	UART1_ERR_IRQn = 19,
+	UART2_RX_TX_IRQn = 20,
+	UART2_ERR_IRQn = 21,
+
+
+/*
 	DMA0_IRQn,
 	DMA1_IRQn,
 	DMA2_IRQn,
@@ -54,8 +63,8 @@ typedef enum IRQn
 	CAN0_Tx_Warning_IRQn,
 	CAN0_Rx_Warning_IRQn,
 	CAN0_Wake_Up_IRQn,
-	Reserved51_IRQn,
-	Reserved52_IRQn,
+	I2S0_Tx_IRQHandler_IRQn,
+	I2S0_Rx_IRQHandler_IRQn,
 	CAN1_ORed_Message_buffer_IRQn,
 	CAN1_Bus_Off_IRQn,
 	CAN1_Error_IRQn,
@@ -86,7 +95,7 @@ typedef enum IRQn
 	FTM2_IRQn,
 	CMT_IRQn,
 	RTC_IRQn,
-	Reserved83_IRQn,
+	RTC_Seconds_IRQn,
 	PIT0_IRQn,
 	PIT1_IRQn,
 	PIT2_IRQn,
@@ -123,6 +132,7 @@ typedef enum IRQn
 	Reserved117_IRQn,
 	Reserved118_IRQn,
 	Reserved119_IRQn
+*/
 } IRQn_Type;
 
 /**
