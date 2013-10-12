@@ -172,7 +172,7 @@ Reset_Handler(void)
 	// Turn off watchdog and allow update
 	WDOG_UNLOCK  = 0x0000ffff & 0xC520;
 	WDOG_UNLOCK  = 0x0000ffff & 0xD928;
-	WDOG_STCTRLH = 0x0010;
+	WDOG_STCTRLH = WDOG_STCTRLH_ALLOWUPDATE_MASK;
 %% endif
 
 	// startup delay
@@ -211,12 +211,15 @@ Reset_Handler(void)
 	SCB->CPACR |= ((3UL << 10*2) | (3UL << 11*2));  // set CP10 and CP11 Full Access
 %% endif
 
-%% if target is cortex_m3 or target is cortex_m4
+%% if target is stm32
 	// Setup NVIC
 	// Set vector table
+	// TODO: get vector table location from linker constants
 	const uint32_t offset = 0;
 	SCB->VTOR = 0x08000000 | (offset & 0x1FFFFF80);
+%% endif
 
+%% if target is cortex_m3 or target is cortex_m4 and target
 	// Lower priority level for all peripheral interrupts to lowest possible
 	for (uint32_t i = 0; i < NR_INTERRUPTS; i++) {
 		const uint32_t priority = 0xF;
