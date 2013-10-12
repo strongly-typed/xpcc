@@ -53,7 +53,7 @@ public:
 	 */
 	template<class clockSource, uint32_t baudrate>
 	static inline void
-	initialize(Parity parity = Parity::Disable);
+	initialize(Parity parity = Parity::Disabled);
 
 	/**
 	 * \brief	Write a single byte to the transmit register

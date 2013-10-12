@@ -82,7 +82,7 @@ public:
 	enum class
 	Parity : uint8_t
 	{
-		Disable 	= 0,
+		Disabled 	= 0,
 		Even 		= UART_C1_PE_MASK,
 		Odd  		= UART_C1_PE_MASK | UART_C1_PT_MASK,
 	};
