@@ -407,6 +407,8 @@ def generate(env, **kw):
 		env.Error("xpcc Error: Unknown architecture '%s'!" % env['ARCHITECTURE'])
 		Exit(1)
 
+	env.Tool('buildformat')
+
 	# append all values from environment section to the real environment
 	for key, value in configuration['environment'].iteritems():
 		if key.endswith('*'):

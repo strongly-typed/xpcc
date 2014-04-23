@@ -1,30 +1,10 @@
 #!/usr/bin/env python
 # 
 # Copyright (c) 2009, Roboterclub Aachen e.V.
-# All rights reserved.
-# 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# 
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of the Roboterclub Aachen e.V. nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-# 
-# THIS SOFTWARE IS PROVIDED BY ROBOTERCLUB AACHEN E.V. ''AS IS'' AND ANY
-# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL ROBOTERCLUB AACHEN E.V. BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# All Rights Reserved.
+#
+# The file is part of the xpcc library and is released under the 3-clause BSD
+# license. See the file `LICENSE` for the full license governing this code.
 
 import os
 import string
@@ -98,7 +78,8 @@ def jinja2_template_action(target, source, env):
 		return values
 
 # Overwrite jinja2 Environment in order to enable relative paths
-# since this runs locally that should not be a security concern
+# since this runs locally that should not be a security concern.
+# 
 # Code from:
 # http://stackoverflow.com/questions/8512677/how-to-include-a-template-with-relative-path-in-jinja2
 	class RelEnvironment(jinja2.Environment):
@@ -131,17 +112,23 @@ def jinja2_template_action(target, source, env):
 
 
 	try:
-		#convert native path format of filename into '/' separated jinja relative path
+		# convert native path format of filename into '/' separated jinja relative path
 		template = loader.get_template(filename.replace('\\', '/'), globals=globals)
 	except Exception as e:
-		#jinja may generate an TemplateNotFound error, which is a subclass of EnvironmentError, but the variable e.errno will be None
-		#in SCons/Errors.py in method convert_to_BuildError exceptions which are instance of EnvironmentError are
-		#special handled, but need the variable errno be not zero. My guess is, that system generated Environment Errors have errno set to any non zero value.
-		#This leads in SCons/Action.py in method __call__ the variable stat.status, s and afterwards the returned result be none and Exception lost.
-		#Solution rase Exception, which is not a subclass of EnvironmentError
-		#because python cannot chain exceptions e is printed
+		# Jinja may generate an TemplateNotFound error, which is a subclass of
+		# EnvironmentError, but the variable e.errno will be 'None'.
+		# In SCons/Errors.py in method convert_to_BuildError exceptions which
+		# are instance of EnvironmentError are special handled, but need the
+		# variable errno be not zero. My guess is, that system generated
+		# Environment Errors have errno set to any non zero value.
+		# 
+		# This leads in SCons/Action.py in method __call__ the variable
+		# stat.status, s and afterwards the returned result be none and
+		# Exception lost.
+		# Solution raise Exception, which is not a subclass of EnvironmentError
+		# because python cannot chain exceptions e is printed
 		traceback.print_exc()
-		raise Exception('Failed to retrieve Template',e)
+		raise Exception('Failed to retrieve Template', e)
 
 	output = template.render(env['substitutions']).encode('utf-8')
 	open(target[0].path, 'w').write(output)
@@ -151,7 +138,7 @@ def template_emitter(target, source, env):
 	return target, source
 
 def template_string(target, source, env):
-	return "Template: '%s' to '%s'" % (str(source[0]), str(target[0]))
+	return env.subst("$TEMPLATECOMSTR", SCons.Subst.SUBST_RAW, source=str(source[0]), target=str(target[0]))
 
 def template_add_test(env, test_name, test_function, alias='template_add_test'):
 	if 'XPCC_JINJA2_TEST' not in env:
@@ -198,6 +185,8 @@ def in_include_scanner(node, env, path, arg=None):
 	return dependencies
 # -----------------------------------------------------------------------------
 def generate(env, **kw):
+	env["TEMPLATECOMSTR"] = "Template '$SOURCE' to '$TARGET'"
+
 	env.Append(
 		BUILDERS = {
 		'Template': env.Builder(
