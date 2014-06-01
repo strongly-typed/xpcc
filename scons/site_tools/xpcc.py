@@ -30,7 +30,7 @@ import os
 import re
 import string
 import platform
-import configfile as configparser
+import internal.configfile as configparser
 
 from SCons.Script import *
 import SCons.Tool		# to get the SCons default tool search path
@@ -190,7 +190,7 @@ def generate(env, **kw):
 	EnsureSConsVersion(1, 0)
 
 	# Import Logger Tool
-	env.Tool('logger_tools')
+	env.Tool('internal/logger_tools')
 	log_level = ARGUMENTS.get('LOG_LEVEL', None)
 	if log_level == None:
 		log_level = ARGUMENTS.get('ll', None)
@@ -286,13 +286,13 @@ def generate(env, **kw):
 	env['XPCC_DEVICE'] = device 			# needed by the platform tools
 
 	# tools which are used independently of the architecture
-	env.Tool('template') # needs to be added before platform_tools
-	env.Tool('unittest')
-	env.Tool('configfile')
+	env.Tool('generator/template') # needs to be added before platform_tools
+	env.Tool('generator/unittest')
+	env.Tool('internal/configfile')
 	env.Tool('helper')
-	env.Tool('system_design')
+	env.Tool('internal/system_design')
 	# Will validate the env['XPCC_DEVICE'] and set env['ARCHITECTURE']
-	env.Tool('platform_tools')
+	env.Tool('internal/platform_tools')
 
 	env.FindDeviceFile()
 
@@ -359,7 +359,7 @@ def generate(env, **kw):
 
 	elif env['ARCHITECTURE'].startswith('hosted'):
 		env['HOSTED_DEVICE'] = device
-		env.Tool('hosted')
+		env.Tool('hosted-gcc')
 	elif env['ARCHITECTURE'] in ['arm7tdmi', 'cortex-m0', 'cortex-m3', 'cortex-m4', 'cortex-m4f']:
 		if env['ARCHITECTURE'] == 'cortex-m4f':
 			env['ARM_ARCH'] = 'cortex-m4'
@@ -369,20 +369,20 @@ def generate(env, **kw):
 		env['ARM_CLOCK'] = clock
 		
 		env.Tool('compiler/arm-none-eabi-gcc')
-		env.Tool('dfu_stm32_programmer')
+		env.Tool('interface/dfu_stm32_programmer')
 		
 		# load openocd tool if required
 		if parser.has_section('program'):
 			try:
 				if parser.get('program', 'tool') == 'openocd':
-					env.Tool('openocd')
+					env.Tool('interface/openocd')
 					env['OPENOCD_CONFIGFILE'] = parser.get('openocd', 'configfile')
 					env['OPENOCD_COMMANDS'] = parser.get('openocd', 'commands')
 				if parser.get('program', 'tool') == 'stlink':
-					env.Tool('stlink')
+					env.Tool('interface/stlink')
 				if parser.get('program', 'tool') == 'lpclink':
 					env['GDB_PORT'] = parser.get('debug', 'gdbport')
-					env.Tool('lpclink')
+					env.Tool('interface/lpclink')
 					#env['OPENOCD_CONFIGFILE'] = parser.get('openocd', 'configfile')
 					#env['OPENOCD_COMMANDS'] = parser.get('openocd', 'commands')
 			except configparser.ParserException as e:
@@ -392,7 +392,7 @@ def generate(env, **kw):
 			try:
 				if parser.get('debug', 'tool') == 'gdb':
 					env['GDB_PORT'] = parser.get('debug', 'gdbport')
-					env.Tool('gdb')
+					env.Tool('interface/gdb')
 			except configparser.ParserException as e:
 				env.Error("Error in Configuration: %s" % e)
 				Exit(1)			
@@ -401,8 +401,8 @@ def generate(env, **kw):
 		env['AVR32_CLOCK']  = clock
 		env['LIBS']         = ['']
 		env['LIBPATH']      = []
-		env.Tool('avr32')
-		env.Tool('dfu-programmer')
+		env.Tool('compiler/avr32-gcc')
+		env.Tool('interface/dfu-programmer')
 	else:
 		env.Error("xpcc Error: Unknown architecture '%s'!" % env['ARCHITECTURE'])
 		Exit(1)

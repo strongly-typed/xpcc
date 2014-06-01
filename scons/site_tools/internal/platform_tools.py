@@ -20,12 +20,12 @@ from SCons.Script import *
 import os
 from string import Template
 
-from configfile import Scanner # for header and source file endings
+from internal.configfile import Scanner # for header and source file endings
 
 # add device_file module from tools to path
 # this is apparently not pythonic, but I see no other way to do this
 # without polluting the site_tools directory or having duplicate code
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'tools', 'device_files'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tools', 'device_files'))
 from device import DeviceFile
 from device_identifier import DeviceIdentifier
 from driver import DriverFile

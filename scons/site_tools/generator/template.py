@@ -185,8 +185,6 @@ def in_include_scanner(node, env, path, arg=None):
 	return dependencies
 # -----------------------------------------------------------------------------
 def generate(env, **kw):
-	env["TEMPLATECOMSTR"] = "Template '$SOURCE' to '$TARGET'"
-
 	env.Append(
 		BUILDERS = {
 		'Template': env.Builder(

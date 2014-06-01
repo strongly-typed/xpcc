@@ -12,7 +12,7 @@ from SCons.Script import *
 # add python module from tools to path
 # this is apparently not pythonic, but I see no other way to do this
 # without polluting the site_tools directory or haveing duplicate code
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'tools', 'logger'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tools', 'logger'))
 from logger import Logger
 
 # -----------------------------------------------------------------------------
