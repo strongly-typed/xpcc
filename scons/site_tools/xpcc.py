@@ -318,7 +318,7 @@ def generate(env, **kw):
 		env['LIBS'] = ['']
 		env['LIBPATH'] = []
 
-		env.Tool('avr')
+		env.Tool('compiler/avr')
 
 		if parser.has_section('avrdude'):
 			env.Tool('avrdude')
@@ -368,7 +368,7 @@ def generate(env, **kw):
 		env['ARM_DEVICE'] = device
 		env['ARM_CLOCK'] = clock
 		
-		env.Tool('arm')
+		env.Tool('compiler/arm-none-eabi-gcc')
 		env.Tool('dfu_stm32_programmer')
 		
 		# load openocd tool if required
