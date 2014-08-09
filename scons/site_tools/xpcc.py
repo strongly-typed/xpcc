@@ -157,6 +157,7 @@ def xpcc_library(env, buildpath=None):
 def xpcc_communication_header(env, xmlfile, path='.'):
 	files  = env.SystemCppPackets(xmlfile, path=path)
 	files += env.SystemCppIdentifier(xmlfile, path=path)
+	files += env.SystemCppCommunication(xmlfile, path=path)
 	if 'communication' in env['XPCC_CONFIG']:
 		files += env.SystemCppPostman(
 				target='postman',
@@ -378,8 +379,10 @@ def generate(env, **kw):
 			try:
 				if parser.get('program', 'tool') == 'openocd':
 					env.Tool('openocd')
+					env.Tool('openocd_remote')
 					env['OPENOCD_CONFIGFILE'] = parser.get('openocd', 'configfile')
 					env['OPENOCD_COMMANDS'] = parser.get('openocd', 'commands')
+					env['OPENOCD_REMOTE_HOST'] = parser.get('openocd', 'remote_host', 'localhost')
 				if parser.get('program', 'tool') == 'stlink':
 					env.Tool('stlink')
 				if parser.get('program', 'tool') == 'lpclink':
@@ -417,7 +420,13 @@ def generate(env, **kw):
 		if key.upper() == "CPPPATH":
 			value = value.split(':')
 		env.Append(**{ key.upper(): value } )
-	
+
+	# append defines from user config
+	user_conf = {}
+	for key,value in configuration['defines'].items():
+		user_conf[key.upper()] = value
+	env.Append(CPPDEFINES = user_conf)
+
 	# These emitters are used to build everything not in place but in a
 	# separate build-directory.
 	def defaultEmitter(target, source, env):
