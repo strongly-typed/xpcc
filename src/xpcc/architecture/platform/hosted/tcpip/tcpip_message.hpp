@@ -47,8 +47,11 @@ namespace xpcc
 
 			enum class Type{
 				REGISTER,
+				UNREGISTER,
 				PING,
-				DATA
+				DATA,
+				ERROR,
+				SERVER_SHUTDOWN
 			};
 
 			//create REGISTER_MESSAGE

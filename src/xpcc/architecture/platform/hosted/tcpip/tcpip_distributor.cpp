@@ -38,7 +38,7 @@ xpcc::tcpip::Distributor::disconnect()
 void
 xpcc::tcpip::Distributor::sendMessage(boost::shared_ptr<xpcc::tcpip::Message> msg)
 {
-	boost::lock_guard<boost::mutex> lock(sendMutex);
+	//boost::lock_guard<boost::mutex> lock(sendMutex);
 	writingMessages = !messagesToBeSent.empty();
 	messagesToBeSent.push_back(msg);
     if (!writingMessages)
@@ -64,7 +64,7 @@ xpcc::tcpip::Distributor::sendHandler(const boost::system::error_code& error)
     if (!error)
     {
     	//Remove sent message
-    	boost::lock_guard<boost::mutex> lock(sendMutex);
+    	//boost::lock_guard<boost::mutex> lock(sendMutex);
     	messagesToBeSent.pop_front();
     	if (!messagesToBeSent.empty())
     	{

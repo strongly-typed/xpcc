@@ -6,13 +6,14 @@
 
 xpcc::tcpip::Server::Server(int port):
 	ioService(new boost::asio::io_service()),
-	work(new boost::asio::io_service::work(*ioService)),
-	ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
+	//work(new boost::asio::io_service::work(*ioService)),
+	//ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
 	endpoint(boost::asio::ip::tcp::v4(), port),
 	acceptor(*ioService, endpoint),
 	serverPort(port)
 {
 	spawnReceiveConnection();
+	ioService->run();
 }
 
 boost::shared_ptr< boost::asio::io_service >
@@ -43,7 +44,7 @@ xpcc::tcpip::Server::spawnSendThread(uint8_t componentId, std::string ip)
 {
 	boost::shared_ptr<xpcc::tcpip::Distributor> sender(
 			new xpcc::tcpip::Distributor(this, ip, componentId));
-	boost::lock_guard<boost::mutex> lock(distributorMutex);
+	//boost::lock_guard<boost::mutex> lock(distributorMutex);
 	this->distributorMap.emplace(componentId, sender);
 }
 
@@ -71,7 +72,7 @@ xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
 		//handle action
 
 		//check if destination is a registered component, else drop message
-		boost::lock_guard<boost::mutex> lock(distributorMutex);
+		//boost::lock_guard<boost::mutex> lock(distributorMutex);
 		if(this->distributorMap.find(destination)!= this->distributorMap.end())
 		{
 			this->distributorMap[destination]->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
@@ -89,7 +90,7 @@ xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
 	{
 		//handle event
 		//send message to all registered components
-		boost::lock_guard<boost::mutex> lock(distributorMutex);
+		//boost::lock_guard<boost::mutex> lock(distributorMutex);
 		for (auto& pair : this->distributorMap)
 		{
 			pair.second->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(

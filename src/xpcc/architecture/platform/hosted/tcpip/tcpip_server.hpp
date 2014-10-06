@@ -88,8 +88,8 @@ namespace xpcc
 					const boost::system::error_code& error);
 
 			boost::shared_ptr<boost::asio::io_service> ioService;
-			boost::shared_ptr<boost::asio::io_service::work> work;
-			boost::thread ioThread;
+			//boost::shared_ptr<boost::asio::io_service::work> work;
+			//boost::thread ioThread;
 
 			boost::asio::ip::tcp::endpoint endpoint;
 			boost::asio::ip::tcp::acceptor acceptor;
@@ -99,7 +99,7 @@ namespace xpcc
 
 
 			std::map<uint8_t, boost::shared_ptr<xpcc::tcpip::Distributor> > distributorMap;
-			boost::mutex distributorMutex;
+			//boost::mutex distributorMutex;
 		};
 	}
 }
