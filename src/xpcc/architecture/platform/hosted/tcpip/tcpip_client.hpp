@@ -68,13 +68,17 @@ namespace xpcc
 		{
 		public:
 
-			Client(std::string ip, int port);
+			Client();
 
 			//~Client();
 
 			int getServerPort() const;
 
-			void connect();
+			void connect(std::string ip, int port);
+
+			void disconnect();
+
+			bool isConnected();
 
 			void addComponent(uint8_t id);
 
@@ -98,9 +102,6 @@ namespace xpcc
 			//timer need to be checked continously
 			void update();
 
-			//close the tcpip connection
-			void disconnect();
-
 			//get pointer to the io_service of the client
 			boost::shared_ptr< boost::asio::io_service >
 			getIOService();
@@ -108,6 +109,8 @@ namespace xpcc
 		private:
 
 			void connect_handler(const boost::system::error_code& error);
+
+			void disconnect_handler(const boost::system::error_code& error);
 
 			void writeHandler(const boost::system::error_code& error);
 

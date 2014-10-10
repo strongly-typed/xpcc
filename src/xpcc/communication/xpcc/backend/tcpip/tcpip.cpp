@@ -30,14 +30,14 @@
 #include "tcpip.hpp"
 #include <xpcc/debug/logger.hpp>
 #include <xpcc/architecture/platform/hosted/tcpip/tcpip_message.hpp>
+#include <xpcc/processing/timeout.hpp>
 
 
 #undef  XPCC_LOG_LEVEL
 #define XPCC_LOG_LEVEL xpcc::log::WARNING
 
 // ----------------------------------------------------------------------------
-xpcc::TcpIpConnector::TcpIpConnector(std::string ip, int port):
-	client(ip, port)
+xpcc::TcpIpConnector::TcpIpConnector()
 {
 }
 
@@ -51,6 +51,29 @@ bool
 xpcc::TcpIpConnector::isPacketAvailable() const
 {
 	return this->client.isMessageAvailable();
+}
+
+// ----------------------------------------------------------------------------
+bool
+xpcc::TcpIpConnector::isConnected(){
+	return this->client.isConnected();
+}
+
+// ---------------------------------------------------------------------------
+bool
+xpcc::TcpIpConnector::connect(std::string ip, int port){
+	this->client.connect(ip, port);
+	xpcc::Timeout<unsigned int> timeout(1000);
+	while(!timeout.isExpired() && !this->isConnected()){
+		//wait blocking for connection
+	}
+	return this->isConnected();
+}
+
+// ----------------------------------------------------------------------------
+void
+xpcc::TcpIpConnector::disconnect(){
+
 }
 
 // ----------------------------------------------------------------------------

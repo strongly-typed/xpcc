@@ -32,11 +32,12 @@
 #define XPCC__TCPIP_HPP
 
 #include <xpcc/architecture/platform/hosted/tcpip/tcpip_client.hpp>
-
 #include <xpcc/container/smart_pointer.hpp>
 
 #include "../backend_interface.hpp"
+
 #include <list>
+#include <string>
 
 namespace xpcc
 {
@@ -53,9 +54,21 @@ namespace xpcc
     class TcpIpConnector : public BackendInterface
 	{
 	public :
-        TcpIpConnector(std::string ip, int port);
+        TcpIpConnector(/*std::string ip, int port*/);
 		
         ~TcpIpConnector();
+
+        /// check if a connection to the server has been established
+        bool
+        isConnected();
+
+        /// connect client to server
+        void
+        connect(std::string ip, int port);
+
+        /// disconnect
+        void
+        disconnect();
 		
 		/// Check if a new packet was received by the backend
 		virtual bool

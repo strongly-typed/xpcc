@@ -2,34 +2,53 @@
 
 #include <iostream>
 #include <sstream>
-#include <string>
+
 
 #include <boost/thread/locks.hpp>
 
-xpcc::tcpip::Client::Client(std::string ip, int port):
+xpcc::tcpip::Client::Client(/*std::string ip, int port*/):
 	connected(false),
 	writingMessages(false),
 	closeConnection(false),
 	ioService(new boost::asio::io_service()),
 	work(new boost::asio::io_service::work(*ioService)),
 	ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
-	serverPort(port)
+	serverPort(-1)
 {
-	boost::asio::ip::tcp::resolver resolver(*ioService);
-	//port required as string
-	std::stringstream portStream;
-	portStream<<port;
-	boost::asio::ip::tcp::resolver::query query(ip, portStream.str());
-	this->endpointIter = resolver.resolve(query);
+}
 
-	//this->serviceThread = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&boost::asio::io_service::run, ioService)));
+void
+xpcc::tcpip::Client::connect(std::string ip, int port){
+	if(!this->isConnected()){
+		this->serverPort = port;
+		boost::asio::ip::tcp::resolver resolver(*ioService);
+		//port required as string
+		std::stringstream portStream << port;
+		boost::asio::ip::tcp::resolver::query query(ip, portStream.str());
+		this->endpointIter = resolver.resolve(query);
 
-	this->sendSocket.reset(new boost::asio::ip::tcp::socket(*ioService));
+		//this->serviceThread = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&boost::asio::io_service::run, ioService)));
 
-	boost::asio::async_connect(*sendSocket, endpointIter,
-        boost::bind(&xpcc::tcpip::Client::connect_handler, this,
-          boost::asio::placeholders::error));
+		this->sendSocket.reset(new boost::asio::ip::tcp::socket(*ioService));
 
+		boost::asio::async_connect(*sendSocket, endpointIter,
+	        boost::bind(&xpcc::tcpip::Client::connect_handler, this,
+	          boost::asio::placeholders::error));
+	}
+	else{
+		XPCC_LOG_ERROR << "Client already connected. Unable to establish new connection to "<< ip<<":"<<port<<xpcc::endl;
+	}
+}
+
+
+void
+xpcc::tcpip::Client::disconnect(){
+
+}
+
+bool
+xpcc::tcpip::Client::isConnected(){
+	return this->connected;
 }
 
 int
@@ -74,7 +93,15 @@ xpcc::tcpip::Client::sendAlivePing(int identifier)
 void
 xpcc::tcpip::Client::connect_handler(const boost::system::error_code& error)
 {
-	//XPCC_LOG_DEBUG << "Client connected with error-code: "<< error.message() <<xpcc::endl;
+	this->connected = true;
+	this->writingMessages = true;
+	//XPCC_LOG_DEBUG << "Client connected with error-code: "<< error.value() <<xpcc::endl;
+
+}
+
+void
+xpcc::tcpip::Client::disconnect_handler(const boost::system::error_code& error){
+	this->connected = false;
 }
 
 //send a xpcc packet to the server
