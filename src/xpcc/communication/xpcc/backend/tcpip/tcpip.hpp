@@ -63,7 +63,7 @@ namespace xpcc
         isConnected();
 
         /// connect client to server
-        void
+        bool
         connect(std::string ip, int port);
 
         /// disconnect

@@ -6,7 +6,8 @@
 #include <xpcc/architecture/platform/hosted/tcpip/tcpip_server.hpp>
 #include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
 xpcc::tcpip::Server server(6666);
-xpcc::TcpIpConnector connector("127.0.0.1", 6666);
+xpcc::TcpIpConnector connector;
+connector.connect("127.0.0.1", 6666);
 #endif
 
 #ifdef USE_TIPC

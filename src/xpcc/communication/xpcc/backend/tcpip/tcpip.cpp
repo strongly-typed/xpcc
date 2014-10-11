@@ -63,7 +63,7 @@ xpcc::TcpIpConnector::isConnected(){
 bool
 xpcc::TcpIpConnector::connect(std::string ip, int port){
 	this->client.connect(ip, port);
-	xpcc::Timeout<unsigned int> timeout(1000);
+	xpcc::Timeout<> timeout(1000);
 	while(!timeout.isExpired() && !this->isConnected()){
 		//wait blocking for connection
 	}

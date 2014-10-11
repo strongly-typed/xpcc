@@ -23,7 +23,8 @@ xpcc::tcpip::Client::connect(std::string ip, int port){
 		this->serverPort = port;
 		boost::asio::ip::tcp::resolver resolver(*ioService);
 		//port required as string
-		std::stringstream portStream << port;
+		std::stringstream portStream;
+		portStream << port;
 		boost::asio::ip::tcp::resolver::query query(ip, portStream.str());
 		this->endpointIter = resolver.resolve(query);
 
@@ -36,7 +37,7 @@ xpcc::tcpip::Client::connect(std::string ip, int port){
 	          boost::asio::placeholders::error));
 	}
 	else{
-		XPCC_LOG_ERROR << "Client already connected. Unable to establish new connection to "<< ip<<":"<<port<<xpcc::endl;
+		XPCC_LOG_ERROR << "Client already connected. Unable to establish new connection to "<< ip.c_str()<<":"<<port<<xpcc::endl;
 	}
 }
 
