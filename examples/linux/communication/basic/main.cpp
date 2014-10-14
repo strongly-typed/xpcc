@@ -54,6 +54,6 @@ main(void)
 		component::receiver.update();
 		component::sender.update();
 		
-		xpcc::delay_us(100);
+		xpcc::delayMicroseconds(100);
 	}
 }
