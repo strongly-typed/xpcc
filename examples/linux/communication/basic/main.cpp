@@ -7,7 +7,6 @@
 #include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
 xpcc::tcpip::Server server(6666);
 xpcc::TcpIpConnector connector;
-connector.connect("127.0.0.1", 6666);
 #endif
 
 #ifdef USE_TIPC
@@ -41,6 +40,10 @@ namespace component
 int
 main(void)
 {
+#ifdef USE_TCPIP
+	connector.connect("127.0.0.1", 6666);
+#endif
+
 	connector.addReceiverId(robot::component::SENDER);
 	connector.addReceiverId(robot::component::RECEIVER);
 	
