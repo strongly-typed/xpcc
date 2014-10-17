@@ -32,8 +32,8 @@
 //-----------------------------------------------------------------------------
 //boost lib includes
 #include <boost/asio.hpp>
-//#include <boost/thread/mutex.hpp>
-//#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
 //-----------------------------------------------------------------------------
 //stl lib includes
@@ -93,7 +93,7 @@ namespace xpcc
 			boost::asio::ip::tcp::resolver::iterator endpointIter;
 			boost::shared_ptr<boost::asio::ip::tcp::socket> sendSocket;
 			std::list< boost::shared_ptr<xpcc::tcpip::Message> > messagesToBeSent;
-	    	//boost::mutex sendMutex;
+	    	boost::mutex sendMutex;
 
 		};
 	}
