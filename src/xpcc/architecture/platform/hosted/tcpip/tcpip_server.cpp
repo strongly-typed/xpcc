@@ -74,6 +74,7 @@ xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
 		boost::lock_guard<boost::mutex> lock(distributorMutex);
 		if(this->distributorMap.find(destination)!= this->distributorMap.end())
 		{
+
 			this->distributorMap[destination]->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
 					new xpcc::tcpip::Message(msg)));
 		}

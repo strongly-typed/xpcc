@@ -1,0 +1,53 @@
+# WARNING: This file is generated automatically, do not edit!
+
+# path to the xpcc root directory
+rootpath = '../../../..'
+
+env = Environment(tools = ['xpcc'], toolpath = [rootpath + '/scons/site_tools'])
+env.Append(CPPPATH = ['.'])
+
+# find all source files
+files = env.FindFiles('.')
+
+# default target is 'tipc'
+target = ARGUMENTS.get('target', 'tipc')
+if target == 'tipc':
+	env['XPCC_CONFIG']['defines']['USE_TIPC'] = '1'
+	print "Compiling for tipc"
+elif target == 'tcpip':
+	env['XPCC_CONFIG']['defines']['USE_TCPIP'] = '1'
+	print "Compile for tcpip"
+else:
+	print "Error: unknown target '%s'" % target
+	Exit(1)
+
+# build the xpcc library
+env.XpccLibrary()
+
+# generate communication stubs
+files.sources += env.XpccCommunication('communication.xml', path='communication')
+
+# build the program
+program = env.Program(target = env['XPCC_CONFIG']['general']['name'], source=files.sources)
+
+# create a file called 'defines.hpp' with all preprocessor defines if necessary
+env.Defines()
+
+env.Alias('size', env.Size(program))
+env.Alias('symbols', env.Symbols(program))
+env.Alias('defines', env.ShowDefines())
+
+if env.CheckArchitecture('hosted'):
+	env.Alias('build', program)
+	env.Alias('run', env.Run(program))
+	
+	env.Alias('all', ['build', 'run'])
+else:
+	hexfile = env.Hex(program)
+	env.Alias('program', env.Avrdude(hexfile))
+	
+	env.Alias('build', [hexfile, env.Listing(program)])
+	env.Alias('fuse', env.AvrdudeFuses())
+	env.Alias('all', ['build', 'size'])
+
+env.Default('all')

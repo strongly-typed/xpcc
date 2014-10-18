@@ -36,6 +36,7 @@ xpcc::tcpip::Receiver::run()
 void
 xpcc::tcpip::Receiver::readHeader()
 {
+
     boost::asio::async_read(socket,
         boost::asio::buffer(this->header, xpcc::tcpip::TCPHeader::headerSize()),
         boost::bind(
@@ -77,14 +78,14 @@ void
 xpcc::tcpip::Receiver::run()
 {
 	bool connection = false;
-	{
-		boost::lock_guard<boost::mutex> lock(this->connectedMutex);
-		connection=this->connected;
-	}
 
 	while(!connection)
 	{
 		boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+		{
+			boost::lock_guard<boost::mutex> lock(this->connectedMutex);
+			connection=this->connected;
+		}
 	}
 
 	this->readHeader();
