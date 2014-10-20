@@ -131,6 +131,8 @@ namespace xpcc
 			};
 
 			bool connected;
+			mutable boost::mutex connectedMutex;
+
 			bool writingMessages;
 			bool closeConnection;
 

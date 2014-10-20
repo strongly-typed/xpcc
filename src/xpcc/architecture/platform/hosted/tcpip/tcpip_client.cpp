@@ -49,6 +49,7 @@ xpcc::tcpip::Client::disconnect(){
 
 bool
 xpcc::tcpip::Client::isConnected(){
+	boost::lock_guard<boost::mutex> lock(this->connectedMutex);
 	return this->connected;
 }
 
@@ -94,14 +95,18 @@ xpcc::tcpip::Client::sendAlivePing(int identifier)
 void
 xpcc::tcpip::Client::connect_handler(const boost::system::error_code& error)
 {
-	this->connected = true;
-	this->writingMessages = true;
+	{
+		boost::lock_guard<boost::mutex> lock(this->connectedMutex);
+		this->connected = true;
+		this->writingMessages = true;
+	}
 	//XPCC_LOG_DEBUG << "Client connected with error-code: "<< error.value() <<xpcc::endl;
 
 }
 
 void
 xpcc::tcpip::Client::disconnect_handler(const boost::system::error_code& error){
+	boost::lock_guard<boost::mutex> lock(this->connectedMutex);
 	this->connected = false;
 }
 
