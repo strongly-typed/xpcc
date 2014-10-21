@@ -45,7 +45,7 @@ main(void)
 	XPCC_LOG_INFO << "Welcome to the communication test!" << xpcc::endl;
 
 #ifdef USE_TCPIP
-	connector.connect("127.0.0.1", 6666);
+	connector.connect("127.0.0.1", 7666);
 #endif
 
 	connector.addReceiverId(robot::component::RECEIVER);

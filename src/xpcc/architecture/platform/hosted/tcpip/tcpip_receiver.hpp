@@ -39,7 +39,6 @@
 
 #include <xpcc/architecture/platform/hosted/tcpip/tcpip_message.hpp>
 
-
 namespace xpcc{
 namespace tcpip{
 

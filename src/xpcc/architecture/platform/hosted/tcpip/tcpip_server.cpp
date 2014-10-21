@@ -66,6 +66,7 @@ void
 xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
 {
 	uint8_t destination = msg.getXpccHeader().destination;
+
 	if(destination != 0)
 	{
 		//handle action

@@ -43,6 +43,7 @@ xpcc::tcpip::Distributor::sendMessage(boost::shared_ptr<xpcc::tcpip::Message> ms
 	messagesToBeSent.push_back(msg);
     if (!writingMessages)
     {
+
     	messagesToBeSent.front()->encodeMessage();
     	boost::asio::async_write(*sendSocket,
     			boost::asio::buffer(messagesToBeSent.front()->getEncodedMessage(),

@@ -13,7 +13,7 @@ main(void)
 {
 	XPCC_LOG_INFO << "Welcome to the communication test!" << xpcc::endl; 
 	XPCC_LOG_INFO << "TCP/IP server"<< xpcc::endl;
-	xpcc::tcpip::Server server(6666);
+    xpcc::tcpip::Server server(7666);
 	while(true){
 		//prevent process from ending
 	}

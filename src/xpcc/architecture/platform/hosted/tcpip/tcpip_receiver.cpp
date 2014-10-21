@@ -2,6 +2,8 @@
 #include <xpcc/debug/logger.hpp>
 #include <xpcc/architecture/platform/hosted/tcpip/tcpip_client.hpp>
 
+#include <iostream>
+
 // set new log level
 #undef XPCC_LOG_LEVEL
 #define	XPCC_LOG_LEVEL xpcc::log::DEBUG
@@ -110,7 +112,9 @@ xpcc::tcpip::Receiver::readMessageHandler(const boost::system::error_code& error
 	if(!error)
 	{
 		xpcc::tcpip::TCPHeader* messageHeader = reinterpret_cast<xpcc::tcpip::TCPHeader*>(this->header);
-		SmartPointer payload(this->message);
+		SmartPointer payload(messageHeader->getDataSize());
+		memcpy(payload.getPointer(), this->message, messageHeader->getDataSize());
+
 		boost::shared_ptr<xpcc::tcpip::Message> message( new xpcc::tcpip::Message(messageHeader->getXpccHeader(), payload));
 		this->parent->receiveNewMessage(message);
 		if(!this->shutdown)

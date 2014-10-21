@@ -54,7 +54,10 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
 
     	if(header->isDataMessage())
     	{
-    		xpcc::tcpip::Message msg(header->getXpccHeader(), SmartPointer(this->message));
+    		SmartPointer payload(header->getDataSize());
+    		memcpy(payload.getPointer(), this->message, header->getDataSize());
+    		xpcc::tcpip::Message msg(header->getXpccHeader(), payload);
+
     		//evaluating data only required if Message is a data message
     		this->server->distributeDataMessage(msg);
     	}
