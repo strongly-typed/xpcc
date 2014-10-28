@@ -38,54 +38,57 @@
 
 #include "tcpip_message.hpp"
 
+namespace xpcc {
+namespace tcpip {
 
-namespace xpcc{
-namespace tcpip{
+class Server;
 
-	class Server;
+/**
+ * \brief a receiving connection for each container connected to the server,
+ * 		  may receive messages from different components
+ *
+ *  \author Thorsten Lajewski
+ */
 
-	/**
-	 * \brief a receiving connection for each container connected to the server,
-	 * 		  may receive messages from different components
- 	 *
- 	 *  \author Thorsten Lajewski
- 	 */
+class Connection: public boost::enable_shared_from_this<xpcc::tcpip::Connection> {
 
-    class Connection: public boost::enable_shared_from_this<xpcc::tcpip::Connection> {
+	public:
 
+		Connection(boost::shared_ptr<boost::asio::io_service> ioService,
+		        xpcc::tcpip::Server* server);
 
+		void start();
 
-    public:
+		boost::asio::ip::tcp::socket& getSocket();
 
-    	  Connection(boost::shared_ptr<boost::asio::io_service> ioService, xpcc::tcpip::Server* server);
+		void receiveMessage();
 
-    	  void start();
+		void sendMessage(boost::shared_ptr<xpcc::tcpip::Message> message);
 
-    	  boost::asio::ip::tcp::socket& getSocket();
+		bool isListening();
 
-    	  void receiveMessage();
+		typedef boost::shared_ptr<Connection> ConnectionPtr;
 
+	private:
 
-    	  typedef boost::shared_ptr<Connection> ConnectionPtr;
+		void handleReadHeader(const boost::system::error_code& error);
 
+		void handleReadBody(const boost::system::error_code& error);
 
-    private:
+		void handleSendMessage(const boost::system::error_code& error);
 
-    	  void handleReadHeader(const boost::system::error_code& error);
+		boost::asio::ip::tcp::socket socket;
 
-    	  void handleReadBody(const boost::system::error_code& error);
+		//pointer to parent server
+		xpcc::tcpip::Server* server;
+		bool listen;
 
-    	  boost::asio::ip::tcp::socket socket;
+		//storage for current received message
+		char header[xpcc::tcpip::TCPHeader::HSIZE];
+		char message[xpcc::tcpip::Message::MSIZE];
 
-    	  //pointer to parent server
-    	  xpcc::tcpip::Server* server;
-
-    	  //storage for current received message
-    	  char header[xpcc::tcpip::TCPHeader::HSIZE];
-    	  char message[xpcc::tcpip::Message::MSIZE];
-
-    };
-}}
+};
+}
+}
 #endif
-
 

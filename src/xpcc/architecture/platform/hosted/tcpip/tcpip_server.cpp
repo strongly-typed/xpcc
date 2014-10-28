@@ -65,6 +65,18 @@ xpcc::tcpip::Server::update()
 void
 xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
 {
+
+	//independent of destination distribute msg to all listening clients
+	for(std::list<boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = this->receiveConnections.begin();
+			iter!=this->receiveConnections.end(); iter++){
+		if((*iter)->isListening()){
+
+			(*iter)->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
+					new xpcc::tcpip::Message(msg)));
+
+		}
+	}
+
 	uint8_t destination = msg.getXpccHeader().destination;
 
 	if(destination != 0)

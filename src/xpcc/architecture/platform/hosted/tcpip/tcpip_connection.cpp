@@ -5,7 +5,8 @@
 
 xpcc::tcpip::Connection::Connection(boost::shared_ptr<boost::asio::io_service> ioService, xpcc::tcpip::Server* server):
     socket(*ioService),
-    server(server)
+    server(server),
+    listen(false)
 {
 
 }
@@ -52,22 +53,34 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
 
     	xpcc::tcpip::TCPHeader* header = reinterpret_cast<xpcc::tcpip::TCPHeader*>(this->header);
 
-    	if(header->isDataMessage())
-    	{
+    	xpcc::tcpip::TCPHeader::Type type = header->getMessageType();
+
+    	switch(type){
+
+    	case xpcc::tcpip::TCPHeader::Type::DATA:{
     		SmartPointer payload(header->getDataSize());
     		memcpy(payload.getPointer(), this->message, header->getDataSize());
     		xpcc::tcpip::Message msg(header->getXpccHeader(), payload);
 
     		//evaluating data only required if Message is a data message
     		this->server->distributeDataMessage(msg);
+    		break;
     	}
-    	else
-    	{
+
+    	case xpcc::tcpip::TCPHeader::Type::REGISTER:{
     		//message is a register message, spawn a new distributor thread
     		std::string ip = socket.remote_endpoint().address().to_string();
     		int componentId = header->getXpccHeader().source;
     		XPCC_LOG_DEBUG<<"Spawning sender for componentId "<< componentId << xpcc::endl;
     		this->server->spawnSendThread(componentId, ip);
+    		break;
+    	}
+
+    	case xpcc::tcpip::TCPHeader::Type::LISTEN:{
+    		//TODO send bool with listen messages in order to close listening connections.
+    		this->listen = true;
+    		break;
+    	}
     	}
 
         boost::asio::async_read(socket,
@@ -79,4 +92,20 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
     else{
     	//TODO error handling
     }
+}
+
+bool
+xpcc::tcpip::Connection::isListening(){
+	return this->listen;
+}
+
+
+void
+xpcc::tcpip::Connection::sendMessage(boost::shared_ptr<xpcc::tcpip::Message> message){
+	//TODO implementation
+}
+
+void
+xpcc::tcpip::Connection::handleSendMessage(const boost::system::error_code& error){
+	//TODO implementation
 }

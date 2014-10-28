@@ -26,7 +26,7 @@ xpcc::tcpip::TCPHeader::getXpccHeader()
 }
 
 xpcc::tcpip::TCPHeader::Type
-xpcc::tcpip::TCPHeader::getType() const
+xpcc::tcpip::TCPHeader::getMessageType() const
 {
 	return this->type;
 }
@@ -35,12 +35,6 @@ uint8_t
 xpcc::tcpip::TCPHeader::getDataSize() const
 {
 	return this->dataLength;
-}
-
-bool
-xpcc::tcpip::TCPHeader::isDataMessage() const
-{
-	return (this->getType() == TCPHeader::Type::DATA);
 }
 
 xpcc::tcpip::TCPHeader&

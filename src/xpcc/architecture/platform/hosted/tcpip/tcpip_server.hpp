@@ -41,66 +41,60 @@
 #include "tcpip_connection.hpp"
 #include "tcpip_message.hpp"
 
-namespace xpcc
-{
-	namespace tcpip
-	{
+namespace xpcc {
+namespace tcpip {
 
-	    /**
-	     *  This class handles the communication between all components via tcp /ip
-	     *  All clients register to on the server. The server keeps track of all alive
-	     *  client processes and distributes all messages according to the xpcc message
-	     *  header.
-	     *
-	     *  \author Thorsten Lajewski
-	     */
+/**
+ *  This class handles the communication between all components via tcp /ip
+ *  All clients register to on the server. The server keeps track of all alive
+ *  client components and distributes all messages according to the xpcc message
+ *  header.
+ *
+ *  \author Thorsten Lajewski
+ */
 
-		//forward declaration
-		class Distributor;
+//forward declaration
+class Distributor;
 
-		class Server
-		{
-		public:
-			Server(int port);
+class Server {
+	public:
+		Server(int port);
 
-			//~Server();
+		//~Server();
 
-			void spawnReceiveConnection();
+		void spawnReceiveConnection();
 
-			void spawnSendThread(uint8_t componentId, std::string ip);
+		void spawnSendThread(uint8_t componentId, std::string ip);
 
-			void  distributeDataMessage(xpcc::tcpip::Message msg);
+		void distributeDataMessage(xpcc::tcpip::Message msg);
 
-			void update();
+		void update();
 
-			boost::shared_ptr< boost::asio::io_service >
-			getIoService();
+		boost::shared_ptr<boost::asio::io_service>
+		getIoService();
 
-			inline int getPort() const
-			{
-				return serverPort;
-			}
+		inline int getPort() const {
+			return serverPort;
+		}
 
+	private:
 
-		private:
+		void accept_handler(boost::shared_ptr<xpcc::tcpip::Connection> receive,
+		        const boost::system::error_code& error);
 
-			void accept_handler(boost::shared_ptr<xpcc::tcpip::Connection> receive,
-					const boost::system::error_code& error);
+		boost::shared_ptr<boost::asio::io_service> ioService;
+		boost::shared_ptr<boost::asio::io_service::work> work;
+		boost::thread ioThread;
 
-			boost::shared_ptr<boost::asio::io_service> ioService;
-			boost::shared_ptr<boost::asio::io_service::work> work;
-			boost::thread ioThread;
+		boost::asio::ip::tcp::endpoint endpoint;
+		boost::asio::ip::tcp::acceptor acceptor;
 
-			boost::asio::ip::tcp::endpoint endpoint;
-			boost::asio::ip::tcp::acceptor acceptor;
+		int serverPort;
+		std::list<boost::shared_ptr<xpcc::tcpip::Connection> > receiveConnections;
 
-			int serverPort;
-			std::list<boost::shared_ptr<xpcc::tcpip::Connection> > receiveConnections;
-
-
-			std::map<uint8_t, boost::shared_ptr<xpcc::tcpip::Distributor> > distributorMap;
-			boost::mutex distributorMutex;
-		};
-	}
+		std::map<uint8_t, boost::shared_ptr<xpcc::tcpip::Distributor> > distributorMap;
+		boost::mutex distributorMutex;
+};
+}
 }
 #endif // XPCC_TCPIP__SERVER_HPP

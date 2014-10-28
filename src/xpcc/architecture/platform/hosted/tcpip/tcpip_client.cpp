@@ -12,8 +12,8 @@ xpcc::tcpip::Client::Client():
 	writingMessages(false),
 	closeConnection(false),
 	ioService(new boost::asio::io_service()),
-	connectionTimer(*ioService),
 	work(new boost::asio::io_service::work(*ioService)),
+	connectionTimer(*ioService),
 	ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
 	serverPort(-1)
 {
@@ -209,12 +209,16 @@ xpcc::tcpip::Client::deleteMessage()
 //register client to receive all messages (independent of running components in the process)
 void
 xpcc::tcpip::Client::listen(){
-	//TODO implementation Server side and client side needed
-	xpcc::Header header;
-	xpcc::SmartPointer payload(0);
+	if(this->isConnected())
+	{
+		xpcc::Header header;
+		xpcc::SmartPointer payload(0);
 
-	xpcc::tcpip::Message listenMsg(TCPHeader::Type::LISTEN, header, payload);
-	this->sendPacket(listenMsg);
+		boost::shared_ptr<xpcc::tcpip::Message> listenMsg(new xpcc::tcpip::Message(TCPHeader::Type::LISTEN, header, payload));
+		this->sendPacket(listenMsg);
+	}else{
+		XPCC_LOG_WARNING<< "Cannot listen, no connection to server"<<xpcc::endl;
+	}
 }
 
 boost::shared_ptr< boost::asio::io_service >

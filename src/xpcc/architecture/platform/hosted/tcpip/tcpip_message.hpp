@@ -61,7 +61,7 @@ namespace xpcc
 
 			TCPHeader(const Type type, const xpcc::Header& header, int dataSize);
 
-			bool isDataMessage() const;
+			Type getMessageType() const;
 
 			uint8_t getDataSize() const;
 
