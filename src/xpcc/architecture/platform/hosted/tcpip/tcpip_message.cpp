@@ -13,6 +13,12 @@ xpcc::tcpip::TCPHeader::TCPHeader(const xpcc::Header& header, const int dataSize
 
 }
 
+xpcc::tcpip::TCPHeader::TCPHeader(const Type type, const xpcc::Header& header, int dataSize):
+		type(type), header(header), dataLength(dataSize)
+{
+
+}
+
 xpcc::Header&
 xpcc::tcpip::TCPHeader::getXpccHeader()
 {
@@ -43,12 +49,17 @@ xpcc::tcpip::Message::getTCPHeader()
 	return this->header;
 }
 
-xpcc::tcpip::Message::Message(const xpcc::Header& header, const SmartPointer payload):
+xpcc::tcpip::Message::Message(const xpcc::Header& header, const SmartPointer& payload):
 		header(header, static_cast<int>(payload.getSize())), data(payload)
 {
 
 }
 
+xpcc::tcpip::Message::Message(TCPHeader::Type type, const xpcc::Header& header, const SmartPointer& payload):
+		header(type, header, payload.getSize()), data(payload)
+{
+
+}
 
 xpcc::tcpip::Message::Message(const uint8_t identifier):
 		header(identifier), data()

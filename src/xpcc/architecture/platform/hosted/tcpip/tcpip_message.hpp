@@ -47,8 +47,10 @@ namespace xpcc
 
 			enum class Type{
 				REGISTER,
+				LISTEN,
 				PING,
-				DATA
+				DATA,
+				ERROR
 			};
 
 			//create REGISTER_MESSAGE
@@ -56,6 +58,8 @@ namespace xpcc
 
 			//create Data Message
 			TCPHeader(const xpcc::Header& header, int dataSize);
+
+			TCPHeader(const Type type, const xpcc::Header& header, int dataSize);
 
 			bool isDataMessage() const;
 
@@ -89,13 +93,19 @@ namespace xpcc
 			static constexpr int SSIZE = TCPHeader::HSIZE + Message::MSIZE;
 
 			//this constructor generates a data message
-			Message(const xpcc::Header& header, const SmartPointer payload);
+			Message(const xpcc::Header& header, const SmartPointer& payload);
 
 			//copy constructor
 			Message(const Message& msg);
 
+			//this constructor generates a register mesage
 			Message(const uint8_t identifier);
 
+			///this constructor is for all other special message types
+			Message(TCPHeader::Type type, const xpcc::Header& header, const SmartPointer& payload);
+
+
+			//transforms the message in an char array
 			void encodeMessage();
 
 			const char* getEncodedMessage() const;

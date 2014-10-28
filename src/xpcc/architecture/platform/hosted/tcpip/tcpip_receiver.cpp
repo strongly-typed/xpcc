@@ -24,7 +24,6 @@ xpcc::tcpip::Receiver::Receiver(xpcc::tcpip::Client* parent, int componentId):
 }
 
 
-
 /*
 void
 xpcc::tcpip::Receiver::run()
@@ -33,7 +32,8 @@ xpcc::tcpip::Receiver::run()
 	{
 		XPCC_LOG_INFO<< "component "<<componentId << received Message <<xpcc::endl;
 	}
-} */
+}*/
+
 
 void
 xpcc::tcpip::Receiver::readHeader()

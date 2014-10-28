@@ -35,6 +35,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 //-----------------------------------------------------------------------------
 //stl lib includes
 #include <list>
@@ -76,6 +77,8 @@ namespace xpcc
 
 			void connect(std::string ip, int port);
 
+			bool isConnecting();
+
 			void disconnect();
 
 			bool isConnected();
@@ -102,6 +105,9 @@ namespace xpcc
 			//timer need to be checked continously
 			void update();
 
+			//register client to receive all messages (independent of running components in the process)
+			void listen();
+
 			//get pointer to the io_service of the client
 			boost::shared_ptr< boost::asio::io_service >
 			getIOService();
@@ -111,6 +117,8 @@ namespace xpcc
 			void connect_handler(const boost::system::error_code& error);
 
 			void disconnect_handler(const boost::system::error_code& error);
+
+			void connection_timeout_handler(const boost::system::error_code& error);
 
 			void writeHandler(const boost::system::error_code& error);
 
@@ -130,6 +138,9 @@ namespace xpcc
 
 			};
 
+			bool connecting;
+			mutable boost::mutex connectingMutex;
+
 			bool connected;
 			mutable boost::mutex connectedMutex;
 
@@ -139,6 +150,9 @@ namespace xpcc
 			boost::shared_ptr< boost::asio::io_service >  ioService;
 			boost::shared_ptr< boost::asio::io_service::work > work;
 			boost::thread ioThread;
+
+			//timeouts
+			boost::asio::deadline_timer connectionTimer;
 
 			//send connection to the server
 			int serverPort;

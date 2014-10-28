@@ -7,7 +7,7 @@
 
 #include <xpcc/communication.hpp>
 
-#include "component_receiver/receiver.hpp"
+#include "component_sender/sender.hpp"
 
 #include "packets.hpp"
 #include "identifier.hpp"
@@ -15,7 +15,7 @@
 
 namespace component
 {
-	extern Receiver	receiver;
+	extern Sender	sender;
 }
 
 // ----------------------------------------------------------------------------
@@ -30,18 +30,10 @@ Postman::deliverPacket(const xpcc::Header& header, const xpcc::SmartPointer& pay
 	
 	switch (header.destination)
 	{
-		case robot::component::RECEIVER:
+		case robot::component::SENDER:
 		{
 			switch (header.packetIdentifier)
 			{
-				case robot::action::SET_POSITION:
-					// void actionSetPosition(const xpcc::ResponseHandle& responseHandle, const robot::packet::Position *payload );
-					component::receiver.actionSetPosition(response, &payload.get<robot::packet::Position>());
-					return OK;
-				case robot::action::GET_POSITION:
-					// void actionGetPosition(const xpcc::ResponseHandle& responseHandle);
-					component::receiver.actionGetPosition(response);
-					return OK;
 				
 				default:
 					return NO_ACTION;
@@ -72,7 +64,7 @@ Postman::isComponentAvaliable(uint8_t component) const
 {
 	switch (component)
 	{
-		case robot::component::RECEIVER:
+		case robot::component::SENDER:
 			return true;
 			break;
 		

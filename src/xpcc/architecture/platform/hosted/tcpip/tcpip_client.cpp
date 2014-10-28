@@ -6,20 +6,30 @@
 
 #include <boost/thread/locks.hpp>
 
-xpcc::tcpip::Client::Client(/*std::string ip, int port*/):
+xpcc::tcpip::Client::Client():
+	connecting(false),
 	connected(false),
 	writingMessages(false),
 	closeConnection(false),
 	ioService(new boost::asio::io_service()),
+	connectionTimer(*ioService),
 	work(new boost::asio::io_service::work(*ioService)),
 	ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
 	serverPort(-1)
 {
+	connectionTimer.expires_at(boost::posix_time::pos_infin);
 }
 
 void
 xpcc::tcpip::Client::connect(std::string ip, int port){
-	if(!this->isConnected()){
+	if(!this->isConnected() && !this->isConnecting()){
+		{
+			boost::lock_guard<boost::mutex> lock(this->connectingMutex);
+			this->connecting = true;
+			this->connectionTimer.expires_from_now(boost::posix_time::seconds(10));
+			this->connectionTimer.async_wait(boost::bind(&xpcc::tcpip::Client::connection_timeout_handler,
+				this, boost::asio::placeholders::error));
+		}
 		this->serverPort = port;
 		boost::asio::ip::tcp::resolver resolver(*ioService);
 		//port required as string
@@ -92,13 +102,27 @@ xpcc::tcpip::Client::sendAlivePing(int identifier)
 
 }
 
+bool
+xpcc::tcpip::Client::isConnecting()
+{
+	boost::lock_guard<boost::mutex> lock(this->connectingMutex);
+	return this->connecting;
+}
+
 void
 xpcc::tcpip::Client::connect_handler(const boost::system::error_code& error)
 {
 	{
-		boost::lock_guard<boost::mutex> lock(this->connectedMutex);
-		this->connected = true;
-		this->writingMessages = true;
+		boost::lock_guard<boost::mutex> lock(this->connectingMutex);
+		this->connecting = false;
+		this->connectionTimer.cancel();
+	}
+	{
+		if(!error){
+			boost::lock_guard<boost::mutex> lock(this->connectedMutex);
+			this->connected = true;
+			this->writingMessages = true;
+		}
 	}
 	//XPCC_LOG_DEBUG << "Client connected with error-code: "<< error.value() <<xpcc::endl;
 
@@ -151,7 +175,7 @@ xpcc::tcpip::Client::writeHandler(const boost::system::error_code& error)
     }
 }
 
-//TODO make thread safe
+
 void
 xpcc::tcpip::Client::receiveNewMessage(boost::shared_ptr<xpcc::tcpip::Message> message)
 {
@@ -182,8 +206,37 @@ xpcc::tcpip::Client::deleteMessage()
 }
 
 
+//register client to receive all messages (independent of running components in the process)
+void
+xpcc::tcpip::Client::listen(){
+	//TODO implementation Server side and client side needed
+	xpcc::Header header;
+	xpcc::SmartPointer payload(0);
+
+	xpcc::tcpip::Message listenMsg(TCPHeader::Type::LISTEN, header, payload);
+	this->sendPacket(listenMsg);
+}
+
 boost::shared_ptr< boost::asio::io_service >
 xpcc::tcpip::Client::getIOService()
 {
 	return this->ioService;
+}
+
+
+void
+xpcc::tcpip::Client::connection_timeout_handler(const boost::system::error_code& error)
+{
+	//TODO error handling
+    if (error == boost::asio::error::operation_aborted) {
+        //timer was cancelled...
+    }
+    else if (error) {
+        XPCC_LOG_ERROR << "Timer error: " << error.message().c_str() << xpcc::endl;
+    }
+
+	{
+		boost::lock_guard<boost::mutex> lock(this->connectingMutex);
+		this->connecting = false;
+	}
 }
