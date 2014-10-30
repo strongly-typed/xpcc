@@ -124,6 +124,14 @@ namespace xpcc
 
 			void spawnReceiveThread(uint8_t id);
 
+	    	void readHeader();
+
+	    	void readMessage(const xpcc::tcpip::TCPHeader& header);
+
+	    	void readHeaderHandler(const boost::system::error_code& error);
+
+	    	void readMessageHandler(const boost::system::error_code& error);
+
 			void close();
 
 			struct ComponentInfo{
@@ -171,6 +179,11 @@ namespace xpcc
 			//list for available messages
 			std::list< boost::shared_ptr<xpcc::tcpip::Message> > receivedMessages;
 			mutable boost::mutex receiveMessagesMutex;
+
+			//temporary memory for receiving messages in the client-server connection
+			//storage for current received message
+			char header[xpcc::tcpip::TCPHeader::HSIZE];
+			char message[xpcc::tcpip::Message::MSIZE];
 
 		};
 	}

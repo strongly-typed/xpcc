@@ -23,18 +23,6 @@ xpcc::tcpip::Receiver::Receiver(xpcc::tcpip::Client* parent, int componentId):
 					 boost::asio::placeholders::error));
 }
 
-
-/*
-void
-xpcc::tcpip::Receiver::run()
-{
-	if(this->publishMessage())
-	{
-		XPCC_LOG_INFO<< "component "<<componentId << received Message <<xpcc::endl;
-	}
-}*/
-
-
 void
 xpcc::tcpip::Receiver::readHeader()
 {

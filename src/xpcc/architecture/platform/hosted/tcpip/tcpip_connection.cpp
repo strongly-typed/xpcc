@@ -81,6 +81,10 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
     		this->listen = true;
     		break;
     	}
+    	default:{
+    		//TODO handle other cases;
+    			break;
+    		}
     	}
 
         boost::asio::async_read(socket,
@@ -102,10 +106,38 @@ xpcc::tcpip::Connection::isListening(){
 
 void
 xpcc::tcpip::Connection::sendMessage(boost::shared_ptr<xpcc::tcpip::Message> message){
-	//TODO implementation
+	bool writingMessages = !messagesToBeSent.empty();
+	messagesToBeSent.push_back(message);
+    if (!writingMessages)
+    {
+
+    	messagesToBeSent.front()->encodeMessage();
+    	boost::asio::async_write(socket,
+    			boost::asio::buffer(messagesToBeSent.front()->getEncodedMessage(),
+    					messagesToBeSent.front()->getMessageLength()),
+    					boost::bind(&xpcc::tcpip::Connection::handleSendMessage, this,
+    							boost::asio::placeholders::error));
+    }
 }
 
 void
 xpcc::tcpip::Connection::handleSendMessage(const boost::system::error_code& error){
-	//TODO implementation
+    if (!error)
+    {
+    	//Remove sent message
+    	messagesToBeSent.pop_front();
+    	if (!messagesToBeSent.empty())
+    	{
+    		//Prepare next message
+    		messagesToBeSent.front()->encodeMessage();
+    		boost::asio::async_write(socket,
+    		        boost::asio::buffer(messagesToBeSent.front()->getEncodedMessage(),
+    		        messagesToBeSent.front()->getMessageLength()),
+    				boost::bind(&xpcc::tcpip::Connection::handleSendMessage, this,
+    				boost::asio::placeholders::error));
+      }
+    }
+    else{
+    	//TODO ERROR handler
+    }
 }

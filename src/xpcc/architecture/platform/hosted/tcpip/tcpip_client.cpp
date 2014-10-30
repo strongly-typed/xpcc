@@ -13,8 +13,8 @@ xpcc::tcpip::Client::Client():
 	closeConnection(false),
 	ioService(new boost::asio::io_service()),
 	work(new boost::asio::io_service::work(*ioService)),
-	connectionTimer(*ioService),
 	ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
+	connectionTimer(*ioService),
 	serverPort(-1)
 {
 	connectionTimer.expires_at(boost::posix_time::pos_infin);
@@ -116,12 +116,14 @@ xpcc::tcpip::Client::connect_handler(const boost::system::error_code& error)
 		boost::lock_guard<boost::mutex> lock(this->connectingMutex);
 		this->connecting = false;
 		this->connectionTimer.cancel();
+
 	}
 	{
 		if(!error){
 			boost::lock_guard<boost::mutex> lock(this->connectedMutex);
 			this->connected = true;
 			this->writingMessages = true;
+			this->readHeader();
 		}
 	}
 	//XPCC_LOG_DEBUG << "Client connected with error-code: "<< error.value() <<xpcc::endl;
@@ -242,5 +244,65 @@ xpcc::tcpip::Client::connection_timeout_handler(const boost::system::error_code&
 	{
 		boost::lock_guard<boost::mutex> lock(this->connectingMutex);
 		this->connecting = false;
+	}
+}
+
+void
+xpcc::tcpip::Client::readHeader()
+{
+
+    boost::asio::async_read(*sendSocket,
+        boost::asio::buffer(this->header, xpcc::tcpip::TCPHeader::headerSize()),
+        boost::bind(
+          &xpcc::tcpip::Client::readHeaderHandler, this,
+          boost::asio::placeholders::error));
+}
+
+void
+xpcc::tcpip::Client::readMessage(const xpcc::tcpip::TCPHeader& header)
+{
+
+	int dataSize = header.getDataSize();
+
+    boost::asio::async_read(*sendSocket,
+        boost::asio::buffer(this->message, dataSize),
+        boost::bind(
+          &xpcc::tcpip::Client::readMessageHandler, this,
+          boost::asio::placeholders::error));
+
+
+}
+
+void
+xpcc::tcpip::Client::readHeaderHandler(const boost::system::error_code& error)
+{
+	if(!error)
+	{
+		xpcc::tcpip::TCPHeader* messageHeader = reinterpret_cast<xpcc::tcpip::TCPHeader*>(this->header);
+		this->readMessage(*messageHeader);
+	}
+	else{
+		//TODO error handling
+	}
+}
+
+void
+xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
+{
+	if(!error)
+	{
+		xpcc::tcpip::TCPHeader* messageHeader = reinterpret_cast<xpcc::tcpip::TCPHeader*>(this->header);
+		SmartPointer payload(messageHeader->getDataSize());
+		memcpy(payload.getPointer(), this->message, messageHeader->getDataSize());
+
+		boost::shared_ptr<xpcc::tcpip::Message> message( new xpcc::tcpip::Message(messageHeader->getXpccHeader(), payload));
+		this->receiveNewMessage(message);
+		if(this->connected)
+		{
+			this->readHeader();
+		}
+	}
+	else{
+		//TODO error handling
 	}
 }

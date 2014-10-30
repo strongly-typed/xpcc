@@ -36,6 +36,8 @@
 
 #include <xpcc/debug/logger.hpp>
 
+#include <list>
+
 #include "tcpip_message.hpp"
 
 namespace xpcc {
@@ -86,6 +88,9 @@ class Connection: public boost::enable_shared_from_this<xpcc::tcpip::Connection>
 		//storage for current received message
 		char header[xpcc::tcpip::TCPHeader::HSIZE];
 		char message[xpcc::tcpip::Message::MSIZE];
+
+		//store for all messages which need to be sent
+		std::list< boost::shared_ptr<xpcc::tcpip::Message> > messagesToBeSent;
 
 };
 }

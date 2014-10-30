@@ -56,9 +56,9 @@ namespace tcpip{
 
     	Receiver(xpcc::tcpip::Client* parent, int componentId);
 
-    	void run();
-
     	void readMessage(const xpcc::tcpip::TCPHeader& header);
+
+    	void run();
 
     	//places the first received message in the client message list,
     	//where it's handled by the postman
@@ -91,7 +91,7 @@ namespace tcpip{
 		char message[xpcc::tcpip::Message::MSIZE];
 
 		//storage for last received messages
-		std::list<boost::shared_ptr<xpcc::tcpip::Message> > receivedMessages;
+		//std::list<boost::shared_ptr<xpcc::tcpip::Message> > receivedMessages;
 
 		bool connected;
 		boost::mutex connectedMutex;
