@@ -114,3 +114,8 @@ xpcc::tcpip::Receiver::readMessageHandler(const boost::system::error_code& error
 		//TODO error handling
 	}
 }
+
+int
+xpcc::tcpip::Receiver::getId(){
+	return this->componentId;
+}

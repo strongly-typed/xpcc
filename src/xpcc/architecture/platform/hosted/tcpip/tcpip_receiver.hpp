@@ -67,6 +67,8 @@ namespace tcpip{
     	//TODO make thread safe
     	bool publishMessage();
 
+    	int getId();
+
 
     private:
 

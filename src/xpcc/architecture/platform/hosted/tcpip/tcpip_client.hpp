@@ -134,6 +134,8 @@ namespace xpcc
 
 			void close();
 
+			bool registered(uint8_t componentId);
+
 			struct ComponentInfo{
 				ComponentInfo(uint8_t id):
 						identifier(id),

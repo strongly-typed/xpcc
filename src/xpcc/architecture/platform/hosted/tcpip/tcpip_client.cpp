@@ -296,7 +296,11 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 		memcpy(payload.getPointer(), this->message, messageHeader->getDataSize());
 
 		boost::shared_ptr<xpcc::tcpip::Message> message( new xpcc::tcpip::Message(messageHeader->getXpccHeader(), payload));
-		this->receiveNewMessage(message);
+		if(message->getTCPHeader().getMessageType() == xpcc::tcpip::TCPHeader::Type::DATA &&
+			!(message->getXpccHeader().destination == 0) && !this->registered(message->getXpccHeader().destination))
+		{
+			this->receiveNewMessage(message);
+		}
 		if(this->connected)
 		{
 			this->readHeader();
@@ -305,4 +309,16 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 	else{
 		//TODO error handling
 	}
+}
+
+
+bool
+xpcc::tcpip::Client::registered(uint8_t componentId){
+	for(std::list< boost::shared_ptr< xpcc::tcpip::Receiver> >::iterator iter = this->componentReceiver.begin();
+		iter != this->componentReceiver.end(); iter++){
+		if((*iter)->getId() == static_cast<int>(componentId)){
+			return true;
+		}
+	}
+	return false;
 }
