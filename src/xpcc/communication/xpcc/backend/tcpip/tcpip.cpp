@@ -70,6 +70,12 @@ xpcc::TcpIpConnector::connect(std::string ip, int port){
 	return this->isConnected();
 }
 
+//-----------------------------------------------------------------------------
+void
+xpcc::TcpIpConnector::listen(){
+	this->client.listen();
+}
+
 // ----------------------------------------------------------------------------
 void
 xpcc::TcpIpConnector::disconnect(){

@@ -63,6 +63,10 @@ namespace xpcc
         bool
         isConnected();
 
+        ///let process listen to all messages processed by the server
+        void
+        listen();
+
         /// connect client to server
         bool
         connect(std::string ip, int port);
