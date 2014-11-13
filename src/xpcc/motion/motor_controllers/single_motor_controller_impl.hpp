@@ -60,7 +60,7 @@ bool
 SingleMotorController<Motor>::isTargetPositionReached()
 {
 	if (controlMode == ControlMode::Position) {
-		return positionController.isTargetReached();
+		return state != State::Moving;
 	}
 	return false;
 //	return state != State::Moving; // TODO: should this be state == State::HoldingPosition?
