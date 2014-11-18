@@ -9,7 +9,7 @@
 
 #include "identifier.hpp"
 #include "packets.hpp"
-#include <xpcc/communication/xpcc/communicator.hpp>
+#include <xpcc/communication/communicator.hpp>
 
 namespace robot
 {
