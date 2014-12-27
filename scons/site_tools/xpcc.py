@@ -27,10 +27,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import sys
 import re
 import string
 import platform
 import configfile as configparser
+import textwrap
+import getpass, subprocess
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'tools', 'device_files'))
+from device_identifier import DeviceIdentifier
 
 from SCons.Script import *
 import SCons.Tool		# to get the SCons default tool search path
@@ -154,16 +160,18 @@ def xpcc_library(env, buildpath=None):
 
 	return library
 
-def xpcc_communication_header(env, xmlfile, path='.'):
-	files  = env.SystemCppPackets(xmlfile, path=path)
-	files += env.SystemCppIdentifier(xmlfile, path=path)
-	files += env.SystemCppCommunication(xmlfile, path=path)
+def xpcc_communication_header(env, xmlfile, path='.', dtdPath=None):
+	files  = env.SystemCppPackets(xmlfile, path=path, dtdPath=dtdPath)
+	files += env.SystemCppIdentifier(xmlfile, path=path, dtdPath=dtdPath)
+	files += env.SystemCppCommunication(xmlfile, path=path, dtdPath=dtdPath)
+	files += env.SystemCppXpccTaskCaller(xmlfile, path=path, dtdPath=dtdPath)
 	if 'communication' in env['XPCC_CONFIG']:
 		files += env.SystemCppPostman(
 				target='postman',
 				source=xmlfile,
 				container=env['XPCC_CONFIG']['communication']['container'],
-				path=path)
+				path=path,
+				dtdPath=dtdPath)
 
 	source = []
 	for file in files:
@@ -184,6 +192,68 @@ def generate_defines(env, filename='defines.hpp'):
 								  'templates/defines.hpp.in'),
 			substitutions = substitutions)
 	return file
+
+def c_string_literal(env, string):
+	"""
+		Escapes string and adds quotes.
+	"""
+	# Warning: Order Matters! Replace '\\' first!
+	e = [("\\", "\\\\"), ("\'", "\\\'"), ("\"", "\\\""), ("\t", "\\t"), ("\n", "\\n")]
+	for r in e:
+		string = string.replace(r[0], r[1])
+	return "\"" + string + "\""
+
+def define_header(env, defines, header, comment, template="define_template.hpp.in"):
+	"""
+		Shows Scons how to build a header file containing defines.
+		The headerfile will be created in the XPCC_BUILDPATH
+		and the XPCC_BUILDPATH will be added to the include
+		search path.
+		:param defines: dictionary containing key value pairs
+		:param header: name of the header, #include<${header}>
+		:param comment: say because of what this file was created
+	"""
+	include_guard = header.upper().replace('.', '_')
+	comment = textwrap.wrap(comment, 78-len("// "))
+	comment = "\n".join(["// " + c for c in comment])
+	#c = ""
+	#while len(comment) > 0:
+	#	c += "// " + comment[:70] + '\n'
+	#	comment = comment[70:]
+	define_list = ["#define %s %s" % (key.upper(), value) for key, value in defines.iteritems()]
+	file = env.Template(
+		target = os.path.join(env['XPCC_BUILDPATH'], header),
+		source = os.path.join(env['XPCC_ROOTPATH'], 'templates', template),
+		substitutions = {'defines':       '\n'.join(define_list),
+		                 'include_guard': include_guard,
+		                 'comment':       comment})
+	env.AppendUnique(CPPPATH = env['XPCC_BUILDPATH'])
+
+def build_info_header(env):
+	defines = {}
+	defines['XPCC_BUILD_PROJECT_NAME'] = env.CStringLiteral(env['XPCC_PROJECT_NAME'])
+	defines['XPCC_BUILD_MACHINE'] = env.CStringLiteral(platform.node())
+	defines['XPCC_BUILD_USER'] = env.CStringLiteral(getpass.getuser())
+	# Generate OS String
+	if platform.system() == 'Linux':
+		os = " ".join(platform.linux_distribution())
+	elif platform.system() == 'Windows':
+		os = " ".join(platform.win32_ver())
+	elif platform.system() == 'Darwin':
+		os = "Mac {0} ({2})".format(*platform.mac_ver())
+	else:
+		os = platform.system()
+	defines['XPCC_BUILD_OS'] = env.CStringLiteral(os)
+	# This contains the version of the compiler that is used to build the project
+	c = subprocess.check_output([env['CXX'], '--version']).split('\n', 1)[0]
+	m = re.match("(?P<name>[a-z\-\+]+)[a-zA-Z\(\) ]* (?P<version>\d+\.\d+\.\d+)", c)
+	if m: comp = "{0} {1}".format(m.group('name'), m.group('version'))
+	else: comp = c
+	defines['XPCC_BUILD_COMPILER'] = env.CStringLiteral(comp)
+	c = "Its content is created by a call to env.BuildInfoHeader() in your SConstruct file."
+	env.DefineHeader(defines=defines, header="xpcc_build_info.hpp", comment=c)
+
+#def get_compiler_version_string
 
 # -----------------------------------------------------------------------------
 def generate(env, **kw):
@@ -253,15 +323,18 @@ def generate(env, **kw):
 
 		hosted_device = {'Darwin': 'darwin', 'Linux': 'linux',
 						 'Windows': 'windows' }[platform.system()]
-		device = string.Template(device).safe_substitute({'hosted': hosted_device})
+		if device == 'hosted':
+			device = hosted_device
+		elif device.startswith('hosted/'):
+			device = device.replace('hosted/', '')
 
 		clock  = parser.get('build', 'clock', 'NaN')
 
-		architecture_derecated = parser.get('build', 'architecture', 'deprecated')
-		if architecture_derecated != "deprecated":
+		architecture_deprecated = parser.get('build', 'architecture', 'deprecated')
+		if architecture_deprecated != "deprecated":
 			env.Warn("Specifying architecture is deprecated and replaced by only the Device ID ('device=...'.")
 
-		projectName = parser.get('general', 'name')
+		env['XPCC_PROJECT_NAME'] = parser.get('general', 'name')
 
 		buildpath = env.get('buildpath')
 		# put together build path
@@ -273,6 +346,14 @@ def generate(env, **kw):
 			env['XPCC_USER_PARAMETERS'] = parser.items('parameters')
 		else:
 			env['XPCC_USER_PARAMETERS'] = []
+
+		# load modules if available
+		env['XPCC_ACTIVE_MODULES'] = []
+		if parser.has_section('modules'):
+			modules = parser.items('modules')
+			for m in modules:
+				if m[1].lower() == 'include':
+					env['XPCC_ACTIVE_MODULES'].append(m[0].lower())
 
 	except configparser.ParserException, msg:
 		env.Error("Error parsing file configuration file '%s':\n%s" % (configfile, str(msg)))
@@ -303,12 +384,14 @@ def generate(env, **kw):
 	# Will validate the env['XPCC_DEVICE'] and set env['ARCHITECTURE']
 	env.Tool('platform_tools')
 
+	env.Tool('git')
+
 	env.FindDeviceFile()
 
 	buildpath = string.Template(buildpath).safe_substitute({
 				'arch': env['ARCHITECTURE'],
 				'device': device,
-				'name': projectName,
+				'name': env['XPCC_PROJECT_NAME'],
 				'xpccpath': rootpath
 			})
 	buildpath = os.path.abspath(buildpath)
@@ -451,6 +534,9 @@ def generate(env, **kw):
 	env.AddMethod(xpcc_library, 'XpccLibrary')
 	env.AddMethod(xpcc_communication_header, 'XpccCommunication')
 	env.AddMethod(generate_defines, 'Defines')
+	env.AddMethod(c_string_literal, 'CStringLiteral')
+	env.AddMethod(define_header, 'DefineHeader')
+	env.AddMethod(build_info_header, 'BuildInfoHeader')
 
 def exists(env):
 	return True

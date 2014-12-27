@@ -1,6 +1,14 @@
+// coding: utf-8
+/* Copyright (c) 2014, Roboterclub Aachen e.V.
+ * All Rights Reserved.
+ *
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
+ */
+// ----------------------------------------------------------------------------
 
-#ifndef MAX7219MATRIX_HPP_
-#define MAX7219MATRIX_HPP_
+#ifndef XPCC_MAX7219_MATRIX_HPP
+#define XPCC_MAX7219_MATRIX_HPP
 
 #include <xpcc/ui/display/buffered_graphic_display.hpp>
 
@@ -15,6 +23,9 @@ namespace xpcc
  * @tparam	DRIVERS	Number of chips in daisy chain
  *
  * An arbitrary number of these chips can be daisy-chained
+ *
+ * @author	strongly-typed
+ * @ingroup	driver_display
  */
 template < typename SPI, typename CS, uint8_t MODULES = 1 >
 class Max7219
@@ -62,8 +73,8 @@ public:
         CS::reset();
         for (uint8_t ii = 0; ii < MODULES; ++ii)
         {
-			SPI::writeReadBlocking(col + 1);
-			SPI::writeReadBlocking(*data++);
+			SPI::transferBlocking(col + 1);
+			SPI::transferBlocking(*data++);
         }
         CS::set();
     }
@@ -103,8 +114,8 @@ private:
         // Write the command multiple times, for each MODULES
         for (uint8_t ii = 0; ii < MODULES; ++ii)
         {
-			SPI::writeReadBlocking(cmd);
-			SPI::writeReadBlocking(data);
+			SPI::transferBlocking(cmd);
+			SPI::transferBlocking(data);
         }
         CS::set();
     }
@@ -205,4 +216,4 @@ xpcc::Max7219matrix< SPI, CS, COLUMNS, ROWS >::update()
 	}
 }
 
-#endif /* MAX7219MATRIX_HPP_ */
+#endif	// XPCC_MAX7219_MATRIX_HPP

@@ -2,7 +2,7 @@
 #define XPCC__XILINX_SPARTAN_6
 
 #include <xpcc/architecture.hpp>
-#include <xpcc/architecture/peripheral/gpio.hpp>
+#include <xpcc/architecture/interface/gpio.hpp>
 #include "fpga_type.hpp"
 
 namespace xpcc
@@ -30,6 +30,7 @@ namespace xpcc
  *
  * Adapter between SPI flash and DataSource
  *
+ * @ingroup driver_other
  */
 template <	typename Cclk,			///< Clock output to FPGA
 			typename DataLow,		///< Data  output to FPGA, 8 bit parallel port

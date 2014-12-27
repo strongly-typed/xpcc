@@ -11,26 +11,17 @@
 #	error  "Don't include this file directly, use 'tmp102.hpp' instead!"
 #endif
 
-#include <xpcc/math/utils/endianess.hpp>
-
 // ----------------------------------------------------------------------------
 template < typename I2cMaster >
-xpcc::Tmp102<I2cMaster>::Tmp102(uint8_t* data, uint8_t address)
-:	i2cTask(I2cTask::Idle), i2cSuccess(0), data(data), config_msb(0),
-	config_lsb(0x80), updateTime(250), adapter(address, i2cTask, i2cSuccess)
+xpcc::Tmp102<I2cMaster>::Tmp102(Data &data, uint8_t address)
+:	data(data), config_msb(), config_lsb(Config2::ConversionRate4Hz), updateTime(250),
+	i2cTask(I2cTask::Idle), i2cSuccess(0), adapter(address, i2cTask, i2cSuccess)
 {
-}
-
-template < typename I2cMaster >
-uint8_t*
-xpcc::Tmp102<I2cMaster>::getData()
-{
-	return data;
 }
 
 template < typename I2cMaster >
 bool
-xpcc::Tmp102<I2cMaster>::update()
+xpcc::Tmp102<I2cMaster>::run()
 {
 	PT_BEGIN();
 
@@ -62,15 +53,11 @@ xpcc::Tmp102<I2cMaster>::ping(void *ctx)
 	CO_BEGIN(ctx);
 
 	CO_WAIT_UNTIL(adapter.configurePing() &&
-			(i2cTask = I2cTask::Ping, this->startTransaction(&adapter))
-	);
+			(i2cTask = I2cTask::Ping, this->startTransaction(&adapter)));
 
 	CO_WAIT_WHILE(i2cTask == I2cTask::Ping);
 
-	if (i2cSuccess == I2cTask::Ping)
-		CO_RETURN(true);
-
-	CO_END();
+	CO_END_RETURN(i2cSuccess == I2cTask::Ping);
 }
 
 // MARK: - tasks
@@ -87,16 +74,16 @@ xpcc::Tmp102<I2cMaster>::setUpdateRate(void *ctx, uint8_t rate)
 	if (rate == 0 || rate == 1 || rate == 4 || rate == 8)
 	{
 		// clear shutdown mode
-		config_msb &= ~CONFIGURATION_SHUTDOWN_MODE;
+		config_msb &= ~Config1::ShutdownMode;
 		// clear conversion rate bits
-		config_lsb &= ~CONFIGURATION_CONVERSION_RATE;
+		config_lsb &= ~Config2::ConversionRateMask;
 		// maps:
 		// 0 to 0b00
 		// 1 to 0b01
 		// 4 to 0b10
 		// 8 to 0b11
-		if (rate & 0b1001) config_lsb |= CONFIGURATION_CONVERSION_RATE_1HZ;
-		if (rate & 0b1100) config_lsb |= CONFIGURATION_CONVERSION_RATE_4HZ;
+		if (rate & 0b1001) config_lsb |= Config2::ConversionRate1Hz;
+		if (rate & 0b1100) config_lsb |= Config2::ConversionRate4Hz;
 		if ( CO_CALL(writeConfiguration(ctx, 3)) )
 		{
 			if (rate == 0) updateTime = 4000;
@@ -112,7 +99,7 @@ xpcc::Tmp102<I2cMaster>::setUpdateRate(void *ctx, uint8_t rate)
 
 	this->stop();
 
-	CO_END();
+	CO_END_RETURN(false);
 }
 
 // MARK: Extended mode
@@ -122,13 +109,10 @@ xpcc::Tmp102<I2cMaster>::enableExtendedMode(void *ctx, bool enable)
 {
 	CO_BEGIN(ctx);
 
-	if (enable)	config_lsb |=  CONFIGURATION_EXTENDED_MODE;
-	else		config_lsb &= ~CONFIGURATION_EXTENDED_MODE;
+	if (enable)	config_lsb |=  Config2::ExtendedMode;
+	else		config_lsb &= ~Config2::ExtendedMode;
 
-	if ( CO_CALL(writeConfiguration(ctx, 3)) )
-		CO_RETURN(true);
-
-	CO_END();
+	CO_END_RETURN_CALL(writeConfiguration(ctx, 3));
 }
 
 // MARK: Alert mode
@@ -138,21 +122,18 @@ xpcc::Tmp102<I2cMaster>::configureAlertMode(void *ctx, ThermostatMode mode, Aler
 {
 	CO_BEGIN(ctx);
 
-	if (static_cast<uint8_t>(mode))
-			config_msb |=  CONFIGURATION_THERMOSTAT_MODE;
-	else	config_msb &= ~CONFIGURATION_THERMOSTAT_MODE;
+	if (bool(mode))
+			config_msb |=  Config1::ThermostatMode;
+	else	config_msb &= ~Config1::ThermostatMode;
 
-	if (static_cast<uint8_t>(polarity))
-			config_msb |=  CONFIGURATION_POLARITY;
-	else	config_msb &= ~CONFIGURATION_POLARITY;
+	if (bool(polarity))
+			config_msb |=  Config1::Polarity;
+	else	config_msb &= ~Config1::Polarity;
 
-	config_msb &= ~CONFIGURATION_FAULT_QUEUE;
-	config_msb |= static_cast<uint8_t>(faults);
+	config_msb &= ~Config1::FaultQueueMask;
+	config_msb |= Config1(faults);
 
-	if ( CO_CALL(writeConfiguration(ctx, 2)) )
-		CO_RETURN(true);
-
-	CO_END();
+	CO_END_RETURN_CALL(writeConfiguration(ctx, 2));
 }
 
 // MARK: conversion
@@ -162,15 +143,15 @@ xpcc::Tmp102<I2cMaster>::startConversion(void *ctx)
 {
 	CO_BEGIN(ctx);
 
-	config_msb |= CONFIGURATION_ONE_SHOT;
+	config_msb |= Config1::OneShot;
 
 	if ( CO_CALL(writeConfiguration(ctx, 2)) )
 	{
-		config_msb &= ~CONFIGURATION_ONE_SHOT;
+		config_msb &= ~Config1::OneShot;
 		CO_RETURN(true);
 	}
 
-	CO_END();
+	CO_END_RETURN(false);
 }
 
 // MARK: read temperature
@@ -180,20 +161,13 @@ xpcc::Tmp102<I2cMaster>::readTemperature(void *ctx)
 {
 	CO_BEGIN(ctx);
 
-	CO_WAIT_UNTIL(
-			!adapter.isBusy() && (
-					buffer[0] = REGISTER_TEMPERATURE,
-					adapter.configureWriteRead(buffer, 1, data, 2) && this->startTransaction(&adapter) )
-	);
-
-	i2cTask = I2cTask::ReadTemperature;
+	buffer[0] = uint8_t(Register::Temperature);
+	CO_WAIT_UNTIL(adapter.configureWriteRead(buffer, 1, data.data, 2) &&
+			(i2cTask = I2cTask::ReadTemperature, this->startTransaction(&adapter)));
 
 	CO_WAIT_WHILE(i2cTask == I2cTask::ReadTemperature);
 
-	if (i2cSuccess == I2cTask::ReadTemperature)
-		CO_RETURN(true);
-
-	CO_END();
+	CO_END_RETURN(i2cSuccess == I2cTask::ReadTemperature);
 }
 
 // MARK: read temperature
@@ -203,25 +177,21 @@ xpcc::Tmp102<I2cMaster>::readComparatorMode(void *ctx, bool &result)
 {
 	CO_BEGIN(ctx);
 
-	CO_WAIT_UNTIL(
-			!adapter.isBusy() && (
-					buffer[0] = REGISTER_CONFIGURATION,
-					adapter.configureWriteRead(buffer, 1, buffer, 2) && this->startTransaction(&adapter) )
-	);
-
-	i2cTask = I2cTask::ReadAlert;
+	buffer[0] = i(Register::Configuration);
+	CO_WAIT_UNTIL(adapter.configureWriteRead(buffer, 1, buffer, 2) &&
+			(i2cTask = I2cTask::ReadAlert, this->startTransaction(&adapter)));
 
 	CO_WAIT_WHILE(i2cTask == I2cTask::ReadAlert);
 
 	if (i2cSuccess == I2cTask::ReadAlert)
 	{
-		config_msb = buffer[0] & ~CONFIGURATION_CONVERTER_RESOLUTION;
-		result = buffer[1] & CONFIGURATION_ALERT;
-		config_lsb = buffer[1] & ~CONFIGURATION_ALERT;
+		config_msb = Config1_t(buffer[0]) & ~Config1::ResolutionMask;
+		result =     Config2_t(buffer[1]) &  Config2::Alert;
+		config_lsb = Config2_t(buffer[1]) & ~Config2::Alert;
 		CO_RETURN(true);
 	}
 
-	CO_END();
+	CO_END_RETURN(false);
 }
 
 // MARK: configuration
@@ -231,22 +201,16 @@ xpcc::Tmp102<I2cMaster>::writeConfiguration(void *ctx, uint8_t length)
 {
 	CO_BEGIN(ctx);
 
-	CO_WAIT_UNTIL(
-			!adapter.isBusy() && (
-					buffer[0] = REGISTER_CONFIGURATION,
-					buffer[1] = config_msb,
-					buffer[2] = config_lsb,
-					adapter.configureWrite(buffer, length) && this->startTransaction(&adapter) )
-	);
+	buffer[0] = i(Register::Configuration);
+	buffer[1] = config_msb.value;
+	buffer[2] = config_lsb.value;
 
-	i2cTask = I2cTask::Configuration;
+	CO_WAIT_UNTIL(adapter.configureWrite(buffer, length) &&
+			(i2cTask = I2cTask::Configuration, this->startTransaction(&adapter)));
 
 	CO_WAIT_WHILE(i2cTask == I2cTask::Configuration);
 
-	if (i2cSuccess == I2cTask::Configuration)
-		CO_RETURN(true);
-
-	CO_END();
+	CO_END_RETURN(i2cSuccess == I2cTask::Configuration);
 }
 
 // MARK: configuration
@@ -258,39 +222,17 @@ xpcc::Tmp102<I2cMaster>::writeLimitRegister(void *ctx, Register reg, float tempe
 
 	{
 		int16_t temp = temperature * 16.f;
-		temp <<= (config_lsb & CONFIGURATION_EXTENDED_MODE) ? 3 : 4;
-		temp = xpcc::math::bigEndianToHost(static_cast<uint16_t>(temp));
+		temp <<= (config_lsb & Config2::ExtendedMode) ? 3 : 4;
 
-		buffer[2] = (temp >> 8);
-		buffer[1] = temp;
+		buffer[0] = i(reg);
+		buffer[1] = (temp >> 8);
+		buffer[2] = temp;
 	}
 
-	CO_WAIT_UNTIL(
-			!adapter.isBusy() && (
-					buffer[0] = reg,
-					adapter.configureWrite(buffer, 3) && this->startTransaction(&adapter) )
-	);
-
-	i2cTask = I2cTask::LimitRegister;
+	CO_WAIT_UNTIL(adapter.configureWrite(buffer, 3) &&
+			(i2cTask = I2cTask::LimitRegister, this->startTransaction(&adapter)));
 
 	CO_WAIT_WHILE(i2cTask == I2cTask::LimitRegister);
 
-	if (i2cSuccess == I2cTask::LimitRegister)
-		CO_RETURN(true);
-
-	CO_END();
-}
-
-// MARK: - utility
-template < typename I2cMaster >
-float
-xpcc::Tmp102<I2cMaster>::getTemperature()
-{
-	int16_t temp = static_cast<int16_t>(xpcc::math::bigEndianToHost(*reinterpret_cast<uint16_t*>(data)));
-	if (data[1] & 0x01)
-	{
-		// temperature extended mode
-		return (temp >> 3) / 16.f;
-	}
-	return (temp >> 4) / 16.f;
+	CO_END_RETURN(i2cSuccess == I2cTask::LimitRegister);
 }

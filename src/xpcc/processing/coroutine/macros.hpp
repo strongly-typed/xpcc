@@ -12,6 +12,20 @@
 
 #include <xpcc/utils/arithmetic_traits.hpp>
 
+/// @internal Required macro to set the same unique number twice
+/// @hideinitializer
+#define CO_INTERNAL_SET_CASE(counter) \
+			this->setCo((counter % 255) + 1); \
+		case ((counter % 255) + 1): ;
+
+/// @internal Internal macro for yield
+/// @hideinitializer
+#define CO_INTERNAL_SET_CASE_YIELD(counter) \
+			this->setCo((counter % 255) + 1); \
+			this->popCo(); \
+			return {xpcc::co::Running}; \
+		case ((counter % 255) + 1): ;
+
 /**
  * Declare start of a coroutine.
  * This will immidiately return if the nesting is too deep
@@ -22,26 +36,52 @@
  * @hideinitializer
  */
 #define CO_BEGIN(context) \
-	if (!this->nestingOkCo()) return {xpcc::co::NestingError, 0}; \
-	if (!this->beginCo(context)) return {xpcc::co::WrongContext, 0}; \
+	constexpr uint32_t coCounter = __COUNTER__; \
+	if (!this->nestingOkCo()) return {xpcc::co::NestingError}; \
+	if (!this->beginCo(context)) return {xpcc::co::WrongContext}; \
 	switch (this->pushCo()) { \
-		case CoStopped: \
-			this->setCo(__LINE__); \
-		case __LINE__: ;
+		case (::xpcc::co::Coroutine::CoStopped): \
+			CO_INTERNAL_SET_CASE(__COUNTER__);
 
 /**
- * End the coroutine.
+ * End the coroutine and return a result.
  *
- * @warning	Use at end of the `coroutine(ctx)` implementation!
+ * @warning	Use at end of the `coroutine(ctx)` implementation only!
+ * @ingroup	coroutine
+ * @hideinitializer
+ */
+#define CO_END_RETURN(result) \
+			CO_RETURN(result); \
+		default: \
+			this->popCo(); \
+			return {xpcc::co::WrongState}; \
+	} \
+	static_assert(__COUNTER__ - coCounter < 256, "You have too many states in this coroutine!");
+
+/**
+ * End the coroutine. You can use this to return `void`, or if the result does not matter.
+ *
+ * @warning	Use at end of the `coroutine(ctx)` implementation only!
  * @ingroup	coroutine
  * @hideinitializer
  */
 #define CO_END() \
-			this->stopCo(); \
+	CO_END_RETURN(0)
+
+/**
+ * End the coroutine by calling another coroutine and returning its result.
+ *
+ * @warning	Use at end of the `coroutine(ctx)` implementation only!
+ * @ingroup	coroutine
+ * @hideinitializer
+ */
+#define CO_END_RETURN_CALL(coroutine) \
+			CO_RETURN_CALL(coroutine); \
 		default: \
 			this->popCo(); \
-			if (this->isStoppedCo()) return {xpcc::co::Stop, 0}; else return {xpcc::co::WrongState, 0}; \
-	}
+			return {xpcc::co::WrongState}; \
+	} \
+	static_assert(__COUNTER__ - coCounter < 256, "You have too many states in this coroutine!");
 
 /**
  * Yield coroutine until next invocation.
@@ -50,10 +90,7 @@
  * @hideinitializer
  */
 #define CO_YIELD() \
-			this->setCo(__LINE__); \
-			this->popCo(); \
-			return {xpcc::co::Running, 0}; \
-		case __LINE__: ;
+			CO_INTERNAL_SET_CASE_YIELD(__COUNTER__)
 
 /**
  * Cause coroutine to wait **while** given `condition` is true.
@@ -62,11 +99,10 @@
  * @hideinitializer
  */
 #define CO_WAIT_WHILE(condition) \
-			this->setCo(__LINE__); \
-		case __LINE__: \
+			CO_INTERNAL_SET_CASE(__COUNTER__); \
 			if (condition) { \
 				this->popCo(); \
-				return {xpcc::co::Running, 0}; \
+				return {xpcc::co::Running}; \
 			} \
 
 /**
@@ -79,22 +115,55 @@
 	CO_WAIT_WHILE(!(condition))
 
 /**
- * Calls a coroutine and returns whether it completed successfully or not.
+ * Calls a coroutine and returns its result.
  *
  * @ingroup	coroutine
  * @hideinitializer
  */
 #define CO_CALL(coroutine) \
 	({ \
-			this->setCo(__LINE__); \
-		case __LINE__:\
+			CO_INTERNAL_SET_CASE(__COUNTER__); \
 			auto coResult = coroutine; \
 			if (coResult.state > xpcc::co::NestingError) { \
 				this->popCo(); \
-				return {xpcc::co::Running, 0}; \
+				return {xpcc::co::Running}; \
 			} \
 			coResult.result; \
 	})
+
+/**
+ * Calls a coroutine, busy-waits and returns its result.
+ *
+ * @warning	Use this with extreme caution, this can cause deadlocks!
+ * @ingroup	coroutine
+ * @hideinitializer
+ */
+#define CO_CALL_BLOCKING(coroutine) \
+	({ \
+			auto coResult = coroutine; \
+			while (coResult.state > xpcc::co::NestingError) \
+			{ coResult = coroutine; } \
+			coResult.result; \
+	})
+
+/**
+* Exits a coroutine and returns another coroutine's result.
+*
+* @ingroup	coroutine
+* @hideinitializer
+*/
+#define CO_RETURN_CALL(coroutine) \
+		{ \
+			CO_INTERNAL_SET_CASE(__COUNTER__); \
+			{ \
+				auto coResult = coroutine; \
+				if (coResult.state > xpcc::co::NestingError) { \
+					this->popCo(); \
+					return {xpcc::co::Running}; \
+				} \
+				CO_RETURN(coResult.result); \
+			} \
+		}
 
 /**
  * Stop and exit from coroutine.
@@ -106,7 +175,7 @@
 	{ \
 			this->stopCo(); \
 			this->popCo(); \
-			return {xpcc::co::Stop, result}; \
+			return {xpcc::co::Stop, (result)}; \
 	}
 
 #endif // XPCC_CO_MACROS_HPP

@@ -31,6 +31,7 @@
 import time
 import codecs		# utf-8 file support
 import sys
+import traceback
 import os
 import jinja2		# template engine
 import textwrap
@@ -50,11 +51,12 @@ class Builder(object):
 	Base class for any builder-class
 	
 	Attributes:
-	self.xmlpath	--	path to the xml-file
-	self.xmlfile	--	xml-filename
-	self.tree		--	evaluated xml tree, instance of Parser
-	self.time		--	string containing the current date and time
-	self.options	--	evaluated commandline arguments (see OptionParser)
+	self.xmlpath		--	path to the xml-file
+	self.xmlfile		--	xml-filename
+	self.tree			--	evaluated xml tree, instance of Parser
+	self.time			--	string containing the current date and time
+	self.options		--	evaluated commandline arguments (see OptionParser)
+	self.include_paths	--	paths that will be searched for include files
 	
 	To access the elements from the xml tree use for example:
 	self.tree.components
@@ -90,6 +92,18 @@ class Builder(object):
 				default = None,
 				help = "Template path [optional]")
 		
+		optparser.add_option(
+				"-d", "--dtdpath",
+				dest = "dtdPath",
+				default = None,
+				help = "DTD path [optional]")
+		
+		optparser.add_option(
+				"-I", "--include_path",
+				dest = "includePath",
+				default = None,
+				help = "Include Search Path [optional]")
+
 		self.setup(optparser)
 		
 		(self.options, args) = optparser.parse_args()
@@ -100,12 +114,22 @@ class Builder(object):
 		
 		self.xmlfile = args[0]
 		self.xmlpath = os.path.dirname(os.path.abspath(self.xmlfile))
-		
+
+		# convert include paths to absolute paths
+		self.include_paths = []
+		include_paths = self.options.includePath
+		if not isinstance(include_paths, list):
+			include_paths = [include_paths]
+		for path in include_paths:
+			if isinstance(path, str):
+				self.include_paths.append(os.path.abspath(path))
+
 		try:
 			parser = Parser()
-			parser.parse(self.xmlfile)
+			parser.parse(self.xmlfile, dtdPath=self.options.dtdPath, include_paths=self.include_paths)
 		except ParserException as e:
 			sys.stderr.write("Parsing Error: %s\n" % str(e))
+			print traceback.format_exc()
 			sys.exit(1)
 		
 		self.tree = parser.tree

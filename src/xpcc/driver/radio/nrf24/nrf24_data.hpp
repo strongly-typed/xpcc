@@ -10,6 +10,8 @@
 #ifndef XPCC__NRF24_DATA_HPP
 #define XPCC__NRF24_DATA_HPP
 
+#include <stdint.h>
+
 #include "nrf24_phy.hpp"
 #include "nrf24_config.hpp"
 
@@ -19,20 +21,25 @@ namespace xpcc
 namespace nrf24
 {
 
-typedef uint64_t 	BaseAddress;
-typedef uint8_t 	Address;
+/// @{
+/// @ingroup	nrf24
+typedef uint64_t    BaseAddress;
+typedef uint8_t     Address;
+/// @}
 
+/// @ingroup	nrf24
 enum class SendingState
 {
-	BUSY,
-	FINISHED_ACK,
-	FINISHED_NACK,
-	DONT_KNOW
+	Busy,
+	FinishedAck,
+	FinishedNack,
+	DontKnow,
+	Undefined
 };
 
-/*
- * Data structure that user uses to pass data to the data layer
- */
+/// @{
+/// @ingroup	nrf24
+/// Data structure that user uses to pass data to the data layer
 typedef struct packet_t
 {
 	Address     dest;
@@ -42,23 +49,20 @@ typedef struct packet_t
 } packet_t;
 
 
-/*
- * Header of frame_t
- */
+/// Header of frame_t
 typedef struct header_t
 {
-    uint8_t     src;
-    uint8_t     dest;
+	uint8_t     src;
+	uint8_t     dest;
 } header_t;
 
-/*
- * Data that will be sent over the air
- */
+/// Data that will be sent over the air
 typedef struct frame_t
 {
-    header_t    header;
-    uint8_t     data[30];   // max. possible payload size (32 byte) - 2 byte (src + dest)
+	header_t    header;
+	uint8_t     data[30];   // max. possible payload size (32 byte) - 2 byte (src + dest)
 } frame_t;
+/// @}
 
 }
 
@@ -74,10 +78,16 @@ typedef struct frame_t
  */
 
 
+/// @ingroup	nrf24
+/// @author		Daniel Krebs
 template<typename Nrf24Phy>
 class Nrf24Data
 {
 public:
+
+	/* typedef config layer for simplicity */
+	typedef xpcc::Nrf24Config<Nrf24Phy> ConfigLayer;
+
 
 	static void
 	initialize(BaseAddress base_address, Address own_address, Address broadcast_address = 0xFF);
@@ -98,6 +108,9 @@ public:
 	static bool
 	isPacketAvailable();
 
+	/** @brief Returns feedback for the last packet sent
+	 *
+	 */
 	static SendingState
 	getSendingFeedback();
 
@@ -138,21 +151,24 @@ private:
 	static inline uint64_t
 	assembleAddress(Address address);
 
+	static SendingState
+	updateSendingState();
+
 private:
 
 	/** @brief Base address of the network
 	 *
-	 *	 The first 3 byte will be truncated, so the address is actually 5 bytes
-	 *	 long. The last byte will be used to address individual modules or
-	 *	 connections between them respectively. Use different base address for
-	 *	 seperate networks, although it may impact performance seriously to run
-	 *	 overlapping networks.
+	 *   The first 3 byte will be truncated, so the address is actually 5 bytes
+	 *   long. The last byte will be used to address individual modules or
+	 *   connections between them respectively. Use different base address for
+	 *   seperate networks, although it may impact performance seriously to run
+	 *   overlapping networks.
 	 *
-	 *	 Format:
+	 *   Format:
 	 *
-	 *	 | dont'care | base address | address |
-	 *	 | ---------------------------------- |
-	 *	 |   3 byte  |    4 byte    |  1 byte |
+	 *   | dont'care | base address | address |
+	 *   | ---------------------------------- |
+	 *   |   3 byte  |    4 byte    |  1 byte |
 	 */
 	static BaseAddress baseAddress;
 
@@ -163,6 +179,9 @@ private:
 	static Address connections[3];
 
 	static frame_t assemblyFrame;
+
+	static SendingState state;
+
 };
 
 }

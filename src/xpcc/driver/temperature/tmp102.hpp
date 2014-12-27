@@ -10,38 +10,126 @@
 #ifndef XPCC_TMP102_HPP
 #define XPCC_TMP102_HPP
 
-#include <stdint.h>
-#include <xpcc/architecture/peripheral/i2c_device.hpp>
-#include <xpcc/architecture/peripheral/i2c_transaction.hpp>
+#include <xpcc/architecture/interface/register.hpp>
+#include <xpcc/architecture/interface/i2c_device.hpp>
 #include <xpcc/processing/protothread.hpp>
 #include <xpcc/processing/coroutine.hpp>
+#include <xpcc/math/utils/endianness.hpp>
 
 namespace xpcc
 {
 
+// forward declaration for friending with tmp102::Data
+template < class I2cMaster >
+class Tmp102;
+
 struct tmp102
 {
+protected:
+	enum class
+	Register : uint8_t
+	{
+		Configuration = 0x01,
+
+		Temperature = 0x00,
+		TemperatureLsb = 0x02,
+		TemperatureMsb = 0x03
+	};
+
+	enum class
+	Config1 : uint8_t
+	{
+		OneShot = 0x80,
+		ResolutionMask = 0x60,
+		FaultQueue1 = 0x00,
+		FaultQueue2 = 0x08,
+		FaultQueue4 = 0x10,
+		FaultQueue6 = 0x18,
+		FaultQueueMask = 0x18,
+		Polarity = 0x04,
+		ThermostatMode = 0x02,
+		ShutdownMode = 0x02,
+	};
+	REGISTER8(Config1);
+
+	enum class
+	Config2 : uint8_t
+	{
+		ExtendedMode = 0x10,
+		Alert = 0x20,
+		ConversionRate0_25Hz = 0x00,
+		ConversionRate1Hz = 0x40,
+		ConversionRate4Hz = 0x80,
+		ConversionRate8Hz = 0xc0,
+		ConversionRateMask = 0xc0,
+	};
+	REGISTER8(Config2);
+
+	REGISTER8_GROUP(Register,
+			Config1, Config2);
+
+	static constexpr uint8_t
+	i(Register reg) { return uint8_t(reg); }
+
+public:
 	enum class
 	ThermostatMode : uint8_t
 	{
 		Comparator = 0,
-		Interrupt = 0x02
+		Interrupt = Config1::ThermostatMode
 	};
 
 	enum class
 	AlertPolarity : uint8_t
 	{
 		ActiveLow = 0,
-		ActiveHigh = 0x04
+		ActiveHigh = Config1::Polarity
 	};
 
 	enum class
 	FaultQueue : uint8_t
 	{
-		Faults1 = 0,
-		Faults2 = 0x08,
-		Faults4 = 0x10,
-		Faults6 = 0x18,
+		Faults1 = Config1::FaultQueue1,
+		Faults2 = Config1::FaultQueue2,
+		Faults4 = Config1::FaultQueue4,
+		Faults6 = Config1::FaultQueue6
+	};
+
+	struct ATTRIBUTE_PACKED
+	Data
+	{
+		template < class I2cMaster >
+		friend class Tmp102;
+
+	public:
+		/// @return the temperature as a signed float in Celsius
+		float
+		getTemperature()
+		{
+			int16_t *rData = reinterpret_cast<int16_t*>(data);
+			int16_t temp = xpcc::fromBigEndian(*rData);
+			if (data[1] & 0x01)
+			{
+				// temperature extended mode
+				return temp / 128.f;
+			}
+			return temp / 256.f;
+		}
+
+		/// @return only the signed integer part of the temperature in Celsius
+		int16_t
+		getTemperatureInteger()
+		{
+			if (data[1] & 0x01)
+			{
+				// temperature extended mode
+				return int16_t((uint16_t(data[0]) << 1) | (data[1] >> 7));
+			}
+			return int16_t(data[0]);
+		}
+
+	private:
+		uint8_t data[2];
 	};
 };
 
@@ -60,63 +148,27 @@ struct tmp102
  *
  * @see <a href="http://www.ti.com/lit/ds/symlink/tmp102.pdf">Datasheet</a>
  *
- * @ingroup temperature
+ * @ingroup driver_temperature
  * @author	Niklas Hauser
  *
  * @tparam I2cMaster Asynchronous Interface
  */
 template < class I2cMaster >
 class Tmp102 :	public tmp102, public xpcc::I2cDevice< I2cMaster >,
-				private xpcc::pt::Protothread, public xpcc::co::NestedCoroutine<1>
+				protected xpcc::pt::Protothread, protected xpcc::co::NestedCoroutine<1>
 {
-private:
-	enum Register
-	{
-		REGISTER_TEMPERATURE = 0x00,
-		REGISTER_CONFIGURATION = 0x01,
-		REGISTER_LOW_TEMPERATURE = 0x02,
-		REGISTER_HIGH_TEMPERATURE = 0x03
-	};
-
-	enum Configuration
-	{// first byte
-		CONFIGURATION_SHUTDOWN_MODE = 0x01,
-		CONFIGURATION_THERMOSTAT_MODE = 0x02,
-		CONFIGURATION_POLARITY = 0x04,
-		CONFIGURATION_FAULT_QUEUE = 0x18,
-		CONFIGURATION_FAULT_QUEUE_1 = 0x00,
-		CONFIGURATION_FAULT_QUEUE_2 = 0x08,
-		CONFIGURATION_FAULT_QUEUE_4 = 0x10,
-		CONFIGURATION_FAULT_QUEUE_6 = 0x18,
-		CONFIGURATION_CONVERTER_RESOLUTION = 0x60,
-		CONFIGURATION_CONVERTER_RESOLUTION_12BIT = 0x60,
-		CONFIGURATION_ONE_SHOT = 0x80
-	};
-
-	enum ConfigurationExtended
-	{// second byte
-		CONFIGURATION_EXTENDED_MODE = 0x10,
-		CONFIGURATION_ALERT = 0x20,
-		CONFIGURATION_CONVERSION_RATE = 0xc0,
-		CONFIGURATION_CONVERSION_RATE_0_25HZ = 0x00,
-		CONFIGURATION_CONVERSION_RATE_1HZ = 0x40,
-		CONFIGURATION_CONVERSION_RATE_4HZ = 0x80,
-		CONFIGURATION_CONVERSION_RATE_8HZ = 0xc0
-	};
-
 public:
+	/// Constructor, requires a tmp102::Data object,
+	/// sets address to default of 0x48 (alternatives are 0x49, 0x4A and 0x4B)
 	/**
-	 * @param	data		pointer to a 2 uint8_t buffer
+	 * @param	data		the associated Data object
 	 * @param	address		Default address is 0x48 (alternatives are 0x49, 0x4A and 0x4B)
 	 */
-	Tmp102(uint8_t* data, uint8_t address=0x48);
+	Tmp102(Data &data, uint8_t address=0x48);
 
-	/// @return pointer to 8bit array containing temperature as big endian int16_t
-	ALWAYS_INLINE uint8_t*
-	getData();
-
-	bool
-	update();
+	void ALWAYS_INLINE
+	update()
+	{ run(); }
 
 	// MARK: - Tasks
 	/// pings the sensor
@@ -137,11 +189,11 @@ public:
 
 	xpcc::co::Result<bool> ALWAYS_INLINE
 	writeUpperLimit(void *ctx, float temperature)
-	{ return writeLimitRegister(ctx, REGISTER_HIGH_TEMPERATURE, temperature); }
+	{ return writeLimitRegister(ctx, Register::TemperatureMsb, temperature); }
 
-	xpcc::co::Result<bool>
+	xpcc::co::Result<bool> ALWAYS_INLINE
 	writeLowerLimit(void *ctx, float temperature)
-	{ return writeLimitRegister(ctx, REGISTER_LOW_TEMPERATURE, temperature); }
+	{ return writeLimitRegister(ctx, Register::TemperatureLsb, temperature); }
 
 	/// param[in]	result	contains comparator mode alert in the configured polarity
 	xpcc::co::Result<bool>
@@ -155,40 +207,39 @@ public:
 	xpcc::co::Result<bool>
 	readTemperature(void *ctx);
 
-	/// @return the temperature as a signed float in Celcius
-	float
-	getTemperature();
+public:
+	Data &data;
 
 private:
+	bool
+	run();
+
 	xpcc::co::Result<bool>
 	writeConfiguration(void *ctx, uint8_t length=3);
 
 	xpcc::co::Result<bool>
 	writeLimitRegister(void *ctx, Register reg, float temperature);
 
-	struct I2cTask
+	enum
+	I2cTask : uint8_t
 	{
-		enum
-		{
-			Idle = 0,
-			ReadTemperature,
-			StartConversion,
-			Configuration,
-			LimitRegister,
-			ReadAlert,
-			Ping
-		};
+		Idle = 0,
+		ReadTemperature,
+		StartConversion,
+		Configuration,
+		LimitRegister,
+		ReadAlert,
+		Ping
 	};
 
-	volatile uint8_t i2cTask;
-	volatile uint8_t i2cSuccess;
-	uint8_t* data;
 	uint8_t buffer[3];
-	uint8_t config_msb;
-	uint8_t config_lsb;
+	Config1_t config_msb;
+	Config2_t config_lsb;
 	xpcc::Timeout<> timeout;
 	uint16_t updateTime;
 
+	volatile uint8_t i2cTask;
+	volatile uint8_t i2cSuccess;
 	xpcc::I2cTagAdapter< xpcc::I2cWriteReadAdapter > adapter;
 };
 

@@ -1,51 +1,164 @@
 <img src="https://github.com/roboterclubaachen/xpcc/raw/master/doc/images/logo_xpcc.png" alt="xpcc logo" />
 
 
-Cross Platform Component Communication
-======================================
+xpcc microcontroller framework
+==============================
 
-The xpcc project consists of two main parts:
+The xpcc framework consists of powerful hardware abstraction layers for many
+different microcontrollers, a set of drivers for various external chips, 
+a communication library for transparent communication over CAN, TCP/IP and TIPC
+and a general purpose toolbox for building hardware orientated applications.
 
- * First part is the xpcc communication module, a packet oriented
-   communication protocol, enabling transparent communication between
-   components on different platforms (from PCs to small 8-bit
-   microcontrollers). It provides an interface to communicate via CAN,
-   TCP/IP or TIPC.
- * The second part is a ever growing universal but a bit robotic oriented
-   C++ library for microcontrollers.
+The main goal of xpcc is to provide a simple API for barebone microcontroller programming, 
+which is efficient enough to be deployed on a small ATtiny, yet powerful enough to make
+use of advanced capabilities found on the 32bit ARM Cortex-M.
 
-The primary aim has been the usage of this system in autonomous robots for
-the EUROBOT competition, but it can be used for many other purposes as well.
+Main Features
+-------------
+
+- efficient object-oriented C++ API:
+  - new- and delete-operators
+  - STL-containers
+  - IO-stream interface to hardware (console, RS232, CAN)
+- support of AVR and ARM Cortex-M based microcontrollers from Atmel and ST,
+- build system based on SCons and Jinja2 template engine,
+- cross platform peripheral interfaces (incl. bit banging):
+  - GPIO, 
+  - UART, I2C, SPI,
+  - CAN
+- write once, run anywhere external IC drivers using these interfaces,
+- Debug/Logging system,
+- lightweight, non-blocking workflow using timers and cooperative multitasking,
+- integration of RTOS (currently only FreeRTOS and boost::thread),
+- useful mathematical algorithms optimized for microcontrollers,
+- lightweight unit testing system (suitable for 8-bit microcontrollers),
+- graphical user interface for small screens.
 
 
 Get the Code
--------------------------------------------------------------------------------
+------------
+
+We recommend cloning the source code using Git:
 
     $ git clone git://github.com/roboterclubaachen/xpcc.git xpcc
     $ cd xpcc
 
+Use our virtual machine
+-----------------------
+
+We configured a [headless virtual machine][rca-vm] for VirtualBox, which is 
+managed using Vagrant and contains all software required for compiling xpcc.
+
+If you do not want to install the compiler and build system tools on you computer,
+or you run a OS for which these tools are not available (Windows), you can install
+[VirtualBox][] and [Vagrant][] instead and use the VM like this:
+
+    $ cd xpcc
+    $ vagrant up
+    $ vagrant ssh
+
+You may then compile examples or your own code using VBs shared folders:
+
+    $ cd /vagrant
+    $ cd examples/arduino_uno/basic/blink
+    $ scons
+
+If you want to program the examples onto hardware, don't forget to forward your USB
+port to the virtual machine in the "Ports" settings tab of your virtual machine in Virtualbox.
+Depending on your programmer, you might need to install the [Extension Pack](virtualbox).
+
+Once your programmer is connected to the virtual machine, you may simply program your board using:
+
+	$ scons program
 
 Documentation
--------------------------------------------------------------------------------
+-------------
 
-The main documentation is created from doxygen files in the doc-folder. It can
-be found [online here] (http://xpcc.kreatives-chaos.com/api/).
+The project homepage is located at [xpcc.io](http://develop.xpcc.io).
+
+Complete installation instructions for our build system and toolchains can [be found here](http://develop.xpcc.io/install.html).
+
+The API documentation is created from doxygen files in the doc-folder and can be found [online here](http://develop.xpcc.io/api/).
+For the stable master [have a look here](http://xpcc.kreatives-chaos.com/api/).
+
+If you want to have up-to-date documentation of the develop branch, execute `scons doc`
+in the xpcc root directory and the current development documentation will be available
+in `xpcc/doc/build/api/index.html`.
+
+Hardware support
+----------------
+
+While the xpcc API is designed to be extremely portable, we are only a small team of developers and
+therefore are limited in the amount of platforms we can support.
+
+Here is a list of supported **and tested** microcontrollers:
+
+- ATtiny44 family
+- ATtiny85 family
+- ATmega644 family
+- ATmega328p family (Arduino Uno)
+- ATmega1280 family (Arduino Mega)
+- STM32F407 family (STM32F4 Discovery Board)
+- STM32F303 family (STM32F3 Discovery Board)
+- LPC11C24 (LPCxpresso Board)
+
+Please see [our examples](https://github.com/roboterclubaachen/xpcc/tree/develop/examples) 
+for a complete list of tested projects.
+
+The following microcontrollers should be able to compile, but *have not been tested extensively* in hardware:
+
+- All AT90's
+- All ATtiny's
+- All ATmega's
+
+There are more platforms which we have prepared, but currently not finished support for (Xmega, STM32F{0,1,2}).
+A complete support list of tested and/or compilable and/or potentially portable microcontrollers is available in our
+[device file section](https://github.com/roboterclubaachen/xpcc/tree/develop/src/xpcc/architecture/platform/devices).
+
+Drop us an email, if you want to get your hands dirty and help us finish the support.
+
+
 
 Development Model
--------------------------------------------------------------------------------
+-----------------
 The new things we are working on are created on feature branches, and as
 soon as they compile, merged into the `develop` branch.
 We do annual releases on our `master` branch. They contain the code that has
 been tested on our robot for the past season.
+
 So if you want to have a somewhat stable and tested codebase and you are
 satisfied with the features it contains, we recommend you use one of our
 releases. On the other hand, if you want to use the most recent code
 (and don't mind us breaking APIs now and then), or if you want
 to develop for xpcc, you should use the `develop` branch.
 
+How can I contribute?
+---------------------
+
+Use the library and give us some feedback. That's the easiest way for you and
+the best way for us to see if something is unclear or missing.
+
+There is a low-traffic mailing list just waiting to answer your questions:
+[xpcc-dev](http://mailman.rwth-aachen.de/mailman/listinfo/xpcc-dev)
+
+If you need a specific feature just drop us a mail and we will look into it.
+
+If you want to contribute to the library be sure to read the developer section,
+to familiarize yourself with
+[the](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/coding_conventions.rst)
+[coding](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/coding_conventions.cpp)
+[convention](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/coding_conventions.hpp),
+[design decisions](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/design_decisions.rst)
+etc.
+The source code is freely available, so feel free to adapt it to your needs.
+The only thing we ask you to do is to contribute your changes back.
+That way everybody can profit from it.
+
+Have fun!
+
 
 Folder structure
--------------------------------------------------------------------------------
+----------------
 
 <dl>
 <dt>build</dt>
@@ -57,8 +170,8 @@ Folder structure
 <dt>doc</dt>
 <dd>
   Documentation, mainly the doxygen documentation. The online documentation
-  on http://xpcc.kreatives-chaos.com/api/ is build by running
-  'doxygen doxyfile' in this folder.
+  is build by running `doxygen doxyfile` in this folder or `scons doc` in 
+  the root folder.
 </dd>
 
 <dt>examples</dt>
@@ -77,7 +190,7 @@ Folder structure
 <dt>scons</dt>
 <dd>
   SCons tools (e.g. xpcc.py for the build process, avr.py for compiling for
-  AVR microcontrollers, arm.py for compiling for ARM7 and Cortex-M0/3/4, etc.)
+  AVR microcontrollers, arm.py for compiling for Cortex-M3/4, etc.)
   
   Look at the SConstruct files in the example folder and the online
   documentation to see how to use the provided scons tools.
@@ -109,27 +222,7 @@ Folder structure
 </dl>
 
 
-How can I contribute?
--------------------------------------------------------------------------------
 
-Use the library and give us some feedback. That's the easiest way for you and
-the best way for us to see if something is unclear or missing.
-
-There is a mailing list: [xpcc-dev](http://mailman.rwth-aachen.de/mailman/listinfo/xpcc-dev)
-
-If you need a specific feature just drop us a mail and we will look into it.
-But don't expect a quick response, we are always busy building robots ;-)
-
-If you want to change the library be sure to read the developer section, to
-familiarize yourself with
-[the](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/coding_conventions.rst)
-[coding](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/coding_conventions.cpp)
-[convention](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/coding_conventions.hpp),
-[design decisions](https://github.com/roboterclubaachen/xpcc-doc/blob/master/source/developer/design_decisions.rst)
-etc.
-The source code is freely available, so feel free to adapt it to your needs.
-The only thing we ask you to do is to contribute your changes back.
-That way everybody can profit from it.
-
-Have fun!
-
+[virtualbox]: https://www.virtualbox.org/wiki/Downloads
+[vagrant]: http://www.vagrantup.com/downloads.html
+[rca-vm]: https://github.com/roboterclubaachen/rca-vm

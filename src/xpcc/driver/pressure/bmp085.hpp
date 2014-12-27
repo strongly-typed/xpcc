@@ -1,219 +1,290 @@
 // coding: utf-8
-// ----------------------------------------------------------------------------
-/* Copyright (c) 2012, Roboterclub Aachen e.V.
- * All rights reserved.
+/* Copyright (c) 2014, Roboterclub Aachen e.V.
+ * All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Roboterclub Aachen e.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY ROBOTERCLUB AACHEN E.V. ''AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL ROBOTERCLUB AACHEN E.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
  */
 // ----------------------------------------------------------------------------
 
-#ifndef XPCC__BMP085_HPP
-#define XPCC__BMP085_HPP
+#ifndef XPCC_BMP085_HPP
+#define XPCC_BMP085_HPP
 
-#include <xpcc/architecture/peripheral/i2c_adapter.hpp>
+#include <xpcc/processing/protothread.hpp>
+#include <xpcc/processing/coroutine.hpp>
+#include <xpcc/architecture/interface/i2c_device.hpp>
 #include <xpcc/processing/timeout.hpp>
 
 namespace xpcc
 {
-	namespace bmp085
+
+template < typename I2cMaster >
+class Bmp085;
+
+struct bmp085
+{
+protected:
+	/// The addresses of the Configuration and Data Registers
+	enum class
+	Register : uint8_t
 	{
-		/// The addresses of the Configuration and Data Registers
-		enum Register
-		{
-			REGISTER_CHIP_ID = 0xD0,
-			REGISTER_VERSION = 0xD1,
-			REGISTER_CAL_AC1 = 0xAA,
-			REGISTER_CAL_AC2 = 0xAC,
-			REGISTER_CAL_AC3 = 0xAE,
-			REGISTER_CAL_AC4 = 0xB0,
-			REGISTER_CAL_AC5 = 0xB2,
-			REGISTER_CAL_AC6 = 0xB4,
-			REGISTER_CAL_B1 = 0xB6,
-			REGISTER_CAL_B2 = 0xB8,
-			REGISTER_CAL_MB = 0xBA,
-			REGISTER_CAL_MC = 0xBC,
-			REGISTER_CAL_MD = 0xBE,
-			REGISTER_CONTROL = 0xF4,
-			REGISTER_CONVERSION_MSB = 0xF6,
-			REGISTER_CONVERSION_LSB = 0xF7,
-			REGISTER_CONVERSION_XLSB = 0xF8,
-		};
-		
-		/// The options of REGISTER_CHIP_ID
-		enum ChipId {
-			CHIP_ID = 0x55
-		};
-		/// The options of REGISTER_CONTROL
-		enum Control {
-			CONVERSION = 0x3F,
-			CONVERSION_TEMPERATURE = 0x2E,
-			CONVERSION_PRESSURE = 0x34
-		};
-		enum Mode {
-			MODE = (0x03 << 6),
-			MODE_ULTRA_LOW_POWER = (0x00 << 6),
-			MODE_STANDARD = (0x01 << 6),
-			MODE_HIGH_RESOLUTION = (0x02 << 6),
-			MODE_ULTRA_HIGH_RESOLUTION = (0x03 << 6),
-		};
-	}
-	
-	/**
-	 * \brief BMP085 digital absolute pressure sensor driver
-	 *
-	 * The BMP085 is a high precision digital pressure sensor with I2C interface.
-	 * Unfortunately this sensor is so sensitive, it will give you wrong results
-	 * when there is traffic on the I2C during either temperature or pressure
-	 * conversion. So during that time make sure no other sensors on the bus
-	 * are read out.
-	 *
-	 * For further information, consult the
-	 * <a href="http://www.bosch-sensortec.com/content/language1/downloads/BST-BMP085-DS000-06.pdf">
-	 * datasheet</a>.
-	 *
-	 * \author	Niklas Hauser
-	 * \ingroup pressure
-	 *
-	 * \tparam I2cMaster I2C interface
-	 */
-	template < typename I2cMaster >
-	class Bmp085 : protected xpcc::I2cWriteReadAdapter
-	{
-	public:
-		/**
-		 * \param	data		pointer to buffer of 5 bytes
-		 * \param	address		address defaults to 0x77
-		 */
-		Bmp085(uint8_t* data, uint8_t address=0x77);
-		
-		/// Configures the sensor and reads out and stores the calibration bytes
-		bool
-		configure(bmp085::Mode mode=bmp085::MODE_STANDARD);
-		
-		/// starts a temperature conversion which lasts 4.5ms
-		ALWAYS_INLINE void
-		startTemperatureMeasurement();
-		
-		/// read the result registers and buffers the results
-		ALWAYS_INLINE void
-		readTemperature();
-		
-		/// starts a pressure conversion which lasts from 4.5ms to 25.5ms
-		ALWAYS_INLINE void
-		startPressureMeasurement();
-		
-		/// read the result registers and buffers the results
-		ALWAYS_INLINE void
-		readPressure();
-		
-		/// starts all conversions and readouts in the right sequence using the right timing
-		ALWAYS_INLINE void
-		startReadoutSequence();
-		
-		/// \return pointer to 8bit array containing tp temperature and pressure
-		inline uint8_t*
-		getData();
-		
-		/// \return pointer to 8bit array containing calibration data
-		ALWAYS_INLINE uint16_t*
-		getCalibrationData();
-		
-		/**
-		 * \c true, when new pressure data has been from the sensor and buffered,
-		 * \c false, when the data has been accessed, or data is being 
-		 * copied into the buffer.
-		 */
-		ALWAYS_INLINE bool
-		isNewDataAvailable();
-		
-		int16_t*
-		getCalibratedTemperature();
-		
-		int32_t*
-		getCalibratedPressure();
-		
-		/// Must be called periodically
-		void
-		update();
-		
-	private:
-		xpcc::Timeout<> timeout;
-		
-		enum Running {
-			NOTHING_RUNNING,
-			START_TEMPERATURE_RUNNING,
-			READ_TEMPERATURE_RUNNING,
-			START_PRESSURE_RUNNING,
-			READ_PRESSURE_RUNNING,
-		};
-		enum Status {
-			START_TEMPERATURE_PENDING = 0x01,
-			READ_TEMPERATURE_PENDING = 0x02,
-			START_PRESSURE_PENDING = 0x04,
-			READ_PRESSURE_PENDING = 0x08,
-			
-			NEW_CALIBRATION_DATA = 0x10,
-			NEW_TEMPERATURE_DATA = 0x20,
-			NEW_PRESSURE_DATA = 0x40,
-			READOUT_SEQUENCE = 0x80,
-		};
-		enum Calculation {
-			TEMPERATURE_NEEDS_UPDATE = 0x01,
-			PRESSURE_NEEDS_UPDATE = 0x02,
-		};
-		
-		bmp085::Mode config;
-		Running running;
-		uint8_t status;
-		uint8_t calculation;
-		uint8_t* data;
-		uint8_t buffer[3];
-		
-		struct Calibration
-		{
-			int16_t ac1;
-			int16_t ac2;
-			int16_t ac3;
-			uint16_t ac4;
-			uint16_t ac5;
-			uint16_t ac6;
-			
-			int16_t b1;
-			int16_t b2;
-			
-			int16_t mb;
-			int16_t mc;
-			int16_t md;
-		} calibration;
-		
-		int16_t calibratedTemperature;
-		int32_t calibratedPressure;
-		// calculated in getTemperature, needed for getPressure
-		int32_t b5;
+		CHIP_ID = 0xD0,
+		VERSION = 0xD1,
+		CAL_AC1 = 0xAA,
+		CAL_AC2 = 0xAC,
+		CAL_AC3 = 0xAE,
+		CAL_AC4 = 0xB0,
+		CAL_AC5 = 0xB2,
+		CAL_AC6 = 0xB4,
+		CAL_B1 = 0xB6,
+		CAL_B2 = 0xB8,
+		CAL_MB = 0xBA,
+		CAL_MC = 0xBC,
+		CAL_MD = 0xBE,
+		CONTROL = 0xF4,
+		MSB = 0xF6,
+		LSB = 0xF7,
+		XLSB = 0xF8,
 	};
-}
+
+	/// The options of REGISTER_CHIP_ID
+	enum ChipId
+	{
+		CHIP_ID = 0x55
+	};
+
+	/// The options of REGISTER_CONTROL
+	enum class
+	Conversion : uint8_t
+	{
+		Temperature = 0x2E,
+		Pressure = 0x34,
+	};
+
+public:
+	enum class
+	Mode : uint8_t
+	{
+		Mask = (0x03 << 6),
+		UltraLowPower = (0x00 << 6),
+		Standard = (0x01 << 6),
+		HighResolution = (0x02 << 6),
+		UltraHighResolution = (0x03 << 6),
+	};
+
+	/**
+	 * Hold the calibration data from the sensor.
+	 * Values are used for calculation of calibrated
+	 * sensor values from raw sensor data
+	 */
+	struct ATTRIBUTE_PACKED
+	Calibration
+	{
+		int16_t  ac1;
+		int16_t  ac2;
+		int16_t  ac3;
+		uint16_t ac4;
+		uint16_t ac5;
+		uint16_t ac6;
+
+		int16_t  b1;
+		int16_t  b2;
+
+		int16_t  mb;
+		int16_t  mc;
+		int16_t  md;
+	};
+
+	struct ATTRIBUTE_PACKED
+	Data
+	{
+		template < typename I2cMaster >
+		friend class Bmp085;
+
+		// DATA ACCESS
+		inline Calibration &
+		getCalibration()
+		{
+			return calibration;
+		}
+
+		/**
+		 * Get the calibrated temperature for the device in 0.1 degree Celsius
+		 *
+		 * If recalculation is necessary it is done on the fly.
+		 * No I2C transaction.
+		 */
+		int16_t inline
+		getTemperature()
+		{
+			if (!(meta & TEMPERATURE_CALCULATED)) {
+				calculateCalibratedTemperature();
+			}
+			return calibratedTemperature;
+		}
+
+		/**
+		 * Get the calibrated pressure from the device in Pascal.
+		 *
+		 * If recalculation is necessary it is done on the fly.
+		 * No I2C transaction.
+		 */
+		int32_t inline
+		getPressure()
+		{
+			if (!(meta & PRESSURE_CALCULATED)) {
+				calculateCalibratedPressure();
+			}
+			return calibratedPressure;
+		}
+
+	private:
+		/**
+		 * Use the calibration data read from the sensor to
+		 * calculate the calibrated temperature from the
+		 * raw data.
+		 * The result is stored in this struct for further
+		 * access.
+		 */
+		void inline
+		calculateCalibratedTemperature();
+
+		/**
+		 * See calculateCalibratedTemperature()
+		 */
+		void inline
+		calculateCalibratedPressure();
+
+		// the order of these private variable is optimized for alignment of 4
+		Calibration calibration;
+
+		int16_t calibratedTemperature; // in 0.1 degree Celsius
+		int32_t calibratedPressure;    // in Pa
+
+		int32_t b5; // calculated in calculateCalibratedTemperature, needed for calculateCalibratedPressure
+
+		/// The raw data that was read from the sensor
+		/// 0 .. 1 temperature data
+		/// 2 .. 4 pressure data
+		uint8_t raw[5];
+
+		// bit 7-6: The mode in which the sensor operates
+		// bit 1: temperatureCalculated
+		// bit 0: pressureCalculated
+		uint8_t meta;
+
+		enum
+		{
+			/// Remember if the raw data was already converted to calibrated temperature
+			TEMPERATURE_CALCULATED = Bit1,
+			/// Remember if the raw data was already converted to calibrated pressure
+			PRESSURE_CALCULATED = Bit0,
+		};
+	};
+
+protected:
+	/// @cond
+	static constexpr uint8_t
+	i(Mode mode) { return uint8_t(mode); }
+	static constexpr uint8_t
+	i(Conversion conv) { return uint8_t(conv); }
+	static constexpr uint8_t
+	i(Register reg) { return uint8_t(reg); }
+	/// @endcond
+};
+
+/**
+ * BMP085 digital absolute pressure sensor driver
+ *
+ * The BMP085 is a high precision digital pressure sensor with I2C interface.
+ * Unfortunately this sensor is so sensitive, it will give you wrong results
+ * when there is traffic on the I2C during either temperature or pressure
+ * conversion. So during that time make sure no other sensors on the bus
+ * are read out.
+ *
+ * For further information, consult the
+ * <a href="http://www.bosch-sensortec.com/content/language1/downloads/BST-BMP085-DS000-06.pdf">
+ * datasheet</a>.
+ *
+ * Also compatible to and tested with BMP180.
+ *
+ * @author	Niklas Hauser
+ * @author  strongly-typed
+ * @ingroup driver_pressure
+ *
+ * @tparam I2cMaster I2C interface
+ */
+template < typename I2cMaster >
+class Bmp085 : public bmp085, public xpcc::I2cDevice<I2cMaster>,
+			   protected xpcc::co::Coroutine
+{
+public:
+	/**
+	 * @param	data		pointer to buffer of the internal data of type Data
+	 * @param	address		address defaults to 0x77
+	 */
+	Bmp085(Data &data, uint8_t address=0x77);
+
+	// MARK: - TASKS
+	/// Pings the sensor
+	xpcc::co::Result<bool>
+	ping(void *ctx);
+
+	/// Reads out and stores the calibration bytes
+	xpcc::co::Result<bool>
+	configure(void *ctx, Mode mode = Mode::Standard);
+
+	/// Do a readout sequence to convert and read temperature and then pressure from sensor
+	xpcc::co::Result<bool>
+	readout(void *ctx);
+
+	/// Configures the sensor
+	void inline
+	setMode(Mode mode)
+	{
+		data.meta &= ~i(Mode::Mask);
+		data.meta |= i(mode);
+	}
+
+public:
+	/// the data object for this sensor.
+	Data &data;
+
+private:
+	enum
+	I2cTask : uint8_t
+	{
+		Idle = 0,
+		Ping,
+		Configure,
+		ReadCalibration,
+		ConvertTemperature,
+		ReadTemperature,
+		ConvertPressure,
+		ReadPressure,
+	};
+
+	volatile uint8_t i2cTask;
+	volatile uint8_t i2cSuccess;
+
+	xpcc::I2cTagAdapter< xpcc::I2cWriteReadAdapter > adapter;
+
+	xpcc::Timeout<> timeout;
+
+	/**
+	 * Maximum conversion time for pressure from datasheet for
+	 * different oversampling settings, from ultra low power to
+	 * ultra high resolution in milliseconds.
+	 */
+	static constexpr uint8_t conversionDelay[] = {5, 8, 14, 26};
+
+	// Command buffer for writing to the device
+	uint8_t buffer[2];
+	uint8_t bufferedMode;
+};
+
+}	// namespace xpcc
 
 #include "bmp085_impl.hpp"
 
-#endif // XPCC__BMP085_HPP
+#endif // XPCC_BMP085_HPP

@@ -5,7 +5,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -54,10 +54,6 @@ template <typename SPI, typename CS, typename RS, unsigned int Width, unsigned i
 void
 xpcc::St7036<SPI, CS, RS, Width, Heigth>::initialize()
 {
-	SPI::initialize();
-	CS::setOutput();
-	RS::setOutput();
-	
 	accessor::Flash<uint8_t> config(st7036::configuration);
 	for (uint8_t i = 0; i < 10; ++i)
 	{
@@ -70,9 +66,9 @@ void
 xpcc::St7036<SPI, CS, RS, Width, Heigth>::writeRaw(char c)
 {
 	RS::set();
-	
+
 	CS::reset();
-	SPI::write(c);
+	SPI::transferBlocking(c);
 	CS::set();
 }
 
@@ -89,7 +85,7 @@ xpcc::St7036<SPI, CS, RS, Width, Heigth>::setCursor(uint8_t newLine, uint8_t new
 {
 	this->column = newColumn;
 	this->line = newLine;
-	
+
 	newColumn += 0x40 * newLine;
 	writeCommand(0x80 | newColumn);
 }
@@ -101,11 +97,11 @@ void
 xpcc::St7036<SPI, CS, RS, Width, Heigth>::writeCommand(uint8_t inCommand)
 {
 	RS::reset();
-	
+
 	CS::reset();
-	SPI::write(inCommand);
+	SPI::transferBlocking(inCommand);
 	CS::set();
-	
+
 	// check if the command is 'clear display' oder 'return home', these
 	// commands take a bit longer until they are finished.
 	if ((inCommand & 0xfc) == 0) {

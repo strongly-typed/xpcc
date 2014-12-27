@@ -58,18 +58,22 @@ from parameters import ParameterDB
 def platform_tools_find_device_file(env):
 	architecture_path = os.path.join(env['XPCC_LIBRARY_PATH'], 'xpcc', 'architecture')
 	device = env['XPCC_DEVICE']
-	# Do not generate for hosted
-	# TODO: generate software peripherals for hosted
-	if device in ['darwin', 'linux', 'windows']:
-		env['ARCHITECTURE'] = 'hosted/'+device
-		return
-	id = DeviceIdentifier(device)
 	env.Debug("Device String: %s" % device)
+
+	id = DeviceIdentifier(device)
+
 	# Find Device File
-	xml_path = os.path.join(env['XPCC_PLATFORM_PATH'], 'xml', id.platform)
+	xml_path = os.path.join(env['XPCC_PLATFORM_PATH'], 'devices', id.platform)
 	files = []
 	device_file = None
-	if id.platform == 'avr':
+
+	if id.platform == 'hosted':
+		file = os.path.join(xml_path, id.family + '.xml')
+		print file
+		if os.path.exists(file):
+			device_file = file
+
+	elif id.platform == 'avr':
 		for file in os.listdir(xml_path):
 			if id.family in file:
 				fileArray = file.replace(id.family,"").replace(".xml","").split("-")
@@ -85,6 +89,7 @@ def platform_tools_find_device_file(env):
 							continue
 						device_file = os.path.join(xml_path, file)
 						break
+
 	elif id.platform == 'stm32':
 		for file in os.listdir(xml_path):
 			if 'stm32'+id.family in file:
@@ -98,17 +103,15 @@ def platform_tools_find_device_file(env):
 					device_file = os.path.join(xml_path, file)
 					break
 	else:
-		while device != None and len(device) > 0:
-			device_file = os.path.join(xml_path, device + '.xml')
+		temp_device = device
+		while temp_device != None and len(temp_device) > 0:
+			device_file = os.path.join(xml_path, temp_device + '.xml')
 			files.append(device_file)
 			if os.path.isfile(device_file):
 				break
 			else:
-				device = device[:-1]
+				temp_device = temp_device[:-1]
 				device_file = None
-
-	# Restore Device
-	device = env['XPCC_DEVICE']
 
 	# Check for error
 	if device_file == None:
@@ -116,26 +119,28 @@ def platform_tools_find_device_file(env):
 		# for f in files:
 		#	env.Error("Tried: " + f + os.linesep)
 		Exit(1)
+
 	# Now we need to parse the Xml File
 	env.Debug("Found device file: " + device_file)
 	env['XPCC_DEVICE_FILE'] = DeviceFile(device_file, env.GetLogger())
-	# for microcontrollers architecture = core
-	env['ARCHITECTURE'] = env['XPCC_DEVICE_FILE'].getProperties(device)['core']
+
+	if id.platform == 'hosted':
+		env['ARCHITECTURE'] = 'hosted/' + id.family
+	else:
+		# for microcontrollers architecture = core
+		env['ARCHITECTURE'] = env['XPCC_DEVICE_FILE'].getProperties(device)['core']
+		if id.platform == 'avr':
+			env['AVRDUDE_DEVICE'] = env['XPCC_DEVICE_FILE'].getProperties(device)['mcu']
 
 #------------------------------------------------------------------------------
 # env['XPCC_PLATFORM_PATH'] is used for absolute paths
 # architecture_path for relative build paths
 def platform_tools_generate(env, architecture_path):
 	device = env['XPCC_DEVICE']
-	# Do not generate for hosted
-	# TODO: generate software peripherals for hosted
-	if device in ['darwin', 'linux', 'windows']:
-		return [], {}, []
 
 	# Initialize Return Lists/Dicts
 	sources = []
 	defines = {}
-	includes = []
 	# make paths
 	platform_path = os.path.join(architecture_path, 'platform')
 	generated_path = os.path.join(architecture_path, env['XPCC_PLATFORM_GENERATED_DIR'])
@@ -146,29 +151,26 @@ def platform_tools_generate(env, architecture_path):
 	prop = dev.getProperties(device)
 	env.Debug("Found properties: %s" % prop)
 	defines = prop['defines']
-	# FIXME: This is a hack to make everything build without arm_devices.py
-	# We realy need to look into which defines we want to be available via a
-	# xpp_config.hpp and which via a command line option
-	env.Append(CPPDEFINES = defines)
 	device_headers = prop['headers']
 
-	# Set Size
-	env['DEVICE_SIZE'] = { "flash": prop['flash'], "ram": prop['ram'], "eeprom": prop['eeprom'] }
-	if (prop['linkerscript'] != ""):
-		# Find Linkerscript:
-		linkerfile = os.path.join(env['XPCC_PLATFORM_PATH'], 'linker', prop['linkerscript'])
-		if not os.path.isfile(linkerfile):
-			linkerfile = os.path.join(env['XPCC_PLATFORM_PATH'], 'linker', prop['target']['platform'], prop['linkerscript'])
+	if device not in ['darwin', 'linux', 'windows']:
+		# Set Size
+		env['DEVICE_SIZE'] = { "flash": prop['flash'], "ram": prop['ram'], "eeprom": prop['eeprom'] }
+		if (prop['linkerscript'] != ""):
+			# Find Linkerscript:
+			linkerfile = os.path.join(env['XPCC_PLATFORM_PATH'], 'linker', prop['linkerscript'])
 			if not os.path.isfile(linkerfile):
-				env.Error("Linkerscript for %s (%s) could not be found." % (device, linkerfile))
-				Exit(1)
-		linkdir, linkfile = os.path.split(linkerfile)
-		linkdir = linkdir.replace(env['XPCC_ROOTPATH'], "${XPCC_ROOTPATH}")
-		env['LINKPATH'] = str(linkdir)
-		env['LINKFILE'] = str(linkfile)
-	else:
-		env['LINKPATH'] = ""
-		env['LINKFILE'] = ""
+				linkerfile = os.path.join(env['XPCC_PLATFORM_PATH'], 'linker', prop['target']['platform'], prop['linkerscript'])
+				if not os.path.isfile(linkerfile):
+					env.Error("Linkerscript for %s (%s) could not be found." % (device, linkerfile))
+					Exit(1)
+			linkdir, linkfile = os.path.split(linkerfile)
+			linkdir = linkdir.replace(env['XPCC_ROOTPATH'], "${XPCC_ROOTPATH}")
+			env['LINKPATH'] = str(linkdir)
+			env['LINKFILE'] = str(linkfile)
+		else:
+			env['LINKPATH'] = ""
+			env['LINKFILE'] = ""
 
 	# Loop through Drivers
 	driver_list = []
@@ -192,7 +194,6 @@ def platform_tools_generate(env, architecture_path):
 			if os.path.splitext(tar)[1] in Scanner.HEADER:
 				if not f[1].endswith("_impl.hpp"):
 					ddic['headers'].append(f[1]) # append path relative to platform dir
-				includes.append(os.path.dirname(tar))
 			# or source file
 			elif os.path.splitext(tar)[1] in Scanner.SOURCE:
 				sources.append(res)
@@ -232,7 +233,7 @@ def platform_tools_generate(env, architecture_path):
 	tar = os.path.join(generated_path, 'type_ids.hpp')
 	sub = {'headers': type_id_headers}
 	env.Jinja2Template(target = tar, source = src, substitutions = sub)
-	return sources, defines, includes
+	return sources, defines
 
 ############## Template Tests #################################################
 # -----------------------------------------------------------------------------
@@ -277,6 +278,15 @@ def filter_get_ports(gpios):
 	return ports
 
 # -----------------------------------------------------------------------------
+def filter_letter_to_num(letter):
+	"""
+	This filter turns one letter into a number.
+	A is 0, B is 1, etc. This is not case sensitive.
+	"""
+	letter = letter[0].lower()
+	return ord(letter) - ord('a')
+
+# -----------------------------------------------------------------------------
 ###################### Generate Platform Tools ################################
 def generate(env, **kw):
 	# Set some paths used by this file
@@ -300,7 +310,8 @@ def generate(env, **kw):
 	env.AddMethod(platform_tools_find_device_file, 'FindDeviceFile')
 
 	# Add Filter for Gpio Drivers to Template Engine
-	env.AddTemplateJinja2Filter('getPorts', filter_get_ports)
+	env.AddTemplateJinja2Filter('getPorts',    filter_get_ports)
+	env.AddTemplateJinja2Filter('letterToNum', filter_letter_to_num)
 
 	########## Add Template Tests #############################################
 	# Generaic Tests (they accept a string)

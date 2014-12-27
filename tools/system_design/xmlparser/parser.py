@@ -3,6 +3,7 @@
 
 import xml.etree.ElementTree as et
 import xml.parsers.expat
+from lxml import etree
 import os
 import sys
 import logging
@@ -54,6 +55,19 @@ class Tree(object):
 			output += "- %s\n" % element
 		return output
 
+class DTDResolver(etree.Resolver):
+	def __init__(self, dtdPath):
+		self.dtdPath = dtdPath
+		
+	def resolve(self, url, id, context):
+		if os.path.isfile(url):
+			return None
+		else:
+			filename = os.path.basename(url)
+			if (self.dtdPath == None):
+				self.dtdPath = '.'
+			return self.resolve_filename(os.path.join(self.dtdPath, filename), context)
+
 class Parser(object):
 	"""
 	XPCC XML parser class
@@ -66,7 +80,7 @@ class Parser(object):
 		self.tree = Tree()
 		self.modify_time = 0
 	
-	def parse(self, filename):
+	def parse(self, filename, dtdPath = '.', include_paths = []):
 		"""
 		Parse a XML-file
 		
@@ -84,13 +98,20 @@ class Parser(object):
 		another type/component with is not parsed at the moment. This
 		way is ensured that at least the shell of the objects exists.
 		
-		This function will be called recursive if an include-tag is found.
+		This function will be called recursively if an include-tag is found.
 		
 		Keyword arguments:
 		filename	-- xml file to load
 		"""
 		self.rootfile = filename
-		self.include_path = os.path.dirname(os.path.abspath(self.rootfile))
+		self.dtdPath = dtdPath
+		# first include path is always the root file path
+		self.include_paths = [os.path.dirname(os.path.abspath(self.rootfile))]
+		# additional paths can be specified through the include_paths argument
+		self.include_paths = self.include_paths + include_paths
+		# used to make sure files are only included once, this has basically
+		# the same effect that "#include guards" in C++ have
+		self.included_files = []
 		self._parse_file(filename)
 		
 	def _parse_file(self, filename):
@@ -113,8 +134,13 @@ class Parser(object):
 			
 			# validate against the embedded DTD file
 			try:
-				parser = lxml.etree.XMLParser(dtd_validation=True)
+				parser = lxml.etree.XMLParser(dtd_validation=True, load_dtd=True)
+				
+				# Dynamically resolve DTD paths
+				parser.resolvers.add( DTDResolver(dtdPath = self.dtdPath) )
+				
 				dummy = lxml.etree.parse(filename, parser)
+				
 			except lxml.etree.XMLSyntaxError as e:
 				raise ParserException("Validation error in '%s': %s" % (filename, e))
 			else:
@@ -125,36 +151,64 @@ class Parser(object):
 		# search for include and reference nodes and parse
 		# the specified files first
 		for node in xmltree.findall('include'):
-			include_file = node.text
-			if not os.path.isabs(include_file):
-				include_file = os.path.join(self.include_path, include_file)
-			self.include_path = os.path.dirname(os.path.abspath(include_file))
-			self._parse_file(include_file)
-		
-		self._parse_types(xmltree)
-		self._evaluate_types(xmltree)
-		self._create_type_hierarchy()
-		
-		self._parse_events(xmltree)
-		self._check_events()
-		
-		self._parse_components(xmltree)
-		self._evaluate_components(xmltree)
-		
-		self._parse_container(xmltree)
-		
-		self._parse_domains(xmltree)
+			include_file = Parser.find_include_file(node.text, filename, self.include_paths)
+			if include_file not in self.included_files:
+				self.included_files.append(include_file)
+				self._parse_file(include_file)
+			else:
+				logging.debug("'%s' already included." % include_file)
+
+		try:
+			self._parse_types(xmltree)
+			self._evaluate_types(xmltree)
+			self._create_type_hierarchy()
+
+			self._parse_events(xmltree)
+			self._check_events()
+
+			self._parse_components(xmltree)
+			self._evaluate_components(xmltree)
+
+			self._parse_container(xmltree)
+
+			self._parse_domains(xmltree)
+		except ParserException as e:
+			# Add file information that is not available in the lower classes
+			# to exception. See:
+			# http://www.ianbicking.org/blog/2007/09/re-raising-exceptions.html
+			e.args = ("'%s': %s" % (filename, e.message),) + e.args[1:0]
+			raise
 		
 		# create expanded versions for all types and components
-		for type in self.tree.types:
-			type.flattened()
+		for t in self.tree.types:
+			t.flattened()
 		for component in self.tree.components:
 			component.flattened()
 		self.tree.components.updateIndex()
 		
 		for container in self.tree.container:
 			container.updateIndex()
-	
+
+	@staticmethod
+	def find_include_file(filename, include_file, include_paths, line_count=""):
+		""" Tries to find the include file and return it's absolute path """
+		relative_to_file = os.path.join(os.path.dirname(include_file), filename)
+		# 1.) include file name can be absolut
+		if os.path.isabs(filename):
+			return filename
+		# 2.) it could be a path relative to the files path
+		#     this works just like #include "{filename}" in C/C++
+		elif os.path.isfile(relative_to_file):
+			return relative_to_file
+		# 3.) it could be a path relative to the include path
+		else:
+			for path in include_paths:
+				relative_to_include_path = os.path.join(path, filename)
+				if os.path.isfile(relative_to_include_path):
+					return relative_to_include_path
+		# 4.) Error!
+		raise ParserException("Could not find include file '%s' in '%s:%s'" % (filename, include_file, line_count))
+
 	def _parse_types(self, xmltree):
 		self.__parse_body(xmltree, 'builtin', type.BuiltIn, self.tree.types)
 		self.__parse_body(xmltree, 'struct', type.Struct, self.tree.types)

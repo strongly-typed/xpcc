@@ -1,10 +1,10 @@
 
 #include <xpcc/architecture.hpp>
 #include <xpcc/debug/logger.hpp>
-#include <xpcc/driver/ui/display/parallel_tft.hpp>
-#include <xpcc/driver/ui/display/tft_memory_bus.hpp>
+#include <xpcc/driver/display/parallel_tft.hpp>
+#include <xpcc/driver/bus//tft_memory_bus.hpp>
 #include <xpcc/ui/display/image.hpp>
-#include <xpcc/driver/ui/touchscreen/ads7843.hpp>
+#include <xpcc/driver/touch/ads7843.hpp>
 #include <xpcc/processing.hpp>
 #include <xpcc/container.hpp>
 #include <xpcc/utils/allocator.hpp>
@@ -26,7 +26,7 @@
 #define	XPCC_LOG_LEVEL xpcc::log::DEBUG
 
 // Create an IODeviceWrapper around the Uart Peripheral we want to use
-xpcc::IODeviceWrapper< Usart2 > loggerDevice;
+xpcc::IODeviceWrapper< Usart2, xpcc::IOBuffer::BlockIfFull > loggerDevice;
 
 // Set all four logger streams to use the UART
 xpcc::log::Logger xpcc::log::debug(loggerDevice);
@@ -82,7 +82,7 @@ xpcc::glcd::Point last_point;
 typedef GpioOutputC4 CsTouchscreen;
 typedef GpioInputC5  IntTouchscreen;
 
-xpcc::Ads7843<SpiSimpleMaster2, CsTouchscreen, IntTouchscreen> ads7843;
+xpcc::Ads7843<SpiMaster2, CsTouchscreen, IntTouchscreen> ads7843;
 xpcc::TouchscreenCalibrator touchscreen;
 
 typedef GpioOutputD7 CS;
@@ -92,7 +92,7 @@ initDisplay()
 {
 
 	Fsmc::initialize();
-	
+
 	GpioD14::connect(Fsmc::D0);
 	GpioD15::connect(Fsmc::D1);
 	GpioD0::connect(Fsmc::D2);
@@ -113,33 +113,33 @@ initDisplay()
 	GpioD4::connect(Fsmc::Noe);
 	GpioD5::connect(Fsmc::Nwe);
 	GpioD11::connect(Fsmc::A16);
-	
+
 
 	CS::setOutput();
 	CS::reset();
-	
+
 	fsmc::NorSram::AsynchronousTiming timing = {
 		// read
 		15,
 		0,
 		15,
-		
+
 		// write
 		15,
 		0,
 		15,
-		
-		// bus turn around 
+
+		// bus turn around
 		0
 	};
-	
+
 	fsmc::NorSram::configureAsynchronousRegion(
 			fsmc::NorSram::CHIP_SELECT_1,
 			fsmc::NorSram::NO_MULTIPLEX_16BIT,
 			fsmc::NorSram::SRAM_ROM,
 			fsmc::NorSram::MODE_A,
 			timing);
-	
+
 	fsmc::NorSram::enableRegion(fsmc::NorSram::CHIP_SELECT_1);
 
 	tft.initialize();
@@ -150,15 +150,15 @@ initTouchscreen()
 {
 	CsTouchscreen::setOutput();
 	CsTouchscreen::set();
-	
+
 	IntTouchscreen::setInput(Gpio::InputType::PullUp);
 
-	GpioOutputB13::connect(SpiSimpleMaster2::Sck);
-	GpioInputB14::connect(SpiSimpleMaster2::Miso);
-	GpioOutputB15::connect(SpiSimpleMaster2::Mosi);
+	GpioOutputB13::connect(SpiMaster2::Sck);
+	GpioInputB14::connect(SpiMaster2::Miso);
+	GpioOutputB15::connect(SpiMaster2::Mosi);
 
-	SpiSimpleMaster2::initialize<defaultSystemClock, MHz1/2>();
-	SpiSimpleMaster2::setDataMode(SpiSimpleMaster2::DataMode::Mode0);
+	SpiMaster2::initialize<defaultSystemClock, 656250ul>();
+	SpiMaster2::setDataMode(SpiMaster2::DataMode::Mode0);
 
 }
 
@@ -192,7 +192,7 @@ calibrateTouchscreen(xpcc::GraphicDisplay& display, xpcc::glcd::Point *fixed_sam
 {
 	xpcc::glcd::Point calibrationPoint[3] = { { 45, 45 }, { 270, 90 }, { 100, 190 } };
 	xpcc::glcd::Point sample[3];
-	
+
 	if(!fixed_samples) {
 		for (uint8_t i = 0; i < 3; i++)
 		{
@@ -227,7 +227,7 @@ drawPoint(xpcc::GraphicDisplay& display, xpcc::glcd::Point point)
 	if (point.x < 0 || point.y < 0) {
 		return;
 	}
-	
+
 	display.drawPixel(point.x, point.y);
 	display.drawPixel(point.x + 1, point.y);
 	display.drawPixel(point.x, point.y + 1);
@@ -385,20 +385,20 @@ test_callback(const xpcc::gui::InputEvent& ev, xpcc::gui::Widget* w, void* data)
 }
 
 
-xpcc::gui::ColorPalette colorpalette[xpcc::gui::Color::PALETTE_SIZE] = {
-	xpcc::glcd::Color::black(),
-	xpcc::glcd::Color::white(),
-	xpcc::glcd::Color::gray(),
-	xpcc::glcd::Color::red(),
-	xpcc::glcd::Color::green(),
-	xpcc::glcd::Color::blue(),
-	xpcc::glcd::Color::blue(),		// BORDER
-	xpcc::glcd::Color::red(),		// TEXT
-	xpcc::glcd::Color::black(),		// BACKGROUND
-	xpcc::glcd::Color::red(),		// ACTIVATED
-	xpcc::glcd::Color::blue(),		// DEACTIVATED
-
-};
+//xpcc::gui::ColorPalette colorpalette[xpcc::gui::Color::PALETTE_SIZE] = {
+//	xpcc::glcd::Color::black(),
+//	xpcc::glcd::Color::white(),
+//	xpcc::glcd::Color::gray(),
+//	xpcc::glcd::Color::red(),
+//	xpcc::glcd::Color::green(),
+//	xpcc::glcd::Color::blue(),
+//	xpcc::glcd::Color::blue(),		// BORDER
+//	xpcc::glcd::Color::red(),		// TEXT
+//	xpcc::glcd::Color::black(),		// BACKGROUND
+//	xpcc::glcd::Color::red(),		// ACTIVATED
+//	xpcc::glcd::Color::blue(),		// DEACTIVATED
+//
+//};
 
 /*
  * empirically found calibration points
@@ -432,20 +432,20 @@ MAIN_FUNCTION
 	 */
 
 	calibrateTouchscreen(tft, calibration);
-	
+
 
 	/*
 	 * manipulate the color palette
 	 */
 
-	colorpalette[xpcc::gui::Color::TEXT] = xpcc::glcd::Color::yellow();
+//	colorpalette[xpcc::gui::Color::TEXT] = xpcc::glcd::Color::yellow();
 
 
 	/*
 	 * Create a view and some widgets
 	 */
 
-	xpcc::gui::View myView(&tft, colorpalette, &input_queue);
+//	xpcc::gui::View myView(&tft, colorpalette, &input_queue);
 
 	xpcc::gui::ButtonWidget toggleLedButton((char*)"Toggle Green", xpcc::gui::Dimension(100, 50));
 	xpcc::gui::ButtonWidget doNothingButton((char*)"Do nothing", xpcc::gui::Dimension(100, 50));
@@ -464,9 +464,9 @@ MAIN_FUNCTION
 	 * place widgets in view
 	 */
 
-	myView.pack(&toggleLedButton, xpcc::glcd::Point(110, 10));
-	myView.pack(&doNothingButton, xpcc::glcd::Point(110, 80));
-	myView.pack(&rocker1, xpcc::glcd::Point(60, 200));
+//	myView.pack(&toggleLedButton, xpcc::glcd::Point(110, 10));
+//	myView.pack(&doNothingButton, xpcc::glcd::Point(110, 80));
+//	myView.pack(&rocker1, xpcc::glcd::Point(60, 200));
 
 	/*
 	 * main loop
@@ -480,7 +480,7 @@ MAIN_FUNCTION
 		updateAsyncEvents();
 
 		// update view
-		myView.run();
+//		myView.run();
 
 		/*
 		 * display an arbitrary image

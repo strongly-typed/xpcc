@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 
 #ifndef XPCC__NRF24_DATA_HPP
-#	error "Don't include this file directly, use 'nrf24_data.hpp' instead!"
+#   error "Don't include this file directly, use 'nrf24_data.hpp' instead!"
 #endif
 
 #include "nrf24_data.hpp"
@@ -33,11 +33,9 @@ Address xpcc::Nrf24Data<Nrf24Phy>::connections[3];
 template<typename Nrf24Phy>
 frame_t xpcc::Nrf24Data<Nrf24Phy>::assemblyFrame;
 
-// --------------------------------------------------------------------------------------------------------------------
-
-/* typedef config layer for simplicity */
 template<typename Nrf24Phy>
-typedef xpcc::Nrf24Config<Nrf24Phy> ConfigLayer;
+SendingState xpcc::Nrf24Data<Nrf24Phy>::state = SendingState::Undefined;
+
 
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -55,6 +53,9 @@ xpcc::Nrf24Data<Nrf24Phy>::initialize(BaseAddress base_address, Address own_addr
 	connections[2]  = broadcastAddress;
 
 	setAddress(own_address);
+
+	// reset state
+	state = SendingState::Undefined;
 
 	// Clear assembly frame
 	memset(&assemblyFrame, 0, sizeof(frame_t));
@@ -90,15 +91,18 @@ xpcc::Nrf24Data<Nrf24Phy>::initialize(BaseAddress base_address, Address own_addr
 	 * Configure some sensible defaults, may be changed later by user, but
 	 * sould be consistent among all other nodes
 	 */
-    ConfigLayer::setCrc(Crc::Crc2Byte);
-    ConfigLayer::setSpeed(Speed::MBps2);
-    ConfigLayer::setAutoRetransmitDelay(AutoRetransmitDelay::us750);
-    ConfigLayer::setAutoRetransmitCount(AutoRetransmitCount::Retransmit8);
-    ConfigLayer::setRfPower(RfPower::dBm0);
+	ConfigLayer::setCrc(Crc::Crc2Byte);
+	ConfigLayer::setSpeed(Speed::MBps2);
+	ConfigLayer::setAutoRetransmitDelay(AutoRetransmitDelay::us750);
+	ConfigLayer::setAutoRetransmitCount(AutoRetransmitCount::Retransmit8);
+	ConfigLayer::setRfPower(RfPower::dBm0);
 
-    // Power up module in Rx mode
-    ConfigLayer::setMode(Mode::Rx);
-    ConfigLayer::powerUp();
+	// Power up module in Rx mode
+	ConfigLayer::setMode(Mode::Rx);
+	ConfigLayer::powerUp();
+
+	// don't save power, always in Rx-mode or standby-2 (see table 15, p. 24)
+	Nrf24Phy::setCe();
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -107,14 +111,14 @@ template<typename Nrf24Phy>
 void
 xpcc::Nrf24Data<Nrf24Phy>::setAddress(Address address)
 {
-    // overwrite connection
-    ownAddress = address;
+	// overwrite connection
+	ownAddress = address;
 
-    // address for pipe 2
-    Nrf24Phy::setRxAddress(2, address);
+	// address for pipe 2
+	Nrf24Phy::setRxAddress(2, address);
 
-    // enable pipe with auto ack
-    ConfigLayer::enablePipe(Pipe::Pipe2, true);
+	// enable pipe with auto ack
+	ConfigLayer::enablePipe(Pipe::Pipe2, true);
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -123,34 +127,46 @@ template<typename Nrf24Phy>
 bool
 xpcc::Nrf24Data<Nrf24Phy>::sendPacket(packet_t& packet)
 {
-    if(!isReadyToSend())
-        return false;
+	if(!isReadyToSend())
+		return false;
 
-    if(packet.length > getPayloadLength())
-        return false;
+	if(packet.length > getPayloadLength())
+		return false;
 
-    // assemble frame to transmit
-    assemblyFrame.header.src = ownAddress;
-    assemblyFrame.header.dest = packet.dest;
-    memcpy(assemblyFrame.data, packet.data, packet.length);
+	// assemble frame to transmit
+	assemblyFrame.header.src = ownAddress;
+	assemblyFrame.header.dest = packet.dest;
+	memcpy(assemblyFrame.data, packet.data, packet.length);
 
-    // set receivers address as tx address
-    Nrf24Phy::setTxAddres(assembleAddress(packet.dest));
+	// set receivers address as tx address
+	Nrf24Phy::setTxAddres(assembleAddress(packet.dest));
 
-    if(packet.dest == getBroadcastAddress())
-    {
-        Nrf24Phy::writeTxPayloadNoAck(&assemblyFrame, packet.length + sizeof(header_t));
-    } else
-    {
-        // set pipe 0's address to tx address to receive ack packet
-        Nrf24Phy::setRxAddress(0, assembleAddress(packet.dest));
-        Nrf24Phy::writeTxPayload(&assemblyFrame, packet.length + sizeof(header_t));
-    }
+	if(packet.dest == getBroadcastAddress())
+	{
+		Nrf24Phy::writeTxPayloadNoAck(&assemblyFrame, packet.length + sizeof(header_t));
 
-    // send a pulse on Ce to send the packet
-    Nrf24Phy::pulseCe();
+		// as frame was sent without requesting an acknowledgement we can't determine it's state
+		state = SendingState::DontKnow;
+	} else
+	{
+		// set pipe 0's address to tx address to receive ack packet
+		Nrf24Phy::setRxAddress(0, assembleAddress(packet.dest));
+		Nrf24Phy::writeTxPayload(&assemblyFrame, packet.length + sizeof(header_t));
 
-    return true;
+		// mark state as busy, so when
+		state = SendingState::Busy;
+	}
+
+	// switch to Tx mode, CE should be always set
+	ConfigLayer::setMode(Mode::Tx);
+
+	// wait until packet is sent
+	while( !(Nrf24Phy::readRegister(Register::FIFO_STATUS) & FifoStatus::TX_EMPTY) );
+
+	// switch back to Rx mode
+	ConfigLayer::setMode(Mode::Rx);
+
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -159,6 +175,27 @@ template<typename Nrf24Phy>
 bool
 xpcc::Nrf24Data<Nrf24Phy>::getPacket(packet_t& packet)
 {
+	if(!isPacketAvailable())
+		return false;
+
+	// Don't care about pipe numbers for now as we use our own header within each packet
+	//uint8_t pipe = ConfigLayer::getPayloadPipe();
+
+	/*
+	 * TODO: Replace packet_t by frame_t because there's no reason to trade some bytes of RAM against the runtime
+	 *       penalty of copying to and from assembly frame every cycle.
+	 */
+
+	// First read into buffer frame
+	uint8_t payload_length = Nrf24Phy::readRxPayload(&assemblyFrame);
+
+	// Then copy to user packet
+	packet.dest = assemblyFrame.header.dest;
+	packet.src = assemblyFrame.header.src;
+	packet.length = payload_length;
+	memcpy(assemblyFrame.data, packet.data, packet.length);
+
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -167,15 +204,45 @@ template<typename Nrf24Phy>
 bool
 xpcc::Nrf24Data<Nrf24Phy>::isReadyToSend()
 {
-    uint8_t fifo_status = Nrf24Phy::readRegister(Register::FIFO_STATUS);
+	uint8_t fifo_status = Nrf24Phy::readRegister(Register::FIFO_STATUS);
 
-    // Wait for TX Fifo to become empty, because otherwise we needed to make sure
-    // that every packet has the same destination
+	// Wait for TX Fifo to become empty, because otherwise we would need to make sure
+	// that every packet has the same destination
+	if(fifo_status & FifoStatus::TX_EMPTY)
+		return true;
+	else
+		return false;
+}
 
-    if(fifo_status & FifoStatus::TX_EMPTY)
-        return true;
-    else
-        return false;
+// --------------------------------------------------------------------------------------------------------------------
+
+template<typename Nrf24Phy>
+SendingState
+xpcc::Nrf24Data<Nrf24Phy>::updateSendingState()
+{
+	// directly return state if not busy, because nothing needs to be updated then
+	if(state != SendingState::Busy)
+		return state;
+
+
+	// read relevant status registers
+	uint8_t status = Nrf24Phy::readStatus();
+	uint8_t fifo_status = Nrf24Phy::readRegister(Register::FIFO_STATUS);
+
+	if(status & Status::MAX_RT)
+	{
+		state = SendingState::FinishedNack;
+
+		// clear MAX_RT bit to enable further communication
+		Nrf24Phy::setBits(Register::STATUS, Status::MAX_RT);
+	}
+
+	if(status & Status::TX_DS)
+	{
+		state = SendingState::FinishedAck;
+	}
+
+	return state;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -184,13 +251,13 @@ template<typename Nrf24Phy>
 bool
 xpcc::Nrf24Data<Nrf24Phy>::isPacketAvailable()
 {
-    uint8_t status = Nrf24Phy::readStatus();
-    uint8_t fifo_status = Nrf24Phy::readRegister(Register::FIFO_STATUS);
+	uint8_t fifo_status = Nrf24Phy::readRegister(Register::FIFO_STATUS);
 
-    if( (status & Status::RX_DR) || !(fifo_status & FifoStatus::RX_EMPTY) )
-        return true;
-    else
-        return false;
+	// only check Rx Fifo for now, Status:RX_DR will be needed when using interrupts
+	if( !(fifo_status & FifoStatus::RX_EMPTY) )
+		return true;
+	else
+		return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -199,6 +266,7 @@ template<typename Nrf24Phy>
 SendingState
 xpcc::Nrf24Data<Nrf24Phy>::getSendingFeedback()
 {
+	return updateSendingState();
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -207,7 +275,7 @@ template<typename Nrf24Phy>
 Address
 xpcc::Nrf24Data<Nrf24Phy>::getAddress()
 {
-    return ownAddress;
+	return ownAddress;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -216,7 +284,7 @@ template<typename Nrf24Phy>
 uint64_t
 xpcc::Nrf24Data<Nrf24Phy>::assembleAddress(Address address)
 {
-    return static_cast<uint64_t>((uint64_t)baseAddress | (uint64_t)address);
+	return static_cast<uint64_t>((uint64_t)baseAddress | (uint64_t)address);
 }
 
 // --------------------------------------------------------------------------------------------------------------------

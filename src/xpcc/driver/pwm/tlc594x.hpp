@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 #include <xpcc/architecture/platform.hpp>
-#include <xpcc/architecture/peripheral/gpio.hpp>
+#include <xpcc/architecture/interface/gpio.hpp>
 #include <xpcc/architecture/driver/delay.hpp>
 
 namespace xpcc
@@ -54,7 +54,7 @@ namespace xpcc
  * @tparam	Xerr	Error pin, use xpcc::GpioUnused if not connected
  *
  * @author	Niklas Hauser
- * @ingroup	pwm
+ * @ingroup	driver_pwm
  */
 template<
 	uint16_t CHANNELS,

@@ -69,11 +69,11 @@
  */
 #define	XPCC__CPU_STRING
 
+//@{
 /**
  * \brief	Possible CPU definitions
  * \ingroup	platform
  */
-//@{
 #define	XPCC__CPU_AVR
 #define	XPCC__CPU_ATXMEGA
 #define	XPCC__CPU_ATMEGA
@@ -90,14 +90,22 @@
 #define	XPCC__CPU_HOSTED
 #define	XPCC__CPU_HOSTED_64
 
-#define XPCC__ALIGNMENT
-//@}
-
+//@{
 /**
- * \brief	Additional information
+ * \brief	Memory descriptions
  * \ingroup	platform
  */
-//@{
+#define XPCC__ALIGNMENT
+
+#define XPCC__ORDER_BIG_ENDIAN
+#define XPCC__ORDER_LITTLE_ENDIAN
+#define XPCC__ORDER_PDP_ENDIAN
+
+#define XPCC__BYTE_ORDER
+
+#define XPCC__IS_BIG_ENDIAN
+#define XPCC__IS_LITTLE_ENDIAN
+
 #define	XPCC__SIZEOF_POINTER
 //@}
 
@@ -139,7 +147,7 @@
 // Determine target operating system
 
 #if defined linux || defined __linux__
-#	define XPCC__OS_LINUX 1 
+#	define XPCC__OS_LINUX 1
 #	define XPCC__OS_STRING 			"Linux"
 #endif
 
@@ -149,7 +157,7 @@
 #endif
 
 #if defined __unix__
-#	define XPCC__OS_UNIX 1 
+#	define XPCC__OS_UNIX 1
 #	if !defined XPCC__OS_STRING
 #		define XPCC__OS_STRING 		"Unix-like(generic)"
 #	endif
@@ -166,6 +174,10 @@
 #		endif
 #	endif
 #endif
+
+#define XPCC__ORDER_BIG_ENDIAN 4321
+#define XPCC__ORDER_LITTLE_ENDIAN 1234
+#define XPCC__ORDER_PDP_ENDIAN 3412
 
 // ----------------------------------------------------------------------------
 // Determine CPU type
@@ -245,6 +257,18 @@
 #if !defined XPCC__SIZEOF_POINTER
 #	error "XPCC__SIZEOF_POINTER not defined! Please provide a suitable definition."
 #endif
+
+
+#if defined __BYTE_ORDER__
+#	define XPCC__BYTE_ORDER		__BYTE_ORDER__
+#endif
+
+#if !defined XPCC__BYTE_ORDER
+#	error "XPCC__BYTE_ORDER not defined! Please provide a suitable definition."
+#endif
+
+#define XPCC__IS_BIG_ENDIAN		(XPCC__BYTE_ORDER == XPCC__ORDER_BIG_ENDIAN)
+#define XPCC__IS_LITTLE_ENDIAN	(XPCC__BYTE_ORDER == XPCC__ORDER_LITTLE_ENDIAN)
 
 // ----------------------------------------------------------------------------
 // Windows lacks support for some C99 macros and functions we need to

@@ -35,28 +35,42 @@ import SCons.Errors
 includeExpression = re.compile(r'<include>(\S+)</include>', re.M)
 
 # -----------------------------------------------------------------------------
-def find_includes(file):
+def find_includes(env, file, include_path):
 	""" Find include directives in an XML file """
 	files = []
+	line_count = 0
 	for line in open(file).readlines():
+		line_count = line_count + 1
 		match = includeExpression.search(line)
 		if match:
 			filename = match.group(1)
-			if not os.path.isabs(filename):
-				filename = os.path.join(os.path.dirname(os.path.abspath(file)), filename)
-			files.append(filename)
+			relative_to_file = os.path.join(os.path.dirname(os.path.abspath(file)), filename)
+			relative_to_include_path = os.path.join(include_path, filename)
+			# 1.) include file name can be absolut
+			if os.path.isabs(filename):
+				files.append(filename)
+			# 2.) it could be a path relative to the files path
+			#     this works just like #include "{filename}" in C/C++
+			elif os.path.isfile(relative_to_file):
+				files.append(relative_to_file)
+			# 3.) it could be a path relative to the include path
+			elif os.path.isfile(relative_to_include_path):
+				files.append(relative_to_include_path)
+			# 4.) Error!
+			else:
+				env.Error("Could not find include file '%s' in '%s:%s'" % (filename, file, line_count))
 	return files
 
 def xml_include_scanner(node, env, path, arg=None):
 	""" Generates the dependencies for the XML files """
 	abspath, targetFilename = os.path.split(node.get_abspath())
-	
+
 	stack = [targetFilename]
 	dependencies = [targetFilename]
-	
+
 	while stack:
 		nextFile = stack.pop()
-		files = find_includes(os.path.join(abspath, nextFile))
+		files = find_includes(env, os.path.join(abspath, nextFile), abspath)
 		for file in files:
 			if file not in dependencies:
 				stack.append(file)
@@ -108,21 +122,33 @@ def communication_emitter(target, source, env):
 	
 	return (target, source)
 
+def xpcc_task_caller_emitter(target, source, env):
+	try:
+		path = env['path']
+	except KeyError:
+		path = '.'
+	
+	target = [os.path.join(path, "xpcc_task_caller.hpp")]
+	
+	return (target, source)
+
 # -----------------------------------------------------------------------------
 def generate(env, **kw):
+	env.SetDefault(XPCC_SYSTEM_DESIGN_SCANNERS = {})
+	env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'] = SCons.Script.Scanner(
+					function = xml_include_scanner,
+					skeys = ['.xml'])
 	env['BUILDERS']['SystemCppPackets'] = \
 		SCons.Script.Builder(
 			action = SCons.Action.Action(
 				'python "${XPCC_SYSTEM_BUILDER}/cpp_packets.py" ' \
 					'--source_path ${TARGETS[0].dir} ' \
 					'--header_path ${TARGETS[1].dir} ' \
+					'--dtdpath "${dtdPath}" ' \
 					'$SOURCE',
 				cmdstr="$SYSTEM_CPP_PACKETS_COMSTR"),
 			emitter = packet_emitter,
-			source_scanner =
-				SCons.Script.Scanner(
-					function = xml_include_scanner,
-					skeys = ['.xml']),
+			source_scanner = env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'],
 			single_source = True,
 			target_factory = env.fs.Entry,
 			src_suffix = ".xml")
@@ -132,13 +158,11 @@ def generate(env, **kw):
 			action = SCons.Action.Action(
 				'python "${XPCC_SYSTEM_BUILDER}/cpp_identifier.py" ' \
 					'--outpath ${TARGET.dir} ' \
+					'--dtdpath "${dtdPath}" ' \
 					'$SOURCE',
 				cmdstr="$SYSTEM_CPP_IDENTIFIER_COMSTR"),
 			emitter = identifier_emitter,
-			source_scanner =
-				SCons.Script.Scanner(
-					function = xml_include_scanner,
-					skeys = ['.xml']),
+			source_scanner = env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'],
 			single_source = True,
 			target_factory = env.fs.Entry,
 			src_suffix = ".xml")
@@ -149,13 +173,11 @@ def generate(env, **kw):
 				'python "${XPCC_SYSTEM_BUILDER}/cpp_postman.py" ' \
 					'--container "${container}" ' \
 					'--outpath ${TARGET.dir} ' \
+					'--dtdpath "${dtdPath}" ' \
 					'$SOURCE',
 				cmdstr="$SYSTEM_CPP_POSTMAN_COMSTR"),
 			emitter = postman_emitter,
-			source_scanner =
-				SCons.Script.Scanner(
-					function = xml_include_scanner,
-					skeys = ['.xml']),
+			source_scanner = env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'],
 			single_source = True,
 			target_factory = env.fs.Entry,
 			src_suffix = ".xml")
@@ -165,13 +187,25 @@ def generate(env, **kw):
 			action = SCons.Action.Action(
 				'python "${XPCC_SYSTEM_BUILDER}/cpp_communication.py" ' \
 					'--outpath ${TARGET.dir} ' \
+					'--dtdpath "${dtdPath}" ' \
 					'$SOURCE',
 				cmdstr="$SYSTEM_CPP_COMMUNICATION_COMSTR"),
 			emitter = communication_emitter,
-			source_scanner =
-				SCons.Script.Scanner(
-					function = xml_include_scanner,
-					skeys = ['.xml']),
+			source_scanner = env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'],
+			single_source = True,
+			target_factory = env.fs.Entry,
+			src_suffix = ".xml")
+	
+	env['BUILDERS']['SystemCppXpccTaskCaller'] = \
+		SCons.Script.Builder(
+			action = SCons.Action.Action(
+				'python "${XPCC_SYSTEM_BUILDER}/cpp_xpcc_task_caller.py" ' \
+					'--outpath ${TARGET.dir} ' \
+					'--dtdpath "${dtdPath}" ' \
+					'$SOURCE',
+				cmdstr="$SYSTEM_CPP_XPCC_TASK_CALLER_COMSTR"),
+			emitter = xpcc_task_caller_emitter,
+			source_scanner = env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'],
 			single_source = True,
 			target_factory = env.fs.Entry,
 			src_suffix = ".xml")
@@ -181,6 +215,7 @@ def generate(env, **kw):
 		env['SYSTEM_CPP_IDENTIFIER_COMSTR'] = "Generate identifier from: $SOURCE"
 		env['SYSTEM_CPP_POSTMAN_COMSTR'] = "Generate postman from: $SOURCE"
 		env['SYSTEM_CPP_COMMUNICATION_COMSTR'] = "Generate communication stubs from: $SOURCE"
+		env['SYSTEM_CPP_XPCC_TASK_CALLER_COMSTR'] = "Generate xpcc task callers from: $SOURCE"
 
 def exists(env):
 	return True

@@ -11,7 +11,7 @@
 #define XPCC_TMP175_HPP
 
 #include <stdint.h>
-#include <xpcc/architecture/peripheral/i2c_adapter.hpp>
+#include <xpcc/architecture/interface/i2c_adapter.hpp>
 
 namespace xpcc
 {
@@ -74,7 +74,7 @@ namespace tmp175
  *
  * @see <a href="http://www.ti.com/lit/ds/symlink/tmp175.pdf">Datasheet</a>
  *
- * @ingroup temperature
+ * @ingroup driver_temperature
  * @author	Niklas Hauser
  *
  * @tparam I2cMaster Asynchronous Interface
@@ -114,7 +114,7 @@ public:
 	uint8_t*
 	getData();
 
-	/// @return the temperature as a signed float in Celcius
+	/// @return the temperature as a signed float in Celsius
 	float
 	getTemperature();
 

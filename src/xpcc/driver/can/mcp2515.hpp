@@ -34,14 +34,13 @@
 #include <stdint.h>
 #include <xpcc/architecture/driver/accessor.hpp>
 #include <xpcc/architecture/driver/delay.hpp>
-#include <xpcc/architecture/peripheral/can.hpp>
+#include <xpcc/architecture/interface/can.hpp>
 
 #include "mcp2515_definitions.hpp"
-#include <xpcc/communication/can/message.hpp>
 
 /**
  * \defgroup	mcp2515	MCP2515
- * \ingroup		can
+ * \ingroup		driver_can
  */
 
 /**
@@ -135,7 +134,7 @@ namespace xpcc
 	template < typename SPI,
 			   typename CS,
 			   typename INT >
-	class Mcp2515
+    class Mcp2515 : public ::xpcc::Can
 	{
 	public:
 		static bool
@@ -169,6 +168,17 @@ namespace xpcc
 		 */
 		static bool
 		sendMessage(const can::Message& message);
+
+    public:
+        // Extended Functionality
+
+        /*
+         * Fixme: Empty implementation, required by connector
+         */
+        static BusState
+        getBusState() {
+            return BusState::Connected;
+        }
 
 	protected:
 		enum SpiCommand

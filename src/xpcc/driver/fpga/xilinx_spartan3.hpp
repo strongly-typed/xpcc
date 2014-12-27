@@ -2,7 +2,7 @@
 #define XPCC__XILINX_SPARTAN_3
 
 #include <xpcc/architecture.hpp>
-#include <xpcc/architecture/peripheral/gpio.hpp>
+#include <xpcc/architecture/interface/gpio.hpp>
 #include "fpga_type.hpp"
 
 namespace xpcc
@@ -17,6 +17,7 @@ namespace xpcc
  * readPageFromMemory(pos, buffer, sizeof(buffer) method.
  * Appropriate data sources can be external SPI flashes.
  *
+ * @ingroup driver_other
  */
 template <	typename Cclk,			///< Clock output to FPGA
 			typename Din,			///< Data output to FPGA
