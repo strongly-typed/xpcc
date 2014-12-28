@@ -1,6 +1,6 @@
 #include "tcpip_receiver.hpp"
 #include <xpcc/debug/logger.hpp>
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_client.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_client.hpp>
 
 #include <iostream>
 
@@ -109,6 +109,24 @@ xpcc::tcpip::Receiver::readMessageHandler(const boost::system::error_code& error
 		{
 			this->readHeader();
 		}
+		else{
+			//close both ports
+			boost::system::error_code ec;
+			socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+			if (ec)
+			{
+			  std::cout << "Receiver "<< componentId << "shutdown with error code "<< ec << std::endl;
+			}
+
+			socket.close(ec);
+			if (ec)
+			{
+				std::cout << "Receiver "<< componentId << "closed with error code "<< ec << std::endl;
+			}
+
+			std::cout << "Connection for Receiver "<< componentId << "closed!" << std::endl;
+
+		}
 	}
 	else{
 		//TODO error handling
@@ -118,4 +136,9 @@ xpcc::tcpip::Receiver::readMessageHandler(const boost::system::error_code& error
 int
 xpcc::tcpip::Receiver::getId(){
 	return this->componentId;
+}
+
+void
+xpcc::tcpip::Receiver::shutdownCommand(){
+	this->shutdown = true;
 }

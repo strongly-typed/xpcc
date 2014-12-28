@@ -29,7 +29,7 @@
 
 #include "tcpip.hpp"
 #include <xpcc/debug/logger.hpp>
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_message.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_message.hpp>
 #include <xpcc/processing/timeout.hpp>
 
 

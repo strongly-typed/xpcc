@@ -47,6 +47,7 @@ namespace xpcc
 
 			enum class Type{
 				REGISTER,
+				UNREGISTER,
 				LISTEN,
 				PING,
 				DATA,

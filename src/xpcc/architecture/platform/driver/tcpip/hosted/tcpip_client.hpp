@@ -45,8 +45,8 @@
 //-----------------------------------------------------------------------------
 //xpcc dependencies
 #include <xpcc/processing/periodic_timer.hpp>
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_message.hpp>
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_receiver.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_message.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_receiver.hpp>
 #include <xpcc/debug/logger.hpp>
 
 
@@ -60,7 +60,6 @@ namespace xpcc
          * all responses.
          * The client consists of several threads:
          * One thread is reserved for for the io_service
-         * One thread is used for sending packages to the server
          * And one thread for receiving data from each component
 	     *
 	     *  \author Thorsten Lajewski <thorsten.lajewski@rwth-aachen.de>
@@ -155,7 +154,9 @@ namespace xpcc
 			mutable boost::mutex connectedMutex;
 
 			bool writingMessages;
+
 			bool closeConnection;
+			mutable boost::mutex closeConnectionMutex;
 
 			boost::shared_ptr< boost::asio::io_service >  ioService;
 			boost::shared_ptr< boost::asio::io_service::work > work;
@@ -163,6 +164,7 @@ namespace xpcc
 
 			//timeouts
 			boost::asio::deadline_timer connectionTimer;
+			boost::asio::deadline_timer closeConnectionTimer;
 
 			//send connection to the server
 			int serverPort;
@@ -174,7 +176,7 @@ namespace xpcc
 			mutable boost::mutex sendMessagesMutex;
 
 			//one thread and one receiver for each component of the container
-			std::list< boost::shared_ptr< boost::thread > > receiveThreadPool;
+			std::map< uint8_t, boost::shared_ptr< boost::thread > > receiveThreadPool;
 			std::list< boost::shared_ptr< xpcc::tcpip::Receiver> > componentReceiver;
 			std::map< uint8_t, boost::shared_ptr<ComponentInfo> > componentMap;
 

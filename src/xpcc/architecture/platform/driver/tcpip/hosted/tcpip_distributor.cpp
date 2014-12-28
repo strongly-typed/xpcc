@@ -1,5 +1,5 @@
 #include "tcpip_distributor.hpp"
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_server.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_server.hpp>
 #include <sstream>
 
 xpcc::tcpip::Distributor::Distributor(xpcc::tcpip::Server* parent, std::string ip, uint8_t component_id):

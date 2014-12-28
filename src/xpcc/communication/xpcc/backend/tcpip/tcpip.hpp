@@ -31,7 +31,7 @@
 #ifndef XPCC__TCPIP_HPP
 #define XPCC__TCPIP_HPP
 
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_client.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_client.hpp>
 #include <xpcc/container/smart_pointer.hpp>
 
 #include "../backend_interface.hpp"

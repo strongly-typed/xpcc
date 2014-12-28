@@ -1,6 +1,6 @@
 #include <xpcc_config.hpp>
 
-#include <xpcc/architecture/platform/driver/tcpip/tcpip_server.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_server.hpp>
 #include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
 #include <xpcc/debug/logger.hpp>
 

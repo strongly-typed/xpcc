@@ -15,6 +15,7 @@ xpcc::tcpip::Client::Client():
 	work(new boost::asio::io_service::work(*ioService)),
 	ioThread(boost::bind(&boost::asio::io_service::run, ioService)),
 	connectionTimer(*ioService),
+	closeConnectionTimer(*ioService),
 	serverPort(-1)
 {
 	connectionTimer.expires_at(boost::posix_time::pos_infin);
@@ -54,6 +55,25 @@ xpcc::tcpip::Client::connect(std::string ip, int port){
 
 void
 xpcc::tcpip::Client::disconnect(){
+	//put unregister message for all connected receivers into send que and remove corresponding ComponentInfo
+
+	//TODO start deadline timer to force shutdown
+	for(std::list< boost::shared_ptr< xpcc::tcpip::Receiver> >::iterator iter = this->componentReceiver.begin();
+			iter != this->componentReceiver.end();iter++)
+	{
+		uint8_t id = (*iter)->getId();
+		//no complete header is needed since the created message will not be a data message
+		xpcc::Header messageHeader;
+		messageHeader.source = id;
+		messageHeader.destination = 0;
+		xpcc::SmartPointer payload(0);
+		boost::shared_ptr<xpcc::tcpip::Message> message(
+				new xpcc::tcpip::Message(xpcc::tcpip::TCPHeader::Type::UNREGISTER, messageHeader, payload));
+		this->sendPacket(message);
+		this->componentMap.erase(id);
+	}
+
+
 
 }
 
@@ -87,7 +107,7 @@ xpcc::tcpip::Client::spawnReceiveThread(uint8_t id)
 	this->componentReceiver.push_back(receiver);
 	boost::shared_ptr<boost::thread> receiverThread(
 			new boost::thread(boost::bind(&xpcc::tcpip::Receiver::run, &*receiver)));
-	this->receiveThreadPool.push_back(receiverThread);
+	this->receiveThreadPool.emplace(id, receiverThread);
 }
 
 void
@@ -296,10 +316,49 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 		memcpy(payload.getPointer(), this->message, messageHeader->getDataSize());
 
 		boost::shared_ptr<xpcc::tcpip::Message> message( new xpcc::tcpip::Message(messageHeader->getXpccHeader(), payload));
+		/*
 		if(message->getTCPHeader().getMessageType() == xpcc::tcpip::TCPHeader::Type::DATA &&
 			!(message->getXpccHeader().destination == 0) && !this->registered(message->getXpccHeader().destination))
 		{
 			this->receiveNewMessage(message);
+		}*/
+		switch(message->getTCPHeader().getMessageType()){
+
+		case TCPHeader::Type::DATA: {
+			//data messages are normally received via the receiver classes
+			//all data messages sent to the client directly are only for listening purposes
+			// in order to prevent messages from active components or events
+			// to be received twice filter them
+			if(!this->componentMap.empty() && !(message->getXpccHeader().destination == 0) &&
+					!this->registered(message->getXpccHeader().destination))
+			{
+				this->receiveNewMessage(message);
+			}
+			break;
+		}
+		case TCPHeader::Type::UNREGISTER:
+		{
+			//confirmation from server that the receiver can be shut down
+			int componentId = message->getXpccHeader().destination;
+			bool found = false;
+			for(std::list< boost::shared_ptr< xpcc::tcpip::Receiver> >::iterator iter =
+			this->componentReceiver.begin(); iter != this->componentReceiver.end(); iter++)
+			{
+				if((*iter)->getId() == componentId){
+					found = true;
+					(*iter)->shutdownCommand();
+					this->componentReceiver.erase(iter);
+					//try to join thread, at the moment this is blocking!
+					//TODO include a timed join with error handling
+
+					break;
+				}
+			}
+			if(!found){
+				std::cout << "Error received shudown message for unknown receiver with id "<<componentId<<std::endl;
+			}
+			break;
+		}
 		}
 		if(this->connected)
 		{

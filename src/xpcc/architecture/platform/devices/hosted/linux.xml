@@ -5,6 +5,7 @@
     <driver type="can" name="hosted"/>
     <driver type="graphics" name="hosted"/>
     <driver type="tipc" name="linux"/>
+    <driver type="tcpip" name="hosted"/>
     <driver type="uart" name="hosted"/>
     <driver type="uart" name="posix"/>
   </device>

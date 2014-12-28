@@ -37,7 +37,7 @@
 
 #include <list>
 
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_message.hpp>
+#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_message.hpp>
 
 namespace xpcc{
 namespace tcpip{
@@ -60,14 +60,10 @@ namespace tcpip{
 
     	void run();
 
-    	//places the first received message in the client message list,
-    	//where it's handled by the postman
-    	// returns true if a message was published
-    	// false if no message is available
-    	//TODO make thread safe
-    	bool publishMessage();
-
     	int getId();
+
+    	//this method should only be called by the parent client, never shutdown one receiver separately
+    	void shutdownCommand();
 
 
     private:
