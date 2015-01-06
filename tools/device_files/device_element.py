@@ -65,6 +65,13 @@ class DeviceElementBase:
 			return {'type': count[-1:], 'count': int(count[:-1])}
 		return [count]
 
+	def applies(self, properties={}, matched=None):
+		"""
+		checks if this property/driver applies to the device specified by the
+		parent object
+		"""
+		return self.appliesTo(self.device.device_id)
+
 	def appliesTo(self, device_id, properties={}, matched=None):
 		"""
 		checks if this property/driver applies to the device specified by the

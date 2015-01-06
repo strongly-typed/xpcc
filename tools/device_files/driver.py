@@ -84,6 +84,8 @@ class DriverFile:
 		d.substitutions = dic['substitutions']
 		d.instances = dic['instances']
 		d.properties = dic['properties']
+		# Device Id
+		d.device_id = DeviceIdentifier(dic['device'])
 		# generate ParameterDB from dict
 		param_db = ParameterDB.fromDictionary(user_parameters, logger)
 		d.user_parameters = param_db.getParametersForDriver(d)
@@ -93,16 +95,13 @@ class DriverFile:
 		# d.log.debug("d.device_core : %s" % d.device_core)
 		return d
 
-	def getBuildList(self, platform_path, device_id, source_file_extentions = ['.cpp', '.c', '.sx', '.S', '.h', '.hpp']):
+	def getBuildList(self, platform_path,  source_file_extentions = ['.cpp', '.c', '.sx', '.S', '.h', '.hpp']):
 		"""
 		The data is put into a list of the format:
 		[ ['static_file_name', 'static_output_file_name'],
 		['template_src_file','template_target_file',{'Dict': 'a', 'of': 'b', 'defines': 's'}]]
 		Note: all file paths are relative to the platform path.
 		"""
-		# Turn Device String into Device Identifier
-		if isinstance(device_id, str):
-			device_id = DeviceIdentifier(device_id)
 		# Initialize Return List
 		build = []
 		# Check if there is a driver file and open
@@ -126,17 +125,17 @@ class DriverFile:
 				% (self.name, node.get('name'), f))
 			# Do we only have one default instance?
 			if self.instances == None:
-				self._parseDriverXml(device_id, node, 'default', build, {})
+				self._parseDriverXml(node, 'default', build, {})
 			else: # handle several or at least one specific instance
 				# Initialize Internal Target File Dictionary
 				targets = {}
 				for instance in self.instances:
-					self._parseDriverXml(device_id, node, instance, build, targets)
+					self._parseDriverXml(node, instance, build, targets)
 		else: # if no xml driver file exists, just add all files that look like source files
 			# Query all files in directory
 			dir = os.path.join(platform_path, self.path)
 			if not os.path.exists(dir):
-				self.log.warn("'%s' implementation for target '%s' does not exist!" % (self.path, device_id.string))
+				self.log.warn("'%s' implementation for target '%s' does not exist!" % (self.path, self.device_id.string))
 				return build
 			for source_file in os.listdir(dir):
 				# Detect Static Source and Header Files
@@ -152,7 +151,7 @@ class DriverFile:
 					build.append([template, output, self.substitutions])
 		return build
 
-	def _parseDriverXml(self, device_id, driver_node, instance_id, build_list, targets):
+	def _parseDriverXml(self, driver_node, instance_id, build_list, targets):
 		# First parse parameters:
 		for node in driver_node:
 			if node.tag == 'parameter':

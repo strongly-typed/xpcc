@@ -47,8 +47,10 @@ class DeviceFile:
 
 	PROPERTY_TAGS = ['flash', 'ram', 'mmcu', 'eeprom', 'pin-count', 'define', 'header', 'linkerscript']
 
-	def __init__(self, xml_file, logger=None):
+	def __init__(self, xml_file, device_id, logger=None):
 		node = self._openDeviceXML(xml_file)
+
+		self.device_id = device_id
 
 		if logger == None:
 			self.log = Logger()
@@ -162,30 +164,26 @@ class DeviceFile:
 
 
 ##-------------  Methods used by the SCons Platform Tools ---------------------
-	def getProperties(self, device_string):
+	def getProperties(self):
 		"""
 		Returns a dictionary containing:
 		'flash', 'ram', 'pin-count' and 'defines'
-		that are specific to the device_string.
 
 		This is used by the Scons Platform Tools. Think before editing.
 		TODO: defines, flash and ram may depend on pin-count....
 		"""
-		s = DeviceIdentifier(device_string, self.log)
-		if s.valid == False:
-			return None
 		props = {}
-		props['defines'] = self.getProperty('define', device_string)
-		props['headers'] = self.getProperty('header', device_string)
+		props['defines'] = self.getProperty('define')
+		props['headers'] = self.getProperty('header')
 
-		if s.platform != 'hosted':
-			props['flash'] = self.getProperty('flash', device_string, True)[0]
-			props['ram'] = self.getProperty('ram', device_string, True)[0]
-			props['eeprom'] = self.getProperty('eeprom', device_string, True, 0)[0]
-			props['mcu'] = self.getProperty('mcu', device_string, True, "")[0]
-			props['linkerscript'] = self.getProperty('linkerscript', device_string, True, "")[0]
-			props['core'] = self.getProperty('core', device_string, True)[0]
-		props.update(s.getTargetDict())
+		if self.device_id.platform != 'hosted':
+			props['flash'] = self.getProperty('flash', True)[0]
+			props['ram'] = self.getProperty('ram', True)[0]
+			props['eeprom'] = self.getProperty('eeprom', True, 0)[0]
+			props['mcu'] = self.getProperty('mcu', True, "")[0]
+			props['linkerscript'] = self.getProperty('linkerscript', True, "")[0]
+			props['core'] = self.getProperty('core', True)[0]
+		props.update(self.device_id.getTargetDict())
 
 		#Check Some Properties
 		if self.platform == 'stm32':
@@ -199,7 +197,7 @@ class DeviceFile:
 
 		return props
 
-	def getDriverList(self, device_string, platform_path):
+	def getDriverList(self, platform_path):
 		"""
 		This function uses data gathered from the device file to generate
 		a list fo drivers that need to be built.
@@ -217,11 +215,6 @@ class DeviceFile:
 		'instances': list of instances that will be created of this driver
 		Please note: all paths are relative to the platform_path.
 		"""
-
-		# Check Device string
-		s = DeviceIdentifier(device_string, self.log)
-		if s.valid == False:
-			return None
 		drivers = []
 
 		# find software implementations of drivers
@@ -231,43 +224,40 @@ class DeviceFile:
 			name_dir = os.path.join(per_dir, peripheral)
 			for name in [n for n in os.listdir(name_dir) if os.path.isdir(os.path.join(name_dir, n)) and n == 'generic']:
 				d = Driver(self, et.Element('driver', {'type': peripheral, 'name': 'generic'}))
-				if d.appliesTo(s, self.properties):
-					substitutions = s.getTargetDict()
+				if d.appliesTo(self.device_id, self.properties):
+					substitutions = self.device_id.getTargetDict()
 					substitutions.update(self.getSubstitutions())
-					drivers.append(d.toDict(platform_path, substitutions, s, self.properties))
+					drivers.append(d.toDict(platform_path, substitutions, self.device_id, self.properties))
 
 		# Loop Through Drivers
 		for d in self.drivers:
-			if d.appliesTo(s, self.properties):
-				substitutions = s.getTargetDict()
+			if d.appliesTo(self.device_id, self.properties):
+				substitutions = self.device_id.getTargetDict()
 				for prop in [p for p in self.properties if p.type == 'core']:
 					substitutions['target']['core'] = prop.value
 				substitutions.update(self.getSubstitutions())
-				drivers.append(d.toDict(platform_path, substitutions, s, self.properties))
+				drivers.append(d.toDict(platform_path, substitutions, self.device_id, self.properties))
 
 		return drivers
 
 ##-----------------------------------------------------------------------------
-	def getProperty(self, prop_type, device_string, require_singelton=False, default=None):
+	def getProperty(self, prop_type, require_singelton=False, default=None):
 		"""
 		Can be used to inquire flash size, ram size, pin-count or defines
 		Always returns as list if a valid device string is handed to function.
 		Set require_singelton if you need exactly one value to be returned.
 		"""
-		s = DeviceIdentifier(device_string, self.log)
-		if s.valid == False:
-			return None
 		if prop_type == 'define':
 			values = {}
 			for prop in self.properties:
 				if prop.type == prop_type:
-					if prop.appliesTo(s, self.properties):
+					if prop.appliesTo(self.device_id, self.properties):
 						values[prop.value] = prop.content
 		else:
 			values = []
 			for prop in self.properties:
 				if prop.type == prop_type:
-					if prop.appliesTo(s, self.properties):
+					if prop.appliesTo(self.device_id, self.properties):
 						values.append(prop.value)
 		if require_singelton:
 			if len(values) > 1:
@@ -336,6 +326,7 @@ class Driver(DeviceElementBase):
 		dic['substitutions'].update(self.getDriverSubstitutions(device_id, properties)) # own substitutions overwrite
 		dic['instances'] = self.instances
 		dic['properties'] = properties
+		div['device'] = self.device.device_id.string
 		return dic
 
 	def getDriverFile(self, platform_path):
@@ -364,11 +355,11 @@ class Driver(DeviceElementBase):
 			return substitutions
 		# Now this is were it gets interesting:
 		# parsing the inner nodes of the driver node recursively:
-		substitutions = dict(self._nodeToDict(self.node, device_id, properties).items() + substitutions.items())
+		substitutions = dict(self._nodeToDict(self.node, properties).items() + substitutions.items())
 		self.log.debug("Found substitutions: " + str(substitutions))
 		return substitutions
 
-	def _nodeToDict(self, node, device_id, properties):
+	def _nodeToDict(self, node, properties):
 		"""
 		attribute of the node are turned into key/value pairs
 		child nodes are added to a list which is the value
@@ -376,9 +367,8 @@ class Driver(DeviceElementBase):
 		Example:
 		TODO..
 		"""
-		dev = DeviceElementBase(self.device, node)
 		dic = {}
-		if dev.appliesTo(device_id, properties):
+		if self.applies(properties):
 			# Fist add attributes
 			dic = dict(node.items())
 			# Now add children
@@ -386,12 +376,12 @@ class Driver(DeviceElementBase):
 				child_name = c.tag + 's'
 				if child_name not in dic:
 					dic[child_name] = [] # create child list
-				cdic = self._nodeToDict(c, device_id, properties)
+				cdic = self._nodeToDict(c, properties)
 				if len(cdic) > 0:
 					dic[child_name].append(cdic)
 		return dic
 
-	def getParameters(self, device_id, properties):
+	def getParameters(self, properties):
 		"""
 		Extracts all Parameter nodes from the driver
 		node.
@@ -403,8 +393,7 @@ class Driver(DeviceElementBase):
 		# Loop through child nodes looking for parameters
 		for c in self.node:
 			if c.tag == 'parameter':
-				dev = DeviceElementBase(self.device, c)
-				if dev.appliesTo(device_id, properties):
+				if self.applies(properties):
 					name = c.get('name')
 					instances = c.get('instances')
 					value = c.text

@@ -121,22 +121,20 @@ def platform_tools_find_device_file(env):
 
 	# Now we need to parse the Xml File
 	env.Debug("Found device file: " + device_file)
-	env['XPCC_DEVICE_FILE'] = DeviceFile(device_file, env.GetLogger())
+	env['XPCC_DEVICE_FILE'] = DeviceFile(device_file, id, env.GetLogger())
 
 	if id.platform == 'hosted':
 		env['ARCHITECTURE'] = 'hosted/' + id.family
 	else:
 		# for microcontrollers architecture = core
-		env['ARCHITECTURE'] = env['XPCC_DEVICE_FILE'].getProperties(device)['core']
+		env['ARCHITECTURE'] = env['XPCC_DEVICE_FILE'].getProperties()['core']
 		if id.platform == 'avr':
-			env['AVRDUDE_DEVICE'] = env['XPCC_DEVICE_FILE'].getProperties(device)['mcu']
+			env['AVRDUDE_DEVICE'] = env['XPCC_DEVICE_FILE'].getProperties()['mcu']
 
 #------------------------------------------------------------------------------
 # env['XPCC_PLATFORM_PATH'] is used for absolute paths
 # architecture_path for relative build paths
 def platform_tools_generate(env, architecture_path):
-	device = env['XPCC_DEVICE']
-
 	# Initialize Return Lists/Dicts
 	sources = []
 	defines = {}
@@ -147,12 +145,12 @@ def platform_tools_generate(env, architecture_path):
 	dev = env['XPCC_DEVICE_FILE']
 
 	# Parse Properties
-	prop = dev.getProperties(device)
+	prop = dev.getProperties()
 	env.Debug("Found properties: %s" % prop)
 	defines = prop['defines']
 	device_headers = prop['headers']
 
-	if device not in ['darwin', 'linux', 'windows']:
+	if dev.device_id.platform not in ['hosted']:
 		# Set Size
 		env['DEVICE_SIZE'] = { "flash": prop['flash'], "ram": prop['ram'], "eeprom": prop['eeprom'] }
 		if (prop['linkerscript'] != ""):
@@ -161,7 +159,7 @@ def platform_tools_generate(env, architecture_path):
 			if not os.path.isfile(linkerfile):
 				linkerfile = os.path.join(env['XPCC_PLATFORM_PATH'], 'linker', prop['target']['platform'], prop['linkerscript'])
 				if not os.path.isfile(linkerfile):
-					env.Error("Linkerscript for %s (%s) could not be found." % (device, linkerfile))
+					env.Error("Linkerscript for %s (%s) could not be found." % (dev.device_id.string, linkerfile))
 					Exit(1)
 			linkdir, linkfile = os.path.split(linkerfile)
 			linkdir = linkdir.replace(env['XPCC_ROOTPATH'], "${XPCC_ROOTPATH}")
@@ -174,14 +172,14 @@ def platform_tools_generate(env, architecture_path):
 	# Loop through Drivers
 	driver_list = []
 	type_id_headers = []
-	drivers = dev.getDriverList(device, env['XPCC_PLATFORM_PATH'])
+	drivers = dev.getDriverList(env['XPCC_PLATFORM_PATH'])
 	for driver in drivers:
 		ddic = {} # create dictionary describing the driver
 		d = DriverFile.fromDict(driver, env['XPCC_PARAMETER_DB'], env.GetLogger())
 		ddic['name'] = d.name
 		ddic['type'] = d.type
 		ddic['headers'] = []
-		build = d.getBuildList(env['XPCC_PLATFORM_PATH'], env['XPCC_DEVICE'])
+		build = d.getBuildList(env['XPCC_PLATFORM_PATH'])
 		for f in build:
 			src = os.path.join(platform_path, f[0])
 			tar = os.path.join(generated_path, f[1])
@@ -205,7 +203,7 @@ def platform_tools_generate(env, architecture_path):
 	# Show SCons how to build the architecture/platform.hpp file:
 	src = os.path.join(platform_path, 'platform.hpp.in')
 	tar = os.path.join(architecture_path, 'platform.hpp')
-	platform_include_path = 'generated_platform_' + device + '/drivers.hpp'
+	platform_include_path = 'generated_platform_' + dev.device_id.string + '/drivers.hpp'
 	# Check if architecture/platform.hpp already exists
 	if os.path.exists(tar):
 		f = open(tar, 'r')
