@@ -45,9 +45,10 @@ namespace xpcc
 
         public:
 
-			enum class Type{
-				REGISTER,
+			enum class Type: int{
+				REGISTER = 1,
 				UNREGISTER,
+				CLOSE_CONNECTION,
 				LISTEN,
 				PING,
 				DATA,

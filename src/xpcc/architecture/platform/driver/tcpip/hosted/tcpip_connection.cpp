@@ -63,7 +63,7 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
     		xpcc::tcpip::Message msg(header->getXpccHeader(), payload);
 
     		//evaluating data only required if Message is a data message
-    		this->server->distributeDataMessage(msg);
+    		this->server->distributeMessage(msg);
     		break;
     	}
 
@@ -76,6 +76,40 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
     		break;
     	}
 
+    	case xpcc::tcpip::TCPHeader::Type::UNREGISTER:{
+    		int id = header->getXpccHeader().source;
+    		this->server->shutdownDistributor(id);
+    		SmartPointer payload(header->getDataSize());
+    		header->getXpccHeader().destination = id;
+    		header->getXpccHeader().source = id;
+    		std::cout <<"Header size: "<< (int) header->getDataSize() << std::endl;
+    		memcpy(payload.getPointer(), this->message, header->getDataSize());
+    		boost::shared_ptr<xpcc::tcpip::Message> msg(new xpcc::tcpip::Message(xpcc::tcpip::TCPHeader::Type::UNREGISTER,
+    				header->getXpccHeader(), payload));
+    		std::cout<< "Confirming unregister message"<<std::endl;
+    		this->sendMessage(msg);
+    		break;
+    	}
+    	case xpcc::tcpip::TCPHeader::Type::CLOSE_CONNECTION:{
+    		//TODO shutdown the connection;
+    		boost::system::error_code ec;
+    		socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+    		if (ec)
+    		{
+    		  std::cout << "Receive connection shutdown with error code "<< ec << std::endl;
+    		}
+
+    		socket.close(ec);
+    		if (ec)
+    		{
+    			std::cout << "Receive Connection closed with error code "<< ec << std::endl;
+    		}
+
+    		std::cout << "Connection closed!" << std::endl;
+    		this->server->removeClosedConnections();
+
+    		break;
+    	}
     	case xpcc::tcpip::TCPHeader::Type::LISTEN:{
     		//TODO send bool with listen messages in order to close listening connections.
     		this->listen = true;
@@ -140,4 +174,9 @@ xpcc::tcpip::Connection::handleSendMessage(const boost::system::error_code& erro
     else{
     	//TODO ERROR handler
     }
+}
+
+bool
+xpcc::tcpip::Connection::isConnected(){
+	return this->socket.is_open();
 }

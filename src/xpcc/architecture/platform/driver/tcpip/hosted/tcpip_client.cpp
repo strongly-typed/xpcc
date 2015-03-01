@@ -56,7 +56,10 @@ xpcc::tcpip::Client::connect(std::string ip, int port){
 void
 xpcc::tcpip::Client::disconnect(){
 	//put unregister message for all connected receivers into send que and remove corresponding ComponentInfo
-
+	{
+		boost::lock_guard<boost::mutex> lock(this->closeConnectionMutex);
+		this->closeConnection = true;
+	}
 	//TODO start deadline timer to force shutdown
 	for(std::list< boost::shared_ptr< xpcc::tcpip::Receiver> >::iterator iter = this->componentReceiver.begin();
 			iter != this->componentReceiver.end();iter++)
@@ -303,6 +306,7 @@ xpcc::tcpip::Client::readHeaderHandler(const boost::system::error_code& error)
 	}
 	else{
 		//TODO error handling
+		XPCC_LOG_ERROR << "Error receiving header "<< xpcc::endl;
 	}
 }
 
@@ -315,7 +319,7 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 		SmartPointer payload(messageHeader->getDataSize());
 		memcpy(payload.getPointer(), this->message, messageHeader->getDataSize());
 
-		boost::shared_ptr<xpcc::tcpip::Message> message( new xpcc::tcpip::Message(messageHeader->getXpccHeader(), payload));
+		boost::shared_ptr<xpcc::tcpip::Message> message(new xpcc::tcpip::Message(messageHeader->getMessageType(), messageHeader->getXpccHeader(), payload));
 		/*
 		if(message->getTCPHeader().getMessageType() == xpcc::tcpip::TCPHeader::Type::DATA &&
 			!(message->getXpccHeader().destination == 0) && !this->registered(message->getXpccHeader().destination))
@@ -349,8 +353,10 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 					(*iter)->shutdownCommand();
 					this->componentReceiver.erase(iter);
 					//try to join thread, at the moment this is blocking!
-					//TODO include a timed join with error handling
-
+					XPCC_LOG_DEBUG << "Joining Receiver Thread for id "<<componentId << xpcc::endl;
+					this->receiveThreadPool.at(componentId)->join();
+					XPCC_LOG_DEBUG << "Joined Receiver Thread for id "<<componentId << xpcc::endl;
+					this->receiveThreadPool.erase(componentId);
 					break;
 				}
 			}
@@ -359,6 +365,9 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 			}
 			break;
 		}
+		default:
+			XPCC_LOG_ERROR << "TCPIP Client not able to handle message of type TODO" <<xpcc::endl;
+			break;
 		}
 		if(this->connected)
 		{
@@ -367,6 +376,7 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 	}
 	else{
 		//TODO error handling
+		std::cout << "Error while receiving message" << std::endl;
 	}
 }
 

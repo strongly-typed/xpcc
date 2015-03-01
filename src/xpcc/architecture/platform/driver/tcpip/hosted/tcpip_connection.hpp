@@ -69,6 +69,8 @@ class Connection: public boost::enable_shared_from_this<xpcc::tcpip::Connection>
 
 		bool isListening();
 
+		bool isConnected();
+
 		typedef boost::shared_ptr<Connection> ConnectionPtr;
 
 	private:

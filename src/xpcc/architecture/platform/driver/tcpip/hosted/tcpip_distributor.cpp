@@ -32,7 +32,21 @@ xpcc::tcpip::Distributor::run()
 void
 xpcc::tcpip::Distributor::disconnect()
 {
+	//close both ports
+	boost::system::error_code ec;
+	sendSocket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+	if (ec)
+	{
+	  std::cout << "Distributor "<< port << " shutdown with error code "<< ec << std::endl;
+	}
 
+	sendSocket->close(ec);
+	if (ec)
+	{
+		std::cout << "Distributor "<< port << " closed with error code "<< ec << std::endl;
+	}
+
+	std::cout << "Connection for Distributor "<< port << " closed!" << std::endl;
 }
 
 void
@@ -81,11 +95,4 @@ xpcc::tcpip::Distributor::sendHandler(const boost::system::error_code& error)
     else{
     	//TODO ERROR handler
     }
-}
-
-//TODO
-void
-xpcc::tcpip::Distributor::close()
-{
-
 }

@@ -66,7 +66,9 @@ class Server {
 
 		void spawnSendThread(uint8_t componentId, std::string ip);
 
-		void distributeDataMessage(xpcc::tcpip::Message msg);
+		void shutdownDistributor(int id);
+
+		void distributeMessage(xpcc::tcpip::Message msg);
 
 		void update();
 
@@ -76,6 +78,8 @@ class Server {
 		inline int getPort() const {
 			return serverPort;
 		}
+
+		void removeClosedConnections();
 
 	private:
 

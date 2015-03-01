@@ -79,8 +79,6 @@ namespace xpcc
 
 			void sendHandler(const boost::system::error_code& error);
 
-			void close();
-
 			bool connected;
 			bool writingMessages;
 

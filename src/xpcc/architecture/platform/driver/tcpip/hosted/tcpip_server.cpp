@@ -64,26 +64,45 @@ xpcc::tcpip::Server::update()
 
 //TODO make function parameter shared_ptr to prevent copying of the whole message
 void
-xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
+xpcc::tcpip::Server::distributeMessage(xpcc::tcpip::Message msg)
 {
 
+	//handle different messages differently, only data messages can have more than one receiver
+	xpcc::tcpip::TCPHeader::Type type = msg.getTCPHeader().getMessageType();
+	uint8_t destination = msg.getXpccHeader().destination;
+
 	//independent of destination distribute msg to all listening clients
-	for(std::list<boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = this->receiveConnections.begin();
-			iter!=this->receiveConnections.end(); iter++){
-		if((*iter)->isListening()){
+	switch(type){
+		case xpcc::tcpip::TCPHeader::Type::DATA:{
 
-			(*iter)->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
-					new xpcc::tcpip::Message(msg)));
 
+			for(std::list<boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = this->receiveConnections.begin();
+					iter!=this->receiveConnections.end(); iter++){
+				if((*iter)->isListening()){
+
+					(*iter)->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
+							new xpcc::tcpip::Message(msg)));
+
+				}
+			}
+
+			if(destination == 0)
+			{
+				//handle event
+				//send message to all registered components
+				boost::lock_guard<boost::mutex> lock(distributorMutex);
+				for (auto& pair : this->distributorMap)
+				{
+					pair.second->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
+							new xpcc::tcpip::Message(msg)));
+				}
+			}
+			break;
 		}
 	}
 
-	uint8_t destination = msg.getXpccHeader().destination;
-
-	if(destination != 0)
-	{
-		//handle action
-
+	//handle component specific sending
+	if(destination != 0){
 		//check if destination is a registered component, else drop message
 		boost::lock_guard<boost::mutex> lock(distributorMutex);
 		if(this->distributorMap.find(destination)!= this->distributorMap.end())
@@ -98,17 +117,25 @@ xpcc::tcpip::Server::distributeDataMessage(xpcc::tcpip::Message msg)
 			XPCC_LOG_WARNING << "Message to Component with id "<< msg.getXpccHeader().destination << " dropped! "<<
 					"Component " << msg.getXpccHeader().destination << " not registered on server!" << xpcc::endl;
 		}
-
 	}
-	else
-	{
-		//handle event
-		//send message to all registered components
-		boost::lock_guard<boost::mutex> lock(distributorMutex);
-		for (auto& pair : this->distributorMap)
-		{
-			pair.second->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
-					new xpcc::tcpip::Message(msg)));
+}
+
+void
+xpcc::tcpip::Server::shutdownDistributor(int id){
+	//2. remove distributor from list
+	boost::shared_ptr<xpcc::tcpip::Distributor> distributor = (this->distributorMap.find( (uint8_t) id))->second;
+	this->distributorMap.erase((uint8_t) id);
+	//3. close distributor
+	distributor->disconnect();
+
+}
+
+void
+xpcc::tcpip::Server::removeClosedConnections(){
+	for(std::list< boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = receiveConnections.begin();
+			iter != receiveConnections.end(); iter++){
+		if(!(*iter)->isConnected()){
+			iter->reset();
 		}
 	}
 }
