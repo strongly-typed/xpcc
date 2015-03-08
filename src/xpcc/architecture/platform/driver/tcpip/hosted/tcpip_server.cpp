@@ -26,13 +26,16 @@ void
 xpcc::tcpip::Server::accept_handler(boost::shared_ptr<xpcc::tcpip::Connection> receive,
 		const boost::system::error_code& error)
 {
-	//XPCC_LOG_DEBUG<< "Connection from " << receive->getSocket().remote_endpoint().address().to_string()
-	//		<< " accepted" << xpcc::endl;
+	XPCC_LOG_DEBUG<< "Connection from " << receive->getSocket().remote_endpoint().address().to_string().c_str()
+			<< " accepted" << xpcc::endl;
 
     if (!error)
     {
       this->receiveConnections.push_back(receive);
       receive->start();
+    }
+    else{
+    	std::cout<< "Error in accept_handler: "<< error << std::endl;
     }
 
     spawnReceiveConnection();
@@ -123,19 +126,24 @@ xpcc::tcpip::Server::distributeMessage(xpcc::tcpip::Message msg)
 void
 xpcc::tcpip::Server::shutdownDistributor(int id){
 	//2. remove distributor from list
+	std::cout<< "Shutting down Distributor for id "<< id << std::endl;
 	boost::shared_ptr<xpcc::tcpip::Distributor> distributor = (this->distributorMap.find( (uint8_t) id))->second;
 	this->distributorMap.erase((uint8_t) id);
 	//3. close distributor
 	distributor->disconnect();
-
+	this->distributorMap.erase((uint8_t) id);
+	std::cout<< "Shut down Distributor for id "<< id << std::endl;
 }
 
 void
 xpcc::tcpip::Server::removeClosedConnections(){
+	std::cout<< "Removing closed Connections"<< std::endl;
 	for(std::list< boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = receiveConnections.begin();
 			iter != receiveConnections.end(); iter++){
-		if(!(*iter)->isConnected()){
-			iter->reset();
+		boost::shared_ptr<xpcc::tcpip::Connection> connectionPtr = *iter;
+		if(!connectionPtr->isConnected()){
+			this->receiveConnections.erase(iter);
+			XPCC_LOG_DEBUG<< "Closed Connection removed!"<<xpcc::endl;
 		}
 	}
 }

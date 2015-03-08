@@ -43,6 +43,9 @@ xpcc::tcpip::Connection::handleReadHeader(const boost::system::error_code& error
 	          &xpcc::tcpip::Connection::handleReadBody, this,
 	          boost::asio::placeholders::error));
 	}
+	else{
+		XPCC_LOG_ERROR << "Connection: Error reading Header: "<<error.message().c_str() << xpcc::endl;
+	}
 }
 
 void
@@ -127,9 +130,9 @@ xpcc::tcpip::Connection::handleReadBody(const boost::system::error_code& error)
               &xpcc::tcpip::Connection::handleReadHeader, this,
               boost::asio::placeholders::error));
     }
-    else{
-    	//TODO error handling
-    }
+	else{
+		XPCC_LOG_ERROR << "Connection: Error reading message: "<<error.message().c_str() << xpcc::endl;
+	}
 }
 
 bool

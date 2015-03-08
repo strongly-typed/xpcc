@@ -49,6 +49,8 @@ xpcc::tcpip::Client::connect(std::string ip, int port){
 	}
 	else{
 		XPCC_LOG_ERROR << "Client already connected. Unable to establish new connection to "<< ip.c_str()<<":"<<port<<xpcc::endl;
+		XPCC_LOG_ERROR << "Is connecting: "<< this->isConnecting()<< xpcc::endl;
+		XPCC_LOG_ERROR << "Is connected: "<< this->isConnected()<< xpcc::endl;
 	}
 }
 
@@ -155,11 +157,6 @@ xpcc::tcpip::Client::connect_handler(const boost::system::error_code& error)
 
 void
 xpcc::tcpip::Client::disconnect_handler(const boost::system::error_code& error){
-
-	boost::lock_guard<boost::mutex> lock1(this->closeConnectionMutex);
-	this->closeConnection = false;
-	boost::lock_guard<boost::mutex> lock2(this->connectedMutex);
-	this->connected = false;
 	boost::system::error_code ec;
 	sendSocket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 
@@ -174,6 +171,16 @@ xpcc::tcpip::Client::disconnect_handler(const boost::system::error_code& error){
 		std::cout << "Client closed with error code "<< ec << std::endl;
 	}
 
+	{
+		boost::lock_guard<boost::mutex> lock1(this->closeConnectionMutex);
+		this->closeConnection = false;
+	}
+	{
+		boost::lock_guard<boost::mutex> lock(this->connectedMutex);
+		XPCC_LOG_DEBUG<<"Setting connected to false!"<<xpcc::endl;
+			this->connected = false;
+	}
+	XPCC_LOG_DEBUG<<"Is connected: "<< this->isConnected() <<xpcc::endl;
 	std::cout << "Connection closed!" << std::endl;
 }
 
@@ -291,6 +298,9 @@ xpcc::tcpip::Client::connection_timeout_handler(const boost::system::error_code&
     else if (error) {
         XPCC_LOG_ERROR << "Timer error: " << error.message().c_str() << xpcc::endl;
     }
+    else{
+    	XPCC_LOG_WARNING << "Connecting to server timed out!" << xpcc::endl;
+    }
 
 	{
 		boost::lock_guard<boost::mutex> lock(this->connectingMutex);
@@ -334,7 +344,7 @@ xpcc::tcpip::Client::readHeaderHandler(const boost::system::error_code& error)
 	}
 	else{
 		//TODO error handling
-		std::cout << "Error receiving header: "<< error.message()<< xpcc::endl;
+		std::cout << "Error receiving header: "<< error.message()<< std::endl;
 	}
 }
 
