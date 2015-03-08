@@ -6,6 +6,9 @@
 #ifdef USE_TCPIP
 #include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
 xpcc::TcpIpConnector connector;
+
+#include <xpcc/processing/timeout.hpp>
+
 #endif
 
 #ifdef USE_TIPC
@@ -45,7 +48,10 @@ main(void)
 	XPCC_LOG_INFO << "Welcome to the communication test!" << xpcc::endl;
 
 #ifdef USE_TCPIP
+	bool connect = true;
 	connector.connect("127.0.0.1", 7666);
+
+	xpcc::PeriodicTimer<> timer(20000);
 #endif
 
 	connector.addReceiverId(robot::component::RECEIVER);
@@ -60,5 +66,19 @@ main(void)
 		component::receiver.update();
 		
 		xpcc::delayMicroseconds(100);
+#ifdef USE_TCPIP
+		if(timer.isExpired()){
+			if(connect){	
+				std::cout << "Initiating Component shutdown!" << std::endl;
+				connector.disconnect();
+			}
+			else{
+				std::cout << "Initiating Component reconnect!" << std::endl;
+				connector.connect("127.0.0.1", 7666);
+				connector.addReceiverId(robot::component::RECEIVER);
+			}
+			connect = !connect;
+		}
+#endif
 	}
 }
