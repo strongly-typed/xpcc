@@ -182,6 +182,14 @@ xpcc::tcpip::Client::disconnect_handler(const boost::system::error_code& error){
 	}
 	XPCC_LOG_DEBUG<<"Is connected: "<< this->isConnected() <<xpcc::endl;
 	std::cout << "Connection closed!" << std::endl;
+	{
+		boost::lock_guard<boost::mutex> lock(this->receiveMessagesMutex);
+		this->receivedMessages.clear();
+	}
+	{
+		boost::lock_guard<boost::mutex> lock(this->sendMessagesMutex);
+		this->messagesToBeSent.clear();
+	}
 }
 
 //send a xpcc packet to the server
@@ -193,6 +201,8 @@ xpcc::tcpip::Client::sendPacket(boost::shared_ptr<xpcc::tcpip::Message> msg)
 	messagesToBeSent.push_back(msg);
     if (!writingMessages)
     {
+    	std::cout<<"Sending message of type "<< (int) messagesToBeSent.front()->getTCPHeader().getMessageType()
+    	<< std::endl;
 		  messagesToBeSent.front()->encodeMessage();
 
 		  if(messagesToBeSent.front()->getTCPHeader().getMessageType() !=
@@ -422,6 +432,8 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 		if(this->connected)
 		{
 			this->readHeader();
+	    	std::cout<<"Sending message of type "<< (int) messagesToBeSent.front()->getTCPHeader().getMessageType()
+	    	<< std::endl;
 		}
 	}
 	else{
