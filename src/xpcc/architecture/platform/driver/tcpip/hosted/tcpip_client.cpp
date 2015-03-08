@@ -155,8 +155,26 @@ xpcc::tcpip::Client::connect_handler(const boost::system::error_code& error)
 
 void
 xpcc::tcpip::Client::disconnect_handler(const boost::system::error_code& error){
-	boost::lock_guard<boost::mutex> lock(this->connectedMutex);
+
+	boost::lock_guard<boost::mutex> lock1(this->closeConnectionMutex);
+	this->closeConnection = false;
+	boost::lock_guard<boost::mutex> lock2(this->connectedMutex);
 	this->connected = false;
+	boost::system::error_code ec;
+	sendSocket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+
+	if (ec)
+	{
+	  std::cout << "Client shutdown with error code "<< ec << std::endl;
+	}
+
+	sendSocket->close(ec);
+	if (ec)
+	{
+		std::cout << "Client closed with error code "<< ec << std::endl;
+	}
+
+	std::cout << "Connection closed!" << std::endl;
 }
 
 //send a xpcc packet to the server
@@ -168,14 +186,24 @@ xpcc::tcpip::Client::sendPacket(boost::shared_ptr<xpcc::tcpip::Message> msg)
 	messagesToBeSent.push_back(msg);
     if (!writingMessages)
     {
+		  messagesToBeSent.front()->encodeMessage();
 
-      messagesToBeSent.front()->encodeMessage();
-
-      boost::asio::async_write(*sendSocket,
-          boost::asio::buffer(messagesToBeSent.front()->getEncodedMessage(),
-          messagesToBeSent.front()->getMessageLength()),
-          boost::bind(&xpcc::tcpip::Client::writeHandler, this,
-            boost::asio::placeholders::error));
+		  if(messagesToBeSent.front()->getTCPHeader().getMessageType() !=
+		  	  xpcc::tcpip::TCPHeader::Type::CLOSE_CONNECTION)
+		  {
+			  boost::asio::async_write(*sendSocket,
+					boost::asio::buffer(messagesToBeSent.front()->getEncodedMessage(),
+					messagesToBeSent.front()->getMessageLength()),
+					boost::bind(&xpcc::tcpip::Client::writeHandler, this,
+					boost::asio::placeholders::error));
+		  }
+		  else {
+			  boost::asio::async_write(*sendSocket,
+					boost::asio::buffer(messagesToBeSent.front()->getEncodedMessage(),
+					messagesToBeSent.front()->getMessageLength()),
+					boost::bind(&xpcc::tcpip::Client::disconnect_handler, this,
+					boost::asio::placeholders::error));
+		  }
     }
 }
 
@@ -306,7 +334,7 @@ xpcc::tcpip::Client::readHeaderHandler(const boost::system::error_code& error)
 	}
 	else{
 		//TODO error handling
-		XPCC_LOG_ERROR << "Error receiving header "<< xpcc::endl;
+		std::cout << "Error receiving header: "<< error.message()<< xpcc::endl;
 	}
 }
 
@@ -357,6 +385,18 @@ xpcc::tcpip::Client::readMessageHandler(const boost::system::error_code& error)
 					this->receiveThreadPool.at(componentId)->join();
 					XPCC_LOG_DEBUG << "Joined Receiver Thread for id "<<componentId << xpcc::endl;
 					this->receiveThreadPool.erase(componentId);
+					boost::lock_guard<boost::mutex> lock(this->closeConnectionMutex);
+					if(this->closeConnection && this->receiveThreadPool.empty())
+					{
+						//send a shutdown message to the server
+						//the client connection will be closed in the callback of this send message
+						boost::shared_ptr<xpcc::tcpip::Message> msg(new xpcc::tcpip::Message(
+							xpcc::tcpip::TCPHeader::Type::CLOSE_CONNECTION, xpcc::Header(),
+							xpcc::SmartPointer()));
+
+						this->sendPacket(msg);
+
+					}
 					break;
 				}
 			}
