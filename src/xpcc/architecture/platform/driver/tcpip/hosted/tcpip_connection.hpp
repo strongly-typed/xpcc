@@ -1,33 +1,13 @@
 // coding: utf-8
-// ----------------------------------------------------------------------------
 /* Copyright (c) 2013, Roboterclub Aachen e.V.
- * All rights reserved.
+ * All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Roboterclub Aachen e.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY ROBOTERCLUB AACHEN E.V. ''AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL ROBOTERCLUB AACHEN E.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
  */
 // ----------------------------------------------------------------------------
-#ifndef XPCC_TCPIP__CONNECTION_HPP
-#define XPCC_TCPIP__CONNECTION_HPP
+#ifndef XPCC_TCPIP_CONNECTION_HPP
+#define XPCC_TCPIP_CONNECTION_HPP
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -40,62 +20,74 @@
 
 #include "tcpip_message.hpp"
 
-namespace xpcc {
-namespace tcpip {
 
+namespace xpcc
+{
+
+namespace tcpip
+{
+
+// forward declaration
 class Server;
 
 /**
- * \brief a receiving connection for each container connected to the server,
- * 		  may receive messages from different components
+ * A receiving connection for each container connected to the server,
+ * may receive messages from different components
  *
- *  \author Thorsten Lajewski
+ * @author Thorsten Lajewski
  */
+class Connection: public boost::enable_shared_from_this<xpcc::tcpip::Connection>
+{
+public:
+	Connection(boost::shared_ptr<boost::asio::io_service> ioService,
+			xpcc::tcpip::Server* server);
 
-class Connection: public boost::enable_shared_from_this<xpcc::tcpip::Connection> {
+	void
+	start();
 
-	public:
+	boost::asio::ip::tcp::socket&
+	getSocket();
 
-		Connection(boost::shared_ptr<boost::asio::io_service> ioService,
-		        xpcc::tcpip::Server* server);
+	void
+	receiveMessage();
 
-		void start();
+	void
+	sendMessage(boost::shared_ptr<xpcc::tcpip::Message> message);
 
-		boost::asio::ip::tcp::socket& getSocket();
+	bool
+	isListening();
 
-		void receiveMessage();
+	bool
+	isConnected();
 
-		void sendMessage(boost::shared_ptr<xpcc::tcpip::Message> message);
+	typedef boost::shared_ptr<Connection> ConnectionPtr;
 
-		bool isListening();
+private:
+	void
+	handleReadHeader(const boost::system::error_code& error);
 
-		bool isConnected();
+	void
+	handleReadBody(const boost::system::error_code& error);
 
-		typedef boost::shared_ptr<Connection> ConnectionPtr;
+	void
+	handleSendMessage(const boost::system::error_code& error);
 
-	private:
+	boost::asio::ip::tcp::socket socket;
 
-		void handleReadHeader(const boost::system::error_code& error);
+	//pointer to parent server
+	xpcc::tcpip::Server* server;
+	bool listen;
 
-		void handleReadBody(const boost::system::error_code& error);
+	//storage for current received message
+	char header[xpcc::tcpip::TCPHeader::HSIZE];
+	char message[xpcc::tcpip::Message::MSIZE];
 
-		void handleSendMessage(const boost::system::error_code& error);
-
-		boost::asio::ip::tcp::socket socket;
-
-		//pointer to parent server
-		xpcc::tcpip::Server* server;
-		bool listen;
-
-		//storage for current received message
-		char header[xpcc::tcpip::TCPHeader::HSIZE];
-		char message[xpcc::tcpip::Message::MSIZE];
-
-		//store for all messages which need to be sent
-		std::list< boost::shared_ptr<xpcc::tcpip::Message> > messagesToBeSent;
-
+	//store for all messages which need to be sent
+	std::list< boost::shared_ptr<xpcc::tcpip::Message> > messagesToBeSent;
 };
-}
-}
-#endif
 
+}	// namespace tcpip
+
+}	// namespace xpcc
+
+#endif	// XPCC_TCPIP_CONNECTION_HPP

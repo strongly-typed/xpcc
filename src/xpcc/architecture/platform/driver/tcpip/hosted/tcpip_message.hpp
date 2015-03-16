@@ -1,33 +1,14 @@
 // coding: utf-8
-// ----------------------------------------------------------------------------
 /* Copyright (c) 2013, Roboterclub Aachen e.V.
- * All rights reserved.
+ * All Rights Reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Roboterclub Aachen e.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY ROBOTERCLUB AACHEN E.V. ''AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL ROBOTERCLUB AACHEN E.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
  */
 // ----------------------------------------------------------------------------
-#ifndef XPCC_TCPIP__MESSAGE_HPP
-#define XPCC_TCPIP__MESSAGE_HPP
+
+#ifndef XPCC_TCPIP_MESSAGE_HPP
+#define XPCC_TCPIP_MESSAGE_HPP
 
 #include <boost/asio.hpp>
 #include <xpcc/container/smart_pointer.hpp>
@@ -38,97 +19,109 @@
 
 namespace xpcc
 {
-	namespace tcpip
+
+namespace tcpip
+{
+
+class TCPHeader
+{
+public:
+	enum class
+	Type: int
 	{
+		REGISTER = 1,
+		UNREGISTER,
+		CLOSE_CONNECTION,
+		LISTEN,
+		PING,
+		DATA,
+		ERROR
+	};
 
-        class TCPHeader{
+	// create REGISTER_MESSAGE
+	TCPHeader(const uint8_t sender);
 
-        public:
+	// create Data Message
+	TCPHeader(const xpcc::Header& header, int dataSize);
 
-			enum class Type: int{
-				REGISTER = 1,
-				UNREGISTER,
-				CLOSE_CONNECTION,
-				LISTEN,
-				PING,
-				DATA,
-				ERROR
-			};
-
-			//create REGISTER_MESSAGE
-			TCPHeader(const uint8_t sender);
-
-			//create Data Message
-			TCPHeader(const xpcc::Header& header, int dataSize);
-
-			TCPHeader(const Type type, const xpcc::Header& header, int dataSize);
-
-			Type getMessageType() const;
-
-			uint8_t getDataSize() const;
-
-			static constexpr int HSIZE = sizeof(Type)+sizeof(uint8_t)+sizeof(xpcc::Header);
-
-			static constexpr int headerSize(){
-				//return sizeof(Type)+sizeof(xpcc::Header);
-				return HSIZE;
-			}
-
-			xpcc::Header& getXpccHeader();
-
-			Type getType() const;
+	TCPHeader(const Type type, const xpcc::Header& header, int dataSize);
 
 
-        private:
+	Type
+	getMessageType() const;
 
-			Type type;
-			xpcc::Header header;
-			uint8_t dataLength;
+	uint8_t
+	getDataSize() const;
 
-        };
+	static constexpr int HSIZE = sizeof(Type) + sizeof(uint8_t) + sizeof(xpcc::Header);
 
-		class Message
-		{
-		public:
-
-			static constexpr int MSIZE = 252;
-			static constexpr int SSIZE = TCPHeader::HSIZE + Message::MSIZE;
-
-			//this constructor generates a data message
-			Message(const xpcc::Header& header, const SmartPointer& payload);
-
-			//copy constructor
-			Message(const Message& msg);
-
-			//this constructor generates a register mesage
-			Message(const uint8_t identifier);
-
-			///this constructor is for all other special message types
-			Message(TCPHeader::Type type, const xpcc::Header& header, const SmartPointer& payload);
-
-
-			//transforms the message in an char array
-			void encodeMessage();
-
-			const char* getEncodedMessage() const;
-
-			int getMessageLength() const;
-
-			xpcc::Header& getXpccHeader();
-
-			xpcc::tcpip::TCPHeader& getTCPHeader();
-
-			xpcc::SmartPointer getMessagePayload() const;
-
-		private:
-
-			xpcc::tcpip::TCPHeader  header;
-			SmartPointer data; //contains the message in an encoded form
-
-			//store for complete message in encoded form
-			char dataStorage[SSIZE];
-
-		};
+	static constexpr int
+	headerSize()
+	{
+		//return sizeof(Type)+sizeof(xpcc::Header);
+		return HSIZE;
 	}
-}
-#endif // XPCC_TCPIP__MESSAGE_HPP
+
+	xpcc::Header&
+	getXpccHeader();
+
+	Type
+	getType() const;
+
+private:
+	Type type;
+	xpcc::Header header;
+	uint8_t dataLength;
+};
+
+class Message
+{
+public:
+	static constexpr int MSIZE = 252;
+	static constexpr int SSIZE = TCPHeader::HSIZE + Message::MSIZE;
+
+	// this constructor generates a data message
+	Message(const xpcc::Header& header, const SmartPointer& payload);
+
+	// copy constructor
+	Message(const Message& msg);
+
+	// this constructor generates a register mesage
+	Message(const uint8_t identifier);
+
+	// this constructor is for all other special message types
+	Message(TCPHeader::Type type, const xpcc::Header& header, const SmartPointer& payload);
+
+
+	// transforms the message in an char array
+	void
+	encodeMessage();
+
+	const char*
+	getEncodedMessage() const;
+
+	int
+	getMessageLength() const;
+
+	xpcc::Header&
+	getXpccHeader();
+
+	xpcc::tcpip::TCPHeader&
+	getTCPHeader();
+
+	xpcc::SmartPointer
+	getMessagePayload() const;
+
+private:
+	xpcc::tcpip::TCPHeader  header;
+	SmartPointer data; //contains the message in an encoded form
+
+	//store for complete message in encoded form
+	char dataStorage[SSIZE];
+};
+
+}	// namespace tcpip
+
+}	// namespace xpcc
+
+#endif // XPCC_TCPIP_MESSAGE_HPP

@@ -1,3 +1,12 @@
+// coding: utf-8
+/* Copyright (c) 2013, Roboterclub Aachen e.V.
+ * All Rights Reserved.
+ *
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
+ */
+// ----------------------------------------------------------------------------
+
 #include "tcpip_server.hpp"
 
 #include <iostream>
@@ -23,30 +32,31 @@ xpcc::tcpip::Server::getIoService()
 }
 
 void
-xpcc::tcpip::Server::accept_handler(boost::shared_ptr<xpcc::tcpip::Connection> receive,
+xpcc::tcpip::Server::accept_handler(
+		boost::shared_ptr<xpcc::tcpip::Connection> receive,
 		const boost::system::error_code& error)
 {
-	XPCC_LOG_DEBUG<< "Connection from " << receive->getSocket().remote_endpoint().address().to_string().c_str()
-			<< " accepted" << xpcc::endl;
+	XPCC_LOG_DEBUG << "Connection from "
+			<< receive->getSocket().remote_endpoint().address().to_string().c_str() << " accepted" << xpcc::endl;
 
-    if (!error)
-    {
-      this->receiveConnections.push_back(receive);
-      receive->start();
-    }
-    else{
-    	std::cout<< "Error in accept_handler: "<< error << std::endl;
-    }
+	if (!error)
+	{
+		this->receiveConnections.push_back(receive);
+		receive->start();
+	}
+	else {
+		std::cout<< "Error in accept_handler: "<< error << std::endl;
+	}
 
-    spawnReceiveConnection();
+	spawnReceiveConnection();
 }
 
 
 void
 xpcc::tcpip::Server::spawnSendThread(uint8_t componentId, std::string ip)
 {
-	boost::shared_ptr<xpcc::tcpip::Distributor> sender(
-			new xpcc::tcpip::Distributor(this, ip, componentId));
+	boost::shared_ptr<xpcc::tcpip::Distributor> sender(new xpcc::tcpip::Distributor(this, ip, componentId));
+
 	boost::lock_guard<boost::mutex> lock(distributorMutex);
 	this->distributorMap.emplace(componentId, sender);
 }
@@ -56,8 +66,8 @@ xpcc::tcpip::Server::spawnReceiveConnection()
 {
 	boost::shared_ptr<xpcc::tcpip::Connection> receiveConnection(new Connection(ioService, this));
 		this->acceptor.async_accept(receiveConnection->getSocket(),
-				 boost::bind(&xpcc::tcpip::Server::accept_handler, this,
-						 receiveConnection, boost::asio::placeholders::error));
+				boost::bind(&xpcc::tcpip::Server::accept_handler, this,
+						receiveConnection, boost::asio::placeholders::error));
 }
 
 void
@@ -69,23 +79,20 @@ xpcc::tcpip::Server::update()
 void
 xpcc::tcpip::Server::distributeMessage(xpcc::tcpip::Message msg)
 {
-
 	//handle different messages differently, only data messages can have more than one receiver
 	xpcc::tcpip::TCPHeader::Type type = msg.getTCPHeader().getMessageType();
 	uint8_t destination = msg.getXpccHeader().destination;
 
 	//independent of destination distribute msg to all listening clients
-	switch(type){
-		case xpcc::tcpip::TCPHeader::Type::DATA:{
-
-
-			for(std::list<boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = this->receiveConnections.begin();
-					iter!=this->receiveConnections.end(); iter++){
-				if((*iter)->isListening()){
-
-					(*iter)->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
-							new xpcc::tcpip::Message(msg)));
-
+	switch(type)
+	{
+		case xpcc::tcpip::TCPHeader::Type::DATA:
+		{
+			for(auto iter = this->receiveConnections.begin(); iter!=this->receiveConnections.end(); iter++)
+			{
+				if((*iter)->isListening())
+				{
+					(*iter)->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(new xpcc::tcpip::Message(msg)));
 				}
 			}
 
@@ -105,45 +112,50 @@ xpcc::tcpip::Server::distributeMessage(xpcc::tcpip::Message msg)
 	}
 
 	//handle component specific sending
-	if(destination != 0){
+	if(destination != 0)
+	{
 		//check if destination is a registered component, else drop message
 		boost::lock_guard<boost::mutex> lock(distributorMutex);
 		if(this->distributorMap.find(destination)!= this->distributorMap.end())
 		{
-
-			this->distributorMap[destination]->sendMessage(boost::shared_ptr<xpcc::tcpip::Message>(
-					new xpcc::tcpip::Message(msg)));
+			this->distributorMap[destination]->sendMessage(
+					boost::shared_ptr<xpcc::tcpip::Message>(new xpcc::tcpip::Message(msg)));
 		}
 		else
 		{
 			//drop message print warning
-			XPCC_LOG_WARNING << "Message to Component with id "<< msg.getXpccHeader().destination << " dropped! "<<
-					"Component " << msg.getXpccHeader().destination << " not registered on server!" << xpcc::endl;
+			XPCC_LOG_WARNING << "Message to Component with id " << msg.getXpccHeader().destination << " dropped! "
+					<< "Component " << msg.getXpccHeader().destination << " not registered on server!" << xpcc::endl;
 		}
 	}
 }
 
 void
-xpcc::tcpip::Server::shutdownDistributor(int id){
+xpcc::tcpip::Server::shutdownDistributor(int id)
+{
 	//2. remove distributor from list
-	std::cout<< "Shutting down Distributor for id "<< id << std::endl;
+	std::cout << "Shutting down Distributor for id " << id << std::endl;
 	boost::shared_ptr<xpcc::tcpip::Distributor> distributor = (this->distributorMap.find( (uint8_t) id))->second;
 	this->distributorMap.erase((uint8_t) id);
+
 	//3. close distributor
 	distributor->disconnect();
 	this->distributorMap.erase((uint8_t) id);
-	std::cout<< "Shut down Distributor for id "<< id << std::endl;
+	std::cout << "Shut down Distributor for id " << id << std::endl;
 }
 
 void
-xpcc::tcpip::Server::removeClosedConnections(){
-	std::cout<< "Removing closed Connections"<< std::endl;
-	for(std::list< boost::shared_ptr<xpcc::tcpip::Connection> >::iterator iter = receiveConnections.begin();
-			iter != receiveConnections.end(); iter++){
+xpcc::tcpip::Server::removeClosedConnections()
+{
+	std::cout << "Removing closed Connections" << std::endl;
+
+	for(auto iter = receiveConnections.begin(); iter != receiveConnections.end(); iter++)
+	{
 		boost::shared_ptr<xpcc::tcpip::Connection> connectionPtr = *iter;
-		if(!connectionPtr->isConnected()){
+		if(!connectionPtr->isConnected())
+		{
 			this->receiveConnections.erase(iter);
-			XPCC_LOG_DEBUG<< "Closed Connection removed!"<<xpcc::endl;
+			XPCC_LOG_DEBUG << "Closed Connection removed!" << xpcc::endl;
 		}
 	}
 }
