@@ -11,6 +11,7 @@
 #define XPCC_INTERFACE_UART_HPP
 
 #include <xpcc/architecture/interface.hpp>
+#include <xpcc/architecture/driver/function.hpp>
 
 /**
  * @ingroup		interface
@@ -21,9 +22,9 @@ namespace xpcc
 {
 
 /**
- * Interface of an Uart.
+ * Interface of an UART Peripheral.
  *
- * Asynchronous and synchronous, buffered access to the Uart.
+ * Asynchronous and synchronous access to the Uart.
  *
  * @author	Niklas Hauser
  * @ingroup	uart
@@ -61,6 +62,9 @@ public:
 #endif
 	};
 
+	/// Transfer completion handler signature is very simple.
+	typedef Function<void()> CompletionHandler;
+
 #ifdef __DOXYGEN__
 public:
 	/**
@@ -78,83 +82,53 @@ public:
 	static void
 	initialize();
 
-	/// Write a single byte and wait for completion.
-	static void
-	writeBlocking(uint8_t data);
-
-	/// Write a block of bytes and wait for completion.
-	static void
-	writeBlocking(const uint8_t *data, std::size_t length);
-
-	/// Flush the write buffer, waits in a while loop until `isWriteFinished()` returns `true`
-	static void
-	flushWriteBuffer();
-
-
 	/**
-	 * Pushes a single byte into the buffer.
+	 * Writes a block of data and calls the completion handler when done.
 	 *
-	 * @return	`true` if data has been buffered, `false` if buffer is full
+	 * @param[in]	data
+	 *		Pointer to a data buffer with the bytes to send
+	 * @param		length
+	 * 		Number of bytes to be written.
+	 *
+	 * @retval	true	if data buffer accepted
+	 * @retval	false	if a previous transfer is ongoing
 	 */
 	static bool
-	write(uint8_t data);
-
-	/**
-	 * Pushes a block of bytes into the buffer.
-	 *
-	 * @param	data
-	 *		Pointer to a buffer big enough to store `length` bytes
-	 * @param	length
-	 * 		Number of bytes to be written
-	 *
-	 * @return	the number of bytes pushed into the buffer, maximal `length`
-	 */
-	static std::size_t
 	write(const uint8_t *data, std::size_t length);
 
-	/// @return	`true` if the buffer is empty and the last byte has been sent
+	/// @retval	true	if write transmission finished
+	/// @retval	false	if write transmission is ongoing
 	static bool
 	isWriteFinished();
 
-	/**
-	 * Read a single byte.
-	 *
-	 * @param[out]	data
-	 *		Byte read, if any
-	 *
-	 * @return	`true` if a byte was received, `false` otherwise
-	 */
-	static bool
-	read(uint8_t &data);
+	/// The handler gets called when the previos write operation finished.
+	static void
+	attachWriteCompletionHandler(CompletionHandler handler);
 
 	/**
-	 * Read a block of bytes.
+	 * Reads a block of data and calls the completion handler when done.
+	 *
+	 * @warning	If no buffer is set, or the buffer is full, received data is **discarded**!!
 	 *
 	 * @param[out]	data
 	 *		Pointer to a buffer big enough to store `length` bytes
 	 * @param		length
 	 *		Number of bytes to be read
 	 *
-	 * @return	Number of bytes which could be read, maximal `length`
+	 * @retval	true	if data buffer accepted
+	 * @retval	false	if a previous transfer is ongoing
 	 */
-	static std::size_t
+	static bool
 	read(uint8_t *data, std::size_t length);
 
-	/**
-	 * Empty the receive FIFO queue and hardware buffer.
-	 *
-	 * @return	the size of the deleted FIFO queue.
-	 */
-	static std::size_t
-	discardReceiveBuffer();
+	/// @retval	true	if read transmission finished
+	/// @retval	false	if read transmission is ongoing
+	static bool
+	isReadFinished();
 
-	/**
-	 * Empty the transmit FIFO queue and hardware buffer.
-	 *
-	 * @return	the size of the deleted FIFO queue.
-	 */
-	static std::size_t
-	discardTransmitBuffer();
+	/// The handler gets called when the previously set read buffer is full.
+	static void
+	attachReadCompletionHandler(CompletionHandler handler);
 #endif
 };
 
