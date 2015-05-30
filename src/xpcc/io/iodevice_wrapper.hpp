@@ -11,8 +11,11 @@
 #define XPCC_IODEVICE_WRAPPER_HPP
 
 #include <stdint.h>
-
+#include <xpcc/architecture/driver/atomic/queue.hpp>
+#include <xpcc/architecture/driver/byte_array.hpp>
 #include "iodevice.hpp"
+#include <cstring>
+
 
 namespace xpcc
 {
@@ -75,20 +78,32 @@ IOBuffer
  * @tparam		Device		Peripheral which should be wrapped
  * @tparam		behavior	preferred behavior when the Device buffer is full
  */
-template< class Device, IOBuffer behavior >
+template< class Device, IOBuffer behavior, std::size_t TxSize = 16, std::size_t RxSize = 1 >
 class IODeviceWrapper : public IODevice
 {
+	typedef typename xpcc::tmp::Select< (TxSize >= 255),
+			uint16_t,
+			uint8_t >::Result Index;
+
 public:
 	/**
 	 * Constructor
 	 *
 	 * @param	device	configured object
 	 */
-	IODeviceWrapper(const Device& /*device*/)
+	IODeviceWrapper() :
+		head(0), size(0), writingSize(0), scratchPointer(scratchBuffer, 0), status(FIRST_WRITE)
 	{
 	}
-	IODeviceWrapper()
+	IODeviceWrapper(const Device& /*device*/) :
+		IODeviceWrapper()
 	{
+	}
+
+	void
+	initialize()
+	{
+
 	}
 
 	virtual void
@@ -97,11 +112,11 @@ public:
 		// this branch will be optimized away, since `behavior` is a template argument
 		if (behavior == IOBuffer::DiscardIfFull)
 		{
-			Device::write(static_cast<uint8_t>(c));
+			push(c);
 		}
 		else
 		{
-			while( !Device::write(static_cast<uint8_t>(c)) )
+			while( not push(c) )
 				;
 		}
 	}
@@ -109,35 +124,144 @@ public:
 	virtual void
 	write(const char *s)
 	{
+		write(s, std::strlen(s));
+	}
+
+	virtual void
+	write(const char *s, std::size_t length)
+	{
 		// this branch will be optimized away, since `behavior` is a template argument
 		if (behavior == IOBuffer::DiscardIfFull)
 		{
-			while (*s)
-			{
-				Device::write(static_cast<uint8_t>(*s));
-				s++;
-			}
+			if (status & IS_SCRATCH_BUFFER_WRITING and not push(scratchPointer))
+				return;
+			push(ByteArray(reinterpret_cast<const uint8_t*>(s), length));
 		}
 		else
 		{
-			while (*s) {
-				while( !Device::write(static_cast<uint8_t>(*s)) )
-					;
-				s++;
-			}
+			while(status & IS_SCRATCH_BUFFER_WRITING and not push(scratchPointer))
+				;
+			while( not push(ByteArray(reinterpret_cast<const uint8_t*>(s), length)) )
+				;
 		}
+		status &= ~IS_SCRATCH_BUFFER_WRITING;
 	}
 
 	virtual void
 	flush()
 	{
+		if (status & IS_SCRATCH_BUFFER_WRITING and push(scratchPointer))
+		{
+			status &= ~IS_SCRATCH_BUFFER_WRITING;
+		}
 	}
 
 	virtual bool
-	read(char& c)
+	read(char& )
 	{
-		return Device::read(reinterpret_cast<uint8_t&>(c));
+		return false;
+//		return Device::read(reinterpret_cast<uint8_t&>(c));
 	}
+
+private:
+	void
+	writeFinished()	// executed inside interrupt context!!!
+	{
+		if (status & WAS_PREVIOUSLY_READING_SCRATCH)
+		{
+			status &= ~WAS_PREVIOUSLY_READING_SCRATCH;
+			size -= writingSize;
+		}
+
+		if (not txBuffer.isEmpty())
+		{
+			write(txBuffer.get());
+			txBuffer.pop();
+		}
+		else status &= ~IS_BUSY_WRITING;
+	}
+
+	inline void
+	write(ByteArray next)
+	{
+		const uint8_t *data = next.getData();
+		std::size_t dataSize = next.getSize();
+
+		// check if pointer is within scratch buffer
+		if (scratchBuffer <= data and data < (scratchBuffer + scratchBufferSize))
+		{
+			writingSize = dataSize;
+			status |= WAS_PREVIOUSLY_READING_SCRATCH;
+		}
+
+		Device::write(data, dataSize);
+	}
+
+	bool
+	push(ByteArray next)
+	{
+		if (status & IS_BUSY_WRITING)
+			return txBuffer.push(next);
+
+		if (status & FIRST_WRITE)
+		{
+			status &= ~FIRST_WRITE;
+			Device::attachWriteCompletionHandler(MakeFunction(this, &IODeviceWrapper::writeFinished));
+		}
+
+		write(next);
+		status |= IS_BUSY_WRITING;
+		return true;
+	}
+
+	bool
+	push(char c)
+	{
+		if (head >= scratchBufferSize)
+		{
+			if (not push(scratchPointer))
+				return false;
+			head = 0;
+			status &= ~IS_SCRATCH_BUFFER_WRITING;
+		}
+
+		if (size >= scratchBufferSize)
+			return false;
+
+		if (not (status & IS_SCRATCH_BUFFER_WRITING))
+		{
+			scratchPointer.setData(scratchBuffer + head, 0);
+			status |= IS_SCRATCH_BUFFER_WRITING;
+		}
+
+		scratchBuffer[head++] = uint8_t(c);
+		size++;
+		scratchPointer.setSize(scratchPointer.getSize() + 1);
+
+		return true;
+	}
+
+private:
+	xpcc::atomic::Queue<ByteArray, TxSize / sizeof(xpcc::ByteArray)> txBuffer;
+
+	static constexpr std::size_t scratchBufferSize = TxSize;
+
+	Index head;
+	Index size;
+	Index writingSize;
+
+	ByteArray scratchPointer;
+
+	enum
+	{
+		IS_BUSY_WRITING = (1 << 0),
+		WAS_PREVIOUSLY_READING_SCRATCH = (1 << 1),
+		IS_SCRATCH_BUFFER_WRITING = (1 << 2),
+		FIRST_WRITE = (1 << 3),
+	};
+	volatile uint8_t status;
+
+	uint8_t scratchBuffer[scratchBufferSize];
 };
 
 }
