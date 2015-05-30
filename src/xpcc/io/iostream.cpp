@@ -248,3 +248,14 @@ xpcc::IOStream::operator << (const void* p)
 #endif
 	return *this;
 }
+
+
+xpcc::IOStream&
+xpcc::IOStream::operator << (xpcc::accessor::Flash<char> ptr)
+{
+	char c;
+	while ((c = *ptr++)) {
+		this->device->write(c);
+	}
+	return *this;
+}

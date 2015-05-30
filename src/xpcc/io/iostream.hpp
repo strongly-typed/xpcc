@@ -12,6 +12,7 @@
 
 #include <xpcc/architecture/detect.hpp>
 #include <xpcc/architecture/utils.hpp>
+#include <xpcc/architecture/driver/accessor/flash.hpp>
 
 #include "iodevice.hpp"
 #include "iodevice_wrapper.hpp"
@@ -323,6 +324,9 @@ public :
 	{
 		return function(*this);
 	}
+
+	IOStream&
+	operator << (xpcc::accessor::Flash<char> ptr);
 
 	/**
 	 * Simple printf() implemenation

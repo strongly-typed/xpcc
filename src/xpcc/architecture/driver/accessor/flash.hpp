@@ -31,8 +31,8 @@
 #ifndef	XPCC_ACCESSOR__FLASH_HPP
 #define	XPCC_ACCESSOR__FLASH_HPP
 
+#include <stdint.h>
 #include <xpcc/architecture/utils.hpp>
-#include <xpcc/io/iostream.hpp>
 
 #include "flash_reader.hpp"
 
@@ -150,11 +150,6 @@ namespace xpcc
 		
 		private:
 			const T* address;
-		
-		private:
-			template <typename U>
-			friend IOStream&
-			operator << ( IOStream&, const Flash<U>&);
 		};
 		
 		/**
@@ -171,34 +166,5 @@ namespace xpcc
 	}
 }
 
-// -----------------------------------------------------------------------------
-// IMPLEMENTATION
-// -----------------------------------------------------------------------------
-
-/**
- * \brief	Streamoperator
- * 
- * \warning	Not implemented yet!!
- * \ingroup accessor
- */
-template<typename T>
-xpcc::IOStream&
-operator << (xpcc::IOStream& os, xpcc::accessor::Flash<T> ptr)
-{
-	ptr.XPCC_NOT_IMPLEMENTED_YET_streamoperator_of_not_char_type;
-	// Not implemented YET
-	// problem:
-	//  Is ptr a pointer of an array?
-	//  How many elements has the array?
-
-	return os;
-};
-
-/**
- * \brief	Streamoperator - specialization for \c char
- * \ingroup accessor
- */
-xpcc::IOStream&
-operator << (xpcc::IOStream& os, xpcc::accessor::Flash<char> ptr);
 
 #endif	// XPCC_ACCESSOR__FLASH_HPP
