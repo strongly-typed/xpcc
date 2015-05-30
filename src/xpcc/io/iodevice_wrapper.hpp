@@ -130,6 +130,8 @@ public:
 	virtual void
 	write(const char *s, std::size_t length)
 	{
+		if (length == 0) return;
+
 		// this branch will be optimized away, since `behavior` is a template argument
 		if (behavior == IOBuffer::DiscardIfFull)
 		{
