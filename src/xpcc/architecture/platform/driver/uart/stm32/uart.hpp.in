@@ -43,23 +43,17 @@ public:
 	/// TypeId used to connect GPIO pins to this peripheral's tx.
 	static const TypeId::Uart{{ id }}Tx Tx;
 
-%% if parameters.buffered
 private:
 	/// Second stage initialize for buffered uart
 	// that need to be implemented in the .cpp
 	static void
 	initializeBuffered(uint32_t interruptPriority);
-%% endif
 
 public:
 template< 	class clockSource, uint32_t baudrate,
 		uint16_t tolerance = xpcc::Tolerance::OnePercent >
 	static void ALWAYS_INLINE
-%% if parameters.buffered
 	initialize(uint32_t interruptPriority, Parity parity = Parity::Disabled)
-%% else
-	initialize(Parity parity = Parity::Disabled)
-%% endif
 	{
 		constexpr UartBase::OversamplingMode oversample =
 				UartBaudrate::getOversamplingMode(clockSource::{{ uart ~ id }}, baudrate);
@@ -68,42 +62,36 @@ template< 	class clockSource, uint32_t baudrate,
 				UartBaudrate::getBrr<clockSource::{{ uart ~ id }}, baudrate, tolerance>(),
 				parity,
 				oversample);
-%% if parameters.buffered
-		initializeBuffered(interruptPriority);
-%% endif
+		{{ hal }}::enableInterruptVector(true, interruptPriority);
 		{{ hal }}::setTransmitterEnable(true);
 		{{ hal }}::setReceiverEnable(true);
 	}
 
-	static void
-	writeBlocking(uint8_t data);
-
-	static void
-	writeBlocking(const uint8_t *data, std::size_t length);
-
-	static void
-	flushWriteBuffer();
 
 	static bool
-	write(uint8_t data);
-
-	static std::size_t
 	write(const uint8_t *data, std::size_t length);
 
 	static bool
 	isWriteFinished();
 
 	static std::size_t
-	discardTransmitBuffer();
+	discardWriteBuffer();
+
+	static void
+	attachWriteCompletionHandler(CompletionHandler handler);
+
 
 	static bool
-	read(uint8_t &data);
-
-	static std::size_t
 	read(uint8_t *buffer, std::size_t length);
+
+	static bool
+	isReadFinished();
 
 	static std::size_t
 	discardReceiveBuffer();
+
+	static void
+	attachReadCompletionHandler(CompletionHandler handler);
 };
 
 }	// namespace stm32
