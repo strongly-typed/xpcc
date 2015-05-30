@@ -57,13 +57,15 @@ public:
 		 B115200 =  115200,
 		 B230400 =  230400,
 		 B250000 =  250000,
+		 B460800 =  460800,
 		 B500000 =  500000,
+		 B921600 =  921600,
 		B1000000 = 1000000
 #endif
 	};
 
 	/// Transfer completion handler signature is very simple.
-	typedef Function<void()> CompletionHandler;
+	typedef Function0<void> CompletionHandler;
 
 #ifdef __DOXYGEN__
 public:
@@ -101,6 +103,11 @@ public:
 	static bool
 	isWriteFinished();
 
+	/// stops sending, discards the write buffer and calls completion handler.
+	/// @return	the number of bytes discarded
+	static std::size_t
+	discardWriteBuffer();
+
 	/// The handler gets called when the previos write operation finished.
 	static void
 	attachWriteCompletionHandler(CompletionHandler handler);
@@ -125,6 +132,11 @@ public:
 	/// @retval	false	if read transmission is ongoing
 	static bool
 	isReadFinished();
+
+	/// stops receiving, discards the read buffer and calls completion handler.
+	/// @return	the number of bytes discarded
+	static std::size_t
+	discardReadBuffer();
 
 	/// The handler gets called when the previously set read buffer is full.
 	static void
