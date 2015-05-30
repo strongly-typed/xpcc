@@ -11,6 +11,15 @@
 
 // ----------------------------------------------------------------------------
 void
+xpcc::IODevice::write(const char* str, std::size_t length)
+{
+	while (length--)
+	{
+		this->write(*str++);
+	}
+}
+
+void
 xpcc::IODevice::write(const char* str)
 {
 	char c;

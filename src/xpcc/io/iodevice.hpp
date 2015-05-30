@@ -10,6 +10,8 @@
 #ifndef XPCC_IODEVICE_HPP
 #define XPCC_IODEVICE_HPP
 
+#include <cstddef>
+
 namespace xpcc
 {
 
@@ -35,9 +37,13 @@ public :
 	virtual void
 	write(char c) = 0;
 
-	/// Write a C-string
+	/// Write data of length
 	virtual void
-	write(const char* str);
+	write(const char* data, std::size_t length);
+
+	/// Write a null-terminated C-string
+	virtual void
+	write(const char* data);
 
 	virtual void
 	flush() = 0;
