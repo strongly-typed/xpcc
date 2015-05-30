@@ -18,19 +18,19 @@
 void
 xpcc::IOStream::writeFloat(const float& value)
 {
+#if defined(XPCC__CPU_AVR)
 	// hard coded for -2.22507e-308
 	char str[13 + 1]; // +1 for '\0'
-
-#if defined(XPCC__CPU_AVR)
 	dtostre(value, str, 5, 0);
-	this->device->write(str);
+	while(*str) {
+		this->device->write(*str++);
+	}
 #elif defined(XPCC__CPU_CORTEX_M4) || defined(XPCC__CPU_CORTEX_M3) || defined(XPCC__CPU_CORTEX_M0)
 	float v;
-	char *ptr = &str[0];
 
 	if (value < 0) {
 		v = -value;
-		*ptr++ = '-';
+		this->device->write('-');
 	}
 	else {
 		v = value;
@@ -53,32 +53,32 @@ xpcc::IOStream::writeFloat(const float& value)
 	for (uint32_t i = 0; i < 6; ++i)
 	{
 		int8_t num = static_cast<int8_t>(v);
-		*ptr++ = (num + '0');
+		this->device->write(num + '0');
 
 		if (i == 0) {
-			*ptr++ = '.';
+			this->device->write('.');
 		}
 
 		// next digit
 		v = (v - num) * 10;
 	}
 
-	*ptr++ = 'e';
+	this->device->write('e');
 	if (ep < 0) {
 		ep = -ep;
-		*ptr++ = '-';
+		this->device->write('-');
 	}
 	else {
-		*ptr++ = '+';
+		this->device->write('+');
 	}
 	if (ep < 10) {
-		*ptr++ = '0';
+		this->device->write('0');
 	}
-	*ptr++ = '\0';	// End of string
-	this->device->write(str);
 
 	this->writeInteger(ep);
 #else
+	// hard coded for -2.22507e-308
+	char str[13 + 1]; // +1 for '\0'
 	snprintf(str, sizeof(str), "%.5e", (double) value);
 	this->device->write(str);
 #endif

@@ -105,8 +105,10 @@ xpcc::IOStream::writeInteger(uint32_t value)
 		value = quot;
 	}while (value != 0);
 
-	// write string
-	this->device->write(ptr);
+	// manually copy the string over
+	while(*ptr) {
+		this->device->write(*ptr++);
+	}
 #endif
 }
 
@@ -141,8 +143,10 @@ xpcc::IOStream::writeInteger(uint64_t value)
 		value = quot;
 	}while (value != 0);
 
-	// write string
-	this->device->write(ptr);
+	// manually copy the string over
+	while(*ptr) {
+		this->device->write(*ptr++);
+	}
 }
 #endif
 

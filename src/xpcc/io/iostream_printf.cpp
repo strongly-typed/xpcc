@@ -163,6 +163,7 @@ xpcc::IOStream::printf(const char *fmt, ...)
 	}
 
 	va_end(ap);
+	this->device->flush();
 	return *this;
 }
 
