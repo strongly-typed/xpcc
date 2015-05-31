@@ -6,6 +6,8 @@
  * license. See the file `LICENSE` for the full license governing this code.
  */
 // ----------------------------------------------------------------------------
+{{ generation_block }}
+
 %% if id in [1, 2, 3, 6]
 %%	set uart = "Usart"
 %% elif id in [4, 5]
@@ -37,11 +39,8 @@ namespace
 bool
 xpcc::stm32::{{ name }}::write(const uint8_t *data, std::size_t length)
 {
-	if (txSize > 0 or data == nullptr)
+	if (txSize > 0 or data == nullptr or length == 0)
 		return false;
-
-	if (length == 0)
-		return true;
 
 	atomic::Lock lock;
 
@@ -80,11 +79,8 @@ xpcc::stm32::{{ name }}::attachWriteCompletionHandler(CompletionHandler handler)
 bool
 xpcc::stm32::{{ name }}::read(uint8_t *data, std::size_t length)
 {
-	if (rxSize > 0 or data == nullptr)
+	if (rxSize > 0 or data == nullptr or length == 0)
 		return false;
-
-	if (length == 0)
-		return true;
 
 	atomic::Lock lock;
 
@@ -102,14 +98,17 @@ xpcc::stm32::{{ name }}::isReadFinished()
 }
 
 std::size_t
-xpcc::stm32::{{ name }}::discardReceiveBuffer()
+xpcc::stm32::{{ name }}::discardReadBuffer()
 {
 	std::size_t count = rxSize;
+
+	atomic::Lock lock;
 	rxSize = 0;
+	{{ hal }}::disableInterrupt({{ hal }}::Interrupt::TxEmpty);
 	return count;
 }
 
-	void
+void
 xpcc::stm32::{{ name }}::attachReadCompletionHandler(CompletionHandler handler)
 {
 	atomic::Lock lock;

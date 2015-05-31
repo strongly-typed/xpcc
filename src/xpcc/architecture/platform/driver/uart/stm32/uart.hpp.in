@@ -6,6 +6,8 @@
  * license. See the file `LICENSE` for the full license governing this code.
  */
 // ----------------------------------------------------------------------------
+{{ generation_block }}
+
 %% if id in [1, 2, 3, 6]
 %%	set uart = "Usart"
 %% elif id in [4, 5]
@@ -88,7 +90,7 @@ template< 	class clockSource, uint32_t baudrate,
 	isReadFinished();
 
 	static std::size_t
-	discardReceiveBuffer();
+	discardReadBuffer();
 
 	static void
 	attachReadCompletionHandler(CompletionHandler handler);
