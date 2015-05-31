@@ -30,8 +30,8 @@ namespace
 	static uint8_t *rxBuffer(nullptr);
 	static std::size_t rxSize(0);
 
-	static xpcc::Uart::CompletionHandler writeCompletionHandler;
-	static xpcc::Uart::CompletionHandler  readCompletionHandler;
+	static xpcc::Uart::CompletionHandler writeCompletionHandler(xpcc::IgnoreStaticConstructor);
+	static xpcc::Uart::CompletionHandler  readCompletionHandler(xpcc::IgnoreStaticConstructor);
 }
 
 bool
@@ -146,7 +146,6 @@ extern "C" void
 			if (not writeCompletionHandler.empty()) {
 				writeCompletionHandler();
 			}
-
 		}
 	}
 }

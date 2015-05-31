@@ -92,18 +92,14 @@ public:
 	 * @param	device	configured object
 	 */
 	IODeviceWrapper() :
-		head(0), size(0), writingSize(0), scratchPointer(scratchBuffer, 0), status(FIRST_WRITE)
+		head(0), size(0), writingSize(0), scratchPointer(scratchBuffer, 0), status(0)
 	{
+		Device::attachWriteCompletionHandler( MakeFunction(this, &IODeviceWrapper::writeFinished) );
+		Device::attachReadCompletionHandler(  MakeFunction(this, &IODeviceWrapper::readFinished)  );
 	}
 	IODeviceWrapper(const Device& /*device*/) :
 		IODeviceWrapper()
 	{
-	}
-
-	void
-	initialize()
-	{
-
 	}
 
 	virtual void
@@ -205,12 +201,6 @@ private:
 		if (status & IS_BUSY_WRITING)
 			return txBuffer.push(next);
 
-		if (status & FIRST_WRITE)
-		{
-			status &= ~FIRST_WRITE;
-			Device::attachWriteCompletionHandler(MakeFunction(this, &IODeviceWrapper::writeFinished));
-		}
-
 		write(next);
 		status |= IS_BUSY_WRITING;
 		return true;
@@ -241,6 +231,12 @@ private:
 		scratchPointer.setSize(scratchPointer.getSize() + 1);
 
 		return true;
+	}
+
+	void
+	readFinished()
+	{
+
 	}
 
 private:

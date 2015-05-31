@@ -91,6 +91,9 @@
 namespace xpcc
 {
 
+struct IgnoreType {};
+static IgnoreType IgnoreStaticConstructor ATTRIBUTE_UNUSED;
+
 namespace fcndetail
 {	// we'll hide the implementation details in a nested namespace.
 
@@ -247,6 +250,7 @@ protected:
 #endif
 
 public:
+	explicit DelegateMemento(IgnoreType) {};
 #if !defined(XPCC_FUNCTION_USESTATICFUNCTIONHACK)
 	DelegateMemento() : m_pthis(0), m_pFunction(0), m_pStaticFunction(0) {};
 	void clear() {
@@ -340,6 +344,9 @@ namespace fcndetail {
 template < class GenericMemFunc, class StaticFuncPtr, class UnvoidStaticFuncPtr>
 class ClosurePtr : public DelegateMemento {
 public:
+	ClosurePtr() : DelegateMemento() {}
+	explicit ClosurePtr(IgnoreType ignore) : DelegateMemento(ignore) {}
+
 	// These functions are for setting the delegate to a member function.
 
 	// Here's the clever bit: we convert an arbitrary member function into a
@@ -541,6 +548,7 @@ public:
 	typedef Function0 type;
 
 	// Construction and comparison functions
+	explicit Function0(IgnoreType ignore) : m_Closure(ignore) {}
 	Function0() { clear(); }
 	Function0(const Function0 &x) {
 		m_Closure.CopyFrom(this, x.m_Closure); }
