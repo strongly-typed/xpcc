@@ -131,14 +131,15 @@ public:
 		// this branch will be optimized away, since `behavior` is a template argument
 		if (behavior == IOBuffer::DiscardIfFull)
 		{
-			if (status & IS_SCRATCH_BUFFER_WRITING and not push(scratchPointer))
-				return;
+			if (status & IS_SCRATCH_BUFFER_WRITING)
+				push(scratchPointer);
 			push(ByteArray(reinterpret_cast<const uint8_t*>(s), length));
 		}
 		else
 		{
-			while(status & IS_SCRATCH_BUFFER_WRITING and not push(scratchPointer))
-				;
+			if (status & IS_SCRATCH_BUFFER_WRITING)
+				while(not push(scratchPointer))
+					;
 			while( not push(ByteArray(reinterpret_cast<const uint8_t*>(s), length)) )
 				;
 		}
@@ -148,10 +149,10 @@ public:
 	virtual void
 	flush()
 	{
-		if (status & IS_SCRATCH_BUFFER_WRITING and push(scratchPointer))
-		{
-			status &= ~IS_SCRATCH_BUFFER_WRITING;
-		}
+		if (status & IS_SCRATCH_BUFFER_WRITING)
+			push(scratchPointer);
+
+		status &= ~IS_SCRATCH_BUFFER_WRITING;
 	}
 
 	virtual bool
@@ -211,8 +212,12 @@ private:
 	{
 		if (head >= scratchBufferSize)
 		{
-			if (not push(scratchPointer))
-				return false;
+			if (behavior == IOBuffer::DiscardIfFull) {
+				push(scratchPointer);
+			} else {
+				if (not push(scratchPointer))
+					return false;
+			}
 			head = 0;
 			status &= ~IS_SCRATCH_BUFFER_WRITING;
 		}
@@ -240,7 +245,7 @@ private:
 	}
 
 private:
-	xpcc::atomic::Queue<ByteArray, TxSize / sizeof(xpcc::ByteArray)> txBuffer;
+	xpcc::atomic::Queue<ByteArray, TxSize / 4> txBuffer;
 
 	static constexpr std::size_t scratchBufferSize = TxSize;
 
@@ -255,7 +260,6 @@ private:
 		IS_BUSY_WRITING = (1 << 0),
 		WAS_PREVIOUSLY_READING_SCRATCH = (1 << 1),
 		IS_SCRATCH_BUFFER_WRITING = (1 << 2),
-		FIRST_WRITE = (1 << 3),
 	};
 	volatile uint8_t status;
 
