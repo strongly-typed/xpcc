@@ -12,6 +12,7 @@
     <driver type="core" name="cortex">
       <parameter name="allocator">newlib</parameter>
     </driver>
+    <driver type="uart" name="stm32" instances="1"/>
 <!--
     <driver type="adc" name="stm32"/>
     <driver device-name="051" type="dac" name="stm32" instances="1"/>
@@ -28,6 +29,12 @@
 -->
     <driver type="gpio" name="stm32">
       <gpio port="A" id="0"></gpio>
+      <gpio port="A" id="9">
+        <af id="1" peripheral="Uart1" name="Tx" type="out"/>
+      </gpio>
+      <gpio port="A" id="10">
+        <af id="1" peripheral="Uart1" name="Rx" type="in"/>
+      </gpio>
       <gpio port="C" id="6"></gpio>
       <gpio port="C" id="7"></gpio>
       <gpio port="C" id="8"></gpio>
