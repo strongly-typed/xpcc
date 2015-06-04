@@ -3,8 +3,6 @@
 
 MAIN_FUNCTION
 {
-	// defaultSystemClock::enable();
-
 	LedRight::setOutput(xpcc::Gpio::Low);
 	LedUp::setOutput(xpcc::Gpio::High);
 	LedLeft::setOutput(xpcc::Gpio::Low);
@@ -17,7 +15,7 @@ MAIN_FUNCTION
 		LedUp::toggle();
 		LedLeft::toggle();
 		LedDown::toggle();
-		xpcc::delayMilliseconds(100);
+		xpcc::delayMilliseconds(1000);
 	}
 
 	return 0;
