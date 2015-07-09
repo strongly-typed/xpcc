@@ -30,6 +30,13 @@
 
 #include "color.hpp"
 
+// FIXME: <algorithm> broke in arm-none-eabi-gcc 4.9-2015-q1 and q2
+#ifdef XPCC__OS_HOSTED
+#    include <algorithm>
+#else
+#    include "../../../stdc++/algorithm"
+#endif
+
 // ----------------------------------------------------------------------------
 namespace xpcc {
 namespace color {

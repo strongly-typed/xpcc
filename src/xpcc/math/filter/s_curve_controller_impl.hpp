@@ -32,6 +32,13 @@
 	#error	"Don't include this file directly, use 's_curve_controller.hpp' instead!"
 #endif
 
+// FIXME: <algorithm> broke in arm-none-eabi-gcc 4.9-2015-q1 and q2
+#ifdef XPCC__OS_HOSTED
+#    include <algorithm>
+#else
+#    include "../../../stdc++/algorithm"
+#endif
+
 // ----------------------------------------------------------------------------
 template<typename T>
 xpcc::SCurveController<T>::Parameter::Parameter(

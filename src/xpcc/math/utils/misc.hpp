@@ -28,8 +28,8 @@
  */
 // ----------------------------------------------------------------------------
 
-#ifndef	XPCC_MATH__UTILS_HPP
-#define	XPCC_MATH__UTILS_HPP
+#ifndef	XPCC_MATH__UTILS_MISC_HPP
+#define	XPCC_MATH__UTILS_MISC_HPP
 
 #include <cstddef>
 #include <cmath>
@@ -64,6 +64,92 @@ namespace xpcc
 		return (a > 0.0);
 #endif
 	}
+
+	/**
+	 * @brief This does what you think it does.
+	 * @ingroup sorting_algorithms
+	 * @param  a  A thing of arbitrary type.
+	 * @param  b  Another thing of arbitrary type.
+	 * @return   The lesser of the parameters.
+	 *
+	 * This is the simple classic generic implementation.  It will work on
+	 * temporary expressions, since they are only evaluated once, unlike a
+	 * preprocessor macro.
+	 */
+	template<typename T>
+	inline const T&
+	min(const T& a, const T& b)
+	{
+	    if (b < a)
+	        return b;
+	    else
+	        return a;
+	}
+	
+	/**
+	 * @brief This does what you think it does.
+	 * @ingroup sorting_algorithms
+	 * @param  a  A thing of arbitrary type.
+	 * @param  b  Another thing of arbitrary type.
+	 * @return   The greater of the parameters.
+	 *
+	 * This is the simple classic generic implementation.  It will work on
+	 * temporary expressions, since they are only evaluated once, unlike a
+	 * preprocessor macro.
+	 */
+	template<typename T>
+	inline const T&
+	max(const T& a, const T& b)
+	{
+	    if (a < b)
+	        return b;
+	    else
+	        return a;
+	}
+	
+	/**
+	 * @brief This does what you think it does.
+	 * @ingroup sorting_algorithms
+	 * @param  a  A thing of arbitrary type.
+	 * @param  b  Another thing of arbitrary type.
+	 * @param  compare  A comparison functor.
+	 * @return   The lesser of the parameters.
+	 *
+	 * This will work on temporary expressions, since they are only evaluated
+	 * once, unlike a preprocessor macro.
+	 */
+	template<typename T, typename Compare>
+	inline const T&
+	min(const T& a, const T& b, Compare compare)
+	{
+	    if (compare(b, a))
+	        return b;
+	    else
+	        return a;
+	}
+	
+	/**
+	 * @brief This does what you think it does.
+	 * @ingroup sorting_algorithms
+	 * @param  a  A thing of arbitrary type.
+	 * @param  b  Another thing of arbitrary type.
+	 * @param  compare  A comparison functor.
+	 * @return   The greater of the parameters.
+	 * 
+	 * This will work on temporary expressions, since they are only evaluated
+	 * once, unlike a preprocessor macro.
+	 */
+	template<typename T, typename Compare>
+	inline const T&
+	max(const T& a, const T& b, Compare compare)
+	{
+	    if (compare(a, b))
+	        return b;
+	    else
+	        return a;
+	}
+	
+
 	
 	// --------------------------------------------------------------------
 	/**
@@ -98,4 +184,4 @@ namespace xpcc
 	};
 }
 
-#endif	// XPCC_MATH__UTILS_HPP
+#endif	// XPCC_MATH__UTILS_MISC_HPP

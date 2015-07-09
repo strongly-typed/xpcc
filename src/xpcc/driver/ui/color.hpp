@@ -34,7 +34,8 @@
 #include <stdint.h>
 #include <xpcc/io/iostream.hpp>
 #include <xpcc/utils/arithmetic_traits.hpp>
-#include <algorithm>
+#include <xpcc/math/utils/misc.hpp>
+
 
 namespace xpcc
 {
@@ -143,8 +144,8 @@ inline void xpcc::color::RgbT<UnderlyingType>::toHsv(HsvT<T>* color) const
 	const CalcType _red		= static_cast<CalcType>(red) / maxValue;
 	const CalcType _blue	= static_cast<CalcType>(blue) / maxValue;
 	const CalcType _green	= static_cast<CalcType>(green) / maxValue;
-	const CalcType _max = max(_red, max(_green, _blue));
-	const CalcType _min = min(_red, min(_green, _blue));
+	const CalcType _max = xpcc::max(_red, xpcc::max(_green, _blue));
+	const CalcType _min = xpcc::min(_red, xpcc::min(_green, _blue));
 	const CalcType _diff = _max - _min;
 
 	CalcType hue_temp;
