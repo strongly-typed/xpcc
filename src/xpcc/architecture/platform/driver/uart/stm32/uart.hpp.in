@@ -24,14 +24,16 @@
 
 namespace xpcc
 {
+
 namespace stm32
 {
+
 /**
  * Universal asynchronous receiver transmitter ({{ uart | upper ~ id }})
  *
  * @author		Kevin Laeufer
  * @author		Niklas Hauser
- * @ingroup		stm32
+ * @ingroup		{{target.string}}_uart
  */
 class {{ uart ~ id }} : public UartBase, public ::xpcc::Uart
 {
@@ -50,7 +52,7 @@ private:
 %% endif
 
 public:
-template< 	class clockSource, uint32_t baudrate,
+template< 	class SystemClock, uint32_t baudrate,
 		uint16_t tolerance = xpcc::Tolerance::OnePercent >
 	static void ALWAYS_INLINE
 %% if parameters.buffered
@@ -59,13 +61,19 @@ template< 	class clockSource, uint32_t baudrate,
 	initialize(Parity parity = Parity::Disabled)
 %% endif
 	{
+%% if target is not stm32f1
 		constexpr UartBase::OversamplingMode oversample =
-				UartBaudrate::getOversamplingMode(clockSource::{{ uart ~ id }}, baudrate);
+				UartBaudrate::getOversamplingMode(SystemClock::{{ uart ~ id }}, baudrate);
+%% endif
 
 		{{ hal }}::initializeWithBrr(
-				UartBaudrate::getBrr<clockSource::{{ uart ~ id }}, baudrate, tolerance>(),
+				UartBaudrate::getBrr<SystemClock::{{ uart ~ id }}, baudrate, tolerance>(),
+%% if target is stm32f1
+				parity);
+%% else
 				parity,
 				oversample);
+%% endif
 %% if parameters.buffered
 		initializeBuffered(interruptPriority);
 %% endif
@@ -104,8 +112,8 @@ template< 	class clockSource, uint32_t baudrate,
 	discardReceiveBuffer();
 };
 
-}	// stm32 namespace
+}	// namespace stm32
 
-}	// xpcc namespace
+}	// namespace xpcc
 
 #endif // XPCC_STM32_{{ uart | upper }}_{{ id }}_HPP

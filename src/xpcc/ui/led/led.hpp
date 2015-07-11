@@ -11,7 +11,7 @@
 #define XPCC_UI_LED_HPP
 
 #include <stdint.h>
-#include <xpcc/processing/periodic_timer.hpp>
+#include <xpcc/processing/timer.hpp>
 #include <xpcc/architecture/driver/clock.hpp>
 #include <xpcc/ui/animation.hpp>
 
@@ -53,8 +53,8 @@ class Led
 public:
 	Led();
 
-	/// Requires a callback function pointer for value updates.
-	Led(Animation<uint8_t>::Callback_t callback);
+	/// Requires a handler function pointer for value updates.
+	Led(Animation<uint8_t>::Handler handler);
 
 	/// @param	brightness
 	///		between 0 and length of lookup-table (usually 255)

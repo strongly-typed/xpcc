@@ -27,17 +27,17 @@ MAIN_FUNCTION
 	Scl::connect(MyI2cMaster::Scl);
 	MyI2cMaster::initialize<defaultSystemClock, 420000>();
 
-	display.initialize();
+	display.initializeBlocking();
 	display.setFont(xpcc::font::Assertion);
 	display << "Hello World!";
 	display.update();
 
-	xpcc::PeriodicTimer<> timer(1000);
+	xpcc::ShortPeriodicTimer timer(1000);
 	uint16_t counter(0);
 
 	while (1)
 	{
-		if (timer.isExpired())
+		if (timer.execute())
 		{
 			display.setCursor(0,20);
 			display << counter++;

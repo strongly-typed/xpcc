@@ -23,8 +23,10 @@
 
 namespace xpcc
 {
+
 namespace stm32
 {
+
 /**
  * Universal asynchronous receiver transmitter ({{ uart ~ id }})
  *
@@ -34,7 +36,7 @@ namespace stm32
  * the regular Usart classes.
  *
  * @author		Kevin Laeufer
- * @ingroup		stm32
+ * @ingroup		{{target.string}}_uart
  */
 class {{ uart ~ "Hal" ~ id }} : public UartBase
 {
@@ -70,20 +72,22 @@ public:
 	* Enables clocks, the UART peripheral (but neither TX nor RX)
 	* Sets baudrate and parity.
 	*/
-	template<	class clockSource, uint32_t baudrate >
+	template<	class SystemClock, uint32_t baudrate >
 	static void
 	initialize(	Parity parity = Parity::Disabled);
 
+%% if target is not stm32f1
 	/**
 	 * Initialize Uart HAL Peripheral
 	 *
 	 * Enables clocks, the UART peripheral (but neither TX nor RX)
 	 * Sets baudrate and parity.
 	 */
-	template<	class clockSource, uint32_t baudrate,
+	template<	class SystemClock, uint32_t baudrate,
 				OversamplingMode oversample = OversamplingMode::By16 >
 	static void
 	initialize(	Parity parity = Parity::Disabled);
+%% endif
 
 
 	/**
@@ -94,12 +98,16 @@ public:
 	*/
 	static void
 	initializeWithBrr(uint16_t brr,
+%% if target is stm32f1
+			Parity parity);
+%% else
 			Parity parity,
 			OversamplingMode oversample);
 
 	/// Choose if you want to oversample by 16 (_default_) or by 8
 	static inline void
 	setOversamplingMode(OversamplingMode mode);
+%% endif
 %% if id in [1, 2, 3, 6]
 	// Methods needed to use this Usart Peripheral for SPI
 	static inline void
@@ -167,8 +175,10 @@ public:
 	static inline void
 	acknowledgeInterruptFlags(InterruptFlag flags);
 };
-}
-}
+
+}	// namespace stm32
+
+}	// namespace xpcc
 
 #include "{{ uart | lower }}_hal_{{ id }}_impl.hpp"
 

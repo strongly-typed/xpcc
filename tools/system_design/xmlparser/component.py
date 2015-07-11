@@ -96,7 +96,7 @@ class ComponentDictionary(utils.SingleAssignDictionary):
 				try:
 					while True:
 						item = self.list.pop(0)
-						if self.abstract != None and item.abstract != self.abstract:
+						if self.abstract is not None and item.abstract != self.abstract:
 							continue
 						return item
 				except IndexError:
@@ -214,6 +214,10 @@ class Component(object):
 			except KeyError:
 				raise ParserException("Found unknown event '%s' in component '%s'!" % (event, self.name))
 	
+	@property
+	def resumables(self):
+		return len([a for a in self.actions if a.call == "resumable"])
+
 	def flattened(self):
 		""" Access the version with the flattened hierarchy
 		

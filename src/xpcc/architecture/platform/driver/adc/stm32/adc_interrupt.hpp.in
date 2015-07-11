@@ -1,0 +1,56 @@
+// coding: utf-8
+/* Copyright (c) 2011, Roboterclub Aachen e.V.
+ * All Rights Reserved.
+ *
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
+ */
+// ----------------------------------------------------------------------------
+
+
+#ifndef XPCC_STM32_ADC_INTERRUPT_{{ id }}_HPP
+#define XPCC_STM32_ADC_INTERRUPT_{{ id }}_HPP
+
+#include <xpcc/utils/dummy.hpp>
+#include "adc_{{ id }}.hpp"
+#include <xpcc/architecture/interface/adc_interrupt.hpp>
+
+
+namespace xpcc
+{
+
+namespace stm32
+{
+
+/**
+ * ADC Interrupt module
+ *
+ * This class allows you to attach functions to the ADC Conversion
+ * Complete Interrupt via function pointers.
+ * Be aware however, that this implementation is slower and requires
+ * more resources than writing the function code directly into
+ * the interrupt service routines.
+ *
+ * @see AnalogSensors uses this implemenation.
+ *
+ * @ingroup		{{target.string}}_adc
+ * @author		Niklas Hauser
+ */
+class AdcInterrupt{{ id }} : public Adc{{ id }}, public xpcc::AdcInterrupt
+{
+public:
+	static inline void
+	attachInterruptHandler(Handler handler=xpcc::dummy)
+	{
+		AdcInterrupt{{ id }}::handler = handler;
+	}
+
+public:
+	static Handler handler;
+};
+
+}	// namespace {{ target.family }}
+
+}	// namespace xpcc
+
+#endif // XPCC_{{ target.family | upper }}_ADC_INTERRUPT_HPP

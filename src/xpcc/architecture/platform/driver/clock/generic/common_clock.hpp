@@ -55,6 +55,7 @@ enum Frequency
 	MHz50       =   50 * MHz1,
 	MHz64       =   64 * MHz1,
 	MHz72       =   72 * MHz1,
+	MHz84       =   84 * MHz1,
 	MHz100      =  100 * MHz1,
 	MHz120      =  120 * MHz1,
 	MHz168      =  168 * MHz1,
@@ -76,14 +77,15 @@ Hz(int f)  { return (f == HzDontCare)? HzDontCare : (f / Hz1); }
 /**
  * Errors that might prevent using a certain clock configuration
  */
-enum class StartupError
+enum class
+StartupError : uint8_t
 {
-	None,				// all went well
-	InternalClock,		// was not able to start the internal clock
-	ExternalClock,		// was not able to start the external clock
-	ExternalCrystal,	// was not able to start the external oscillator
-	Pll,				// was not able to start the PLL
-	SystemClock,		// was not able to switch system clock input
+	None = 0,				// all went well
+	InternalClock = 1,		// was not able to start the internal clock
+	ExternalClock = 2,		// was not able to start the external clock
+	ExternalCrystal = 3,	// was not able to start the external oscillator
+	Pll = 4,				// was not able to start the PLL
+	SystemClock = 5,		// was not able to switch system clock input
 };
 
 }	// namespace clock

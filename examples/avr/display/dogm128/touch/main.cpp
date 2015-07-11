@@ -33,7 +33,7 @@ namespace lcd
 	typedef GpioOutputD3 A0;
 	typedef GpioOutputD4 Reset;
 
-	typedef xpcc::SoftwareSpiMaster< Scl, Mosi, xpcc::GpioUnused > SPI;
+	typedef xpcc::SoftwareSpiMaster< Scl, Mosi > SPI;
 }
 
 xpcc::DogM128< lcd::SPI, lcd::Cs, lcd::A0, lcd::Reset, true > display;
@@ -83,9 +83,8 @@ main()
 
 	display.update();
 
-	Adc::initialize(
-			Adc::Reference::Internal2V56,
-			Adc::Prescaler::Div64);
+	Adc::initialize<clock, 115000>();
+	Adc::setReference(Adc::Reference::Internal2V56);
 
 	touch::Bottom::setInput();
 	touch::Bottom::reset();

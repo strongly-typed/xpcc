@@ -7,8 +7,8 @@
  */
 // ----------------------------------------------------------------------------
 
-#ifndef XPCC_PERIPHERAL_I2C_MASTER_HPP
-#define XPCC_PERIPHERAL_I2C_MASTER_HPP
+#ifndef XPCC_INTERFACE_I2C_MASTER_HPP
+#define XPCC_INTERFACE_I2C_MASTER_HPP
 
 #include "i2c.hpp"
 #include "i2c_transaction.hpp"
@@ -40,19 +40,19 @@ public:
 		DataNack,			///< Data was transmitted and NACK received
 		ArbitrationLost,	///< Arbitration was lost during writing or reading
 		BusCondition,		///< Misplaced Start or Stop condition
+		BusBusy,			///< Bus is busy during Start condition
 		Unknown				///< Unknown error condition
 	};
 
 	/// Baudrate of the I2C bus. Most slaves only work in Standard or Fast mode.
-	struct Baudrate
+	enum
+	Baudrate : uint32_t
 	{
-		enum
-		{
-			Standard =  100000,	///< Standard datarate of 100kHz
-			Fast     =  400000,	///< Fast datarate of 400kHz
-			High     = 1700000,	///< High datarate of 1.7MHz (rarely supported)
-			Super    = 3400000	///< Super datarate of 3.4MHz (rarely supported)
-		};
+		LowSpeed =   10000,	///< Low-Speed datarate of 10kHz
+		Standard =  100000,	///< Standard datarate of 100kHz
+		Fast     =  400000,	///< Fast datarate of 400kHz
+		FastPlus = 1000000,	///< Fast Plus datarate of 1.0MHz (rarely supported)
+		High     = 3400000	///< Super datarate of 3.4MHz (rarely supported)
 	};
 
 #ifdef __DOXYGEN__
@@ -60,15 +60,19 @@ public:
 	/**
 	 * Initializes the hardware and sets the datarate.
 	 *
-	 * @tparam	clockSource
+	 * It is strongly recommended to reset the slave devices on the bus
+	 * after a master reset.
+	 * This is usually done in the Gpio Scl connect method.
+	 *
+	 * @tparam	SystemClock
 	 * 		the currently active system clock
 	 * @tparam	baudrate
 	 * 		the desired baudrate in Hz
 	 * @tparam	tolerance
 	 * 		the allowed absolute tolerance for the resulting baudrate
 	 */
-	template< class clockSource, uint32_t baudrate=Baudrate::Standard,
-			Tolerance tolerance = Tolerance::FivePercent >
+	template< class SystemClock, uint32_t baudrate=Baudrate::Standard,
+			uint16_t tolerance = Tolerance::FivePercent >
 	static void
 	initialize();
 
@@ -82,7 +86,7 @@ public:
 	 * @return	Caller gains control if `true`. Call has no effect if `false`.
 	 */
 	static bool
-	start(I2cTransaction *transaction, Configuration_t configuration = nullptr);
+	start(I2cTransaction *transaction, ConfigurationHandler handler = nullptr);
 
 	/**
 	 * Perform a software reset of the driver in case of an error and detach
@@ -103,4 +107,4 @@ public:
 
 }	// namespace xpcc
 
-#endif // XPCC_PERIPHERAL_I2C_MASTER_HPP
+#endif // XPCC_INTERFACE_I2C_MASTER_HPP

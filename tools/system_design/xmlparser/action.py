@@ -17,10 +17,14 @@ class Action(object):
 		
 		self.parameterType = self.__get_type(node, "parameterType", tree)
 		self.returnType = self.__get_type(node, "returnType", tree)
-	
+
+		self.call = node.get('call')
+		if self.call not in ["once", "resumable"]:
+			self.call = "once"
+
 	def __get_type(self, node, name, tree):
 		type = node.get(name)
-		if type != None:
+		if type is not None:
 			try:
 				type = tree.types[type]
 			except KeyError as e:

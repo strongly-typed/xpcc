@@ -32,6 +32,7 @@
 #define	XPCC__POSTMAN_HPP
 
 #include "../backend/backend_interface.hpp"
+#include "response.hpp"
 
 namespace xpcc
 {
@@ -70,7 +71,7 @@ namespace xpcc
 		 * 			to the given component, \c false otherwise.
 		 */
 		virtual bool
-		isComponentAvaliable(uint8_t component) const = 0;
+		isComponentAvailable(uint8_t component) const = 0;
 	};
 }
 

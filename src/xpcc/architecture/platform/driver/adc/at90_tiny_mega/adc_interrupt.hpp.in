@@ -1,0 +1,47 @@
+// coding: utf-8
+/* Copyright (c) 2011, Roboterclub Aachen e.V.
+ * All Rights Reserved.
+ *
+ * The file is part of the xpcc library and is released under the 3-clause BSD
+ * license. See the file `LICENSE` for the full license governing this code.
+ */
+// ----------------------------------------------------------------------------
+
+
+#ifndef XPCC_{{ target.family | upper }}_ADC_INTERRUPT_HPP
+#define XPCC_{{ target.family | upper }}_ADC_INTERRUPT_HPP
+
+#include <xpcc/utils/dummy.hpp>
+#include "adc.hpp"
+#include <xpcc/architecture/interface/adc_interrupt.hpp>
+
+
+namespace xpcc
+{
+
+namespace {{ target.family }}
+{
+
+/**
+ * @author		Niklas Hauser
+ *
+ * @ingroup		{{target.string}}_adc
+ */
+class AdcInterrupt : public Adc, public xpcc::AdcInterrupt
+{
+public:
+	static inline void
+	attachInterruptHandler(Handler handler=xpcc::dummy)
+	{
+		AdcInterrupt::handler = handler;
+	}
+
+public:
+	static Handler handler;
+};
+
+}	// namespace {{ target.family }}
+
+}	// namespace xpcc
+
+#endif // XPCC_{{ target.family | upper }}_ADC_INTERRUPT_HPP

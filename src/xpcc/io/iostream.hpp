@@ -10,6 +10,7 @@
 #ifndef XPCC_IOSTREAM_HPP
 #define XPCC_IOSTREAM_HPP
 
+#include <xpcc/architecture/detect.hpp>
 #include <xpcc/architecture/utils.hpp>
 
 #include "iodevice.hpp"
@@ -19,7 +20,7 @@ namespace xpcc
 {
 
 /**
- * This Formats all primary types into a string stream for
+ * This formats all primary types into a string stream for
  * output or it reads values from a input and converts them to
  * a given type;
  *
@@ -43,6 +44,18 @@ public :
 	write(char c)
 	{
 		this->device->write(c);
+		return *this;
+	}
+
+	static constexpr char eof = -1;
+
+	/// Reads one character and returns it if available. Otherwise, returns IOStream::eof.
+	inline IOStream&
+	get(char c)
+	{
+		if(!this->device->read(c)) {
+			c = IOStream::eof;
+		}
 		return *this;
 	}
 
@@ -148,7 +161,7 @@ public :
 		}
 		else {
 			this->writeHex(static_cast<uint8_t>(v >> 8));
-			this->writeHex(static_cast<uint8_t>(v & 0xff));
+			this->writeHex(static_cast<uint8_t>(v));
 		}
 		return *this;
 	}
@@ -161,11 +174,11 @@ public :
 		}
 		else if (this->mode == Mode::Binary) {
 			this->writeBin(static_cast<uint8_t>(v >> 8));
-			this->writeBin(static_cast<uint8_t>(v & 0xff));
+			this->writeBin(static_cast<uint8_t>(v));
 		}
 		else {
 			this->writeHex(static_cast<uint8_t>(v >> 8));
-			this->writeHex(static_cast<uint8_t>(v & 0xff));
+			this->writeHex(static_cast<uint8_t>(v));
 		}
 		return *this;
 	}
@@ -180,13 +193,13 @@ public :
 			this->writeBin(static_cast<uint8_t>(v >> 24));
 			this->writeBin(static_cast<uint8_t>(v >> 16));
 			this->writeBin(static_cast<uint8_t>(v >> 8));
-			this->writeBin(static_cast<uint8_t>(v & 0xff));
+			this->writeBin(static_cast<uint8_t>(v));
 		}
 		else {
 			this->writeHex(static_cast<uint8_t>(v >> 24));
 			this->writeHex(static_cast<uint8_t>(v >> 16));
 			this->writeHex(static_cast<uint8_t>(v >> 8));
-			this->writeHex(static_cast<uint8_t>(v & 0xff));
+			this->writeHex(static_cast<uint8_t>(v));
 		}
 		return *this;
 	}
@@ -201,19 +214,19 @@ public :
 			this->writeBin(static_cast<uint8_t>(v >> 24));
 			this->writeBin(static_cast<uint8_t>(v >> 16));
 			this->writeBin(static_cast<uint8_t>(v >> 8));
-			this->writeBin(static_cast<uint8_t>(v & 0xff));
+			this->writeBin(static_cast<uint8_t>(v));
 		}
 		else {
 			this->writeHex(static_cast<uint8_t>(v >> 24));
 			this->writeHex(static_cast<uint8_t>(v >> 16));
 			this->writeHex(static_cast<uint8_t>(v >> 8));
-			this->writeHex(static_cast<uint8_t>(v & 0xff));
+			this->writeHex(static_cast<uint8_t>(v));
 		}
 		return *this;
 	}
 
-#if defined(XPCC__OS_OSX)
-	// For APPLE 'int64_t' is of type 'int'. Therefore there is no
+#if defined(XPCC__OS_OSX) || defined(XPCC__CPU_I386)
+	// For OSX 'int64_t' is of type 'int'. Therefore there is no
 	// function here for the default type 'long int'. As 'long int' has the same
 	// width as 'int64_t' we just use a typedef here.
 	ALWAYS_INLINE IOStream&
@@ -231,7 +244,7 @@ public :
 	}
 #endif
 
-#if defined(XPCC__CPU_ARM) || defined(XPCC__CPU_AVR32)
+#if defined(XPCC__CPU_ARM) && defined(XPCC__OS_NONE)
 	// For ARM 'int32_t' is of type 'long'. Therefore there is no
 	// function here for the default type 'int'. As 'int' has the same
 	// width as 'int32_t' we just use a typedef here.

@@ -129,7 +129,7 @@ namespace xpcc
 	 * need to do this by yourself before calling the initialize method!
 	 *
 	 * \author	Fabian Greif
-	 * \ingroup	can
+	 * \ingroup	mcp2515
 	 */
 	template < typename SPI,
 			   typename CS,
@@ -138,7 +138,7 @@ namespace xpcc
 	{
 	public:
 		static bool
-		initialize(Can::Bitrate bitrate);
+		initialize(uint32_t bitrate);
 
 		static void
 		setFilter(accessor::Flash<uint8_t> filter);

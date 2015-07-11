@@ -1,16 +1,19 @@
 // ----------------------------------------------------------------------------
 /*
- * WARNING: This file is generated automatically, do not edit!
- * Please modify the corresponding XML file instead.
+ * WARNING: This file is generated automatically from robot_packets.hpp.tpl.
+ * Do not edit! Please modify the corresponding XML file instead.
  */
 // ----------------------------------------------------------------------------
 
-#ifndef	ROBOT__PACKETS_HPP
-#define	ROBOT__PACKETS_HPP
+#ifndef	{{ namespace | upper }}_PACKETS_HPP
+#define	{{ namespace | upper }}_PACKETS_HPP
 
 #include <stdint.h>
+#include <cstdlib>
+#include <xpcc/io/iostream.hpp>
+#include <xpcc/container/smart_pointer.hpp>
 
-namespace robot
+namespace {{ namespace }}
 {
 	namespace packet
 	{
@@ -20,36 +23,64 @@ namespace robot
 		/** {{ packet.description | xpcc.wordwrap(67) | xpcc.indent(2, " * ") }} */
 		{%- endif %}
 	{%- if packet.isEnum %}
-		enum {{ packet.name | typeName }}
+		enum {%- if packet.isStronglyTyped %} class{%- endif %}
+		{{ packet.name | typeName }}{%- if packet.underlyingType != None %} : {{ packet.underlyingType }}{%- endif %}
 		{
 			{%- for element in packet.iter() %}
-			{%- if element.description %}
+				{%- if element.description %}
 			/** {{ element.description | xpcc.wordwrap(63) | xpcc.indent(3, " * ") }} */
-			{%- endif %}
+				{%- endif %}
+				{%- if packet.isStronglyTyped %}
+			{{ element.name | enumElementStrong }} = {{ element.value }},
+				{%- else %}
 			{{ element.name | enumElement }} = {{ element.value }},
+				{%- endif %}
 			{%- endfor %}
-		} __attribute__((packed));
-		
-		inline const char* 
+		} {%- if packet.underlyingType == None %} __attribute__((packed)){%- endif %};
+		{% if packet.isStronglyTyped %}
+		constexpr {{ packet.underlyingType }}
+		value({{ packet.name | typeName }} e) {
+			return {{ packet.underlyingType }}(e);
+		}
+		{%- endif %}
+
+		static constexpr int {{ packet.name | typeName }}NumberOfElements = {{ packet.numberOfElements }};
+
+		inline const char*
 		enumToString({{ packet.name | typeName }} e)
 		{
 			switch (e)
 			{
-			{%- for element in packet.iter() %}
-			{%- if element.string %}
-				case {{ element.name | enumElement }}: return "{{ element.string }}";
+		{%- for element in packet.iter() %}
+			{%- if packet.isStronglyTyped %}
+				{%- set enumName = element.name | enumElementStrong %}
+				{%- set prefix = (packet.name | typeName) ~ "::" %}
 			{%- else %}
-				case {{ element.name | enumElement }}: return "{{ element.name | enumElement }}";
+				{%- set enumName = element.name | enumElement %}
+				{%- set prefix = "" %}
 			{%- endif %}
-			{%- endfor %}
-				default: return "__UNKNOWN__";
+			{%- if element.string %}
+				case {{ prefix ~ enumName }}: return "{{ element.string }}";
+			{%- else %}
+				case {{ prefix ~ enumName }}: return "{{ enumName }}";
+			{%- endif %}
+		{%- endfor %}
+		{%- if packet.isStronglyTyped %}
+				default: return "Unknown";
+		{%- else %}
+				default: return "__UNKNOWN_ENUM__";
+		{%- endif %}
 			}
 		}
+
+		xpcc::IOStream&
+		operator << (xpcc::IOStream& s, const {{ packet.name | typeName }} e);
+
 	{% elif packet.isStruct %}
 		struct {{ packet.name | typeName }}
 		{
 			{{ packet.flattened() | generateConstructor }};
-			
+
 			{% if packet.flattened().size > 0 -%}
 			{{ packet.flattened() | generateConstructor(default=False) }};
 			{%- endif %}
@@ -60,11 +91,19 @@ namespace robot
 			{{ element | subtype }};
 			{%- endfor %}
 		} __attribute__((packed));
+
+		xpcc::IOStream&
+		operator << (xpcc::IOStream& s, const {{ packet.name | typeName }} e);
+
 	{% elif packet.isTypedef %}
+		{%- if packet.subtype.type.isBuiltIn %}
+		typedef {{ packet.subtype.name }} {{ packet.name | typeName }};
+		{%- else %}
 		typedef {{ packet.subtype.name | typeName }} {{ packet.name | typeName }};
+		{%- endif %}
 	{% endif %}
 {%- endfor -%}
 	} // namespace packet
-} // namespace robot
+} // namespace {{ namespace }}
 
-#endif	// ROBOT__PACKETS_HPP
+#endif	// {{ namespace | upper }}_PACKETS_HPP

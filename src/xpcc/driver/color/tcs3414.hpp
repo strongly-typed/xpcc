@@ -20,7 +20,7 @@
 
 #include <xpcc/ui/color.hpp>
 #include <xpcc/processing/protothread.hpp>
-#include <xpcc/processing/coroutine.hpp>
+#include <xpcc/processing/resumable.hpp>
 #include <xpcc/architecture/interface/i2c_device.hpp>
 
 namespace xpcc
@@ -149,8 +149,7 @@ struct tcs3414
  * \ingroup	driver_other
  */
 template < typename I2cMaster >
-class Tcs3414 : public tcs3414, public xpcc::I2cDevice<I2cMaster>,
-				public xpcc::co::NestedCoroutine<1>
+class Tcs3414 : public tcs3414, public xpcc::I2cDevice< I2cMaster, 2 >
 {
 public:
 	Tcs3414(uint8_t address = 0x39);
@@ -158,12 +157,9 @@ public:
 	//! \brief 	Power up sensor and start conversions
 	// Blocking
 	bool inline
-	initialize()
+	initializeBlocking()
 	{
-		xpcc::co::Result<bool> result;
-		while ((result = initialize(this)).state > xpcc::co::NestingError)
-			;
-		return result.result;
+		return RF_CALL_BLOCKING(initialize());
 	}
 
 	//! \brief 	Configures some of the most important settings for the sensor.
@@ -189,34 +185,31 @@ public:
 	}
 
 	//! \brief	The gain can be used to adjust the sensitivity of all ADC output channels.
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	setGain(
-			void *ctx,
 			const Gain      gain      = Gain::DEFAULT,
 			const Prescaler prescaler = Prescaler::DEFAULT)
 	{
-		return writeRegister(ctx, RegisterAddress::GAIN,
+		return writeRegister(RegisterAddress::GAIN,
 				static_cast<uint8_t>(gain) | static_cast<uint8_t>(prescaler));
 	}
 
 	//! \brief Sets the integration time for the ADCs.
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	setIntegrationTime(
-			void *ctx,
 			const IntegrationMode        mode = IntegrationMode::DEFAULT,
 			const NominalIntegrationTime time = NominalIntegrationTime::DEFAULT)
 	{
-		return setIntegrationTime(ctx, mode, static_cast<uint8_t>(time));
+		return setIntegrationTime(mode, static_cast<uint8_t>(time));
 	}
 
 	//! \brief Sets the integration time for the ADCs.
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	setIntegrationTime(
-			void *ctx,
 			const IntegrationMode mode = IntegrationMode::DEFAULT,
 			const SyncPulseCount  time = SyncPulseCount::DEFAULT)
 	{
-		return setIntegrationTime(ctx, mode, static_cast<uint8_t>(time));
+		return setIntegrationTime(mode, static_cast<uint8_t>(time));
 	}
 
 	/**
@@ -246,23 +239,18 @@ public:
 
 	//! \brief	Read current samples of ADC conversions for all channels.
 	// Non-blocking
-	xpcc::co::Result<bool>
-	refreshAllColors(void *ctx);
+	xpcc::ResumableResult<bool>
+	refreshAllColors();
 
 	// MARK: - TASKS
-	/// Pings the sensor
-	xpcc::co::Result<bool>
-	ping(void *ctx);
-
-	xpcc::co::Result<bool>
-	initialize(void *ctx)
+	xpcc::ResumableResult<bool>
+	initialize()
 	{
-		return writeRegister(ctx, RegisterAddress::CONTROL, 0b11);	// control to power up and start conversion
+		return writeRegister(RegisterAddress::CONTROL, 0b11);	// control to power up and start conversion
 	};
 
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	configure(
-			void *ctx,
 			const Gain            gain      = Gain::DEFAULT,
 			const Prescaler       prescaler = Prescaler::DEFAULT,
 			const IntegrationMode mode      = IntegrationMode::DEFAULT,
@@ -270,46 +258,30 @@ public:
 
 private:
 	//! \brief Sets the integration time for the ADCs.
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	setIntegrationTime(
-			void *ctx,
 			const IntegrationMode mode = IntegrationMode::DEFAULT,
 			const uint8_t         time = 0)
 	{
 		return writeRegister(
-				ctx,
 				RegisterAddress::TIMING,
 				static_cast<uint8_t>(mode) | time );
 	}
 
 private:
-	enum I2cTask : uint8_t
-	{
-		Idle = 0,
-		WriteRegister,
-		ReadRegister,
-		Ping,
-	};
-
 	uint8_t commandBuffer[4];
 	bool success;
 
-	volatile uint8_t i2cTask;
-	volatile uint8_t i2cSuccess;
-	xpcc::I2cTagAdapter< xpcc::I2cWriteReadAdapter > adapter;
-
 private:
 	//! \brief	Read value of specific register.
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	readRegisters(
-			void *ctx,
 			const RegisterAddress address,
 			uint8_t * const values,
 			const uint8_t count = 1);
 
-	xpcc::co::Result<bool>
+	xpcc::ResumableResult<bool>
 	writeRegister(
-			void *ctx,
 			const RegisterAddress address,
 			const uint8_t value);
 

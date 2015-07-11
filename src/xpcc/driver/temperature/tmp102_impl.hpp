@@ -14,9 +14,11 @@
 // ----------------------------------------------------------------------------
 template < typename I2cMaster >
 xpcc::Tmp102<I2cMaster>::Tmp102(Data &data, uint8_t address)
-:	data(data), config_msb(), config_lsb(Config2::ConversionRate4Hz), updateTime(250),
-	i2cTask(I2cTask::Idle), i2cSuccess(0), adapter(address, i2cTask, i2cSuccess)
+:	Lm75<I2cMaster>(reinterpret_cast<lm75::Data&>(data), address),
+	timeout(250), updateTime(250),
+	config_lsb(ConversionRate_t(ConversionRate::Hz4))
 {
+	this->stop();
 }
 
 template < typename I2cMaster >
@@ -31,41 +33,33 @@ xpcc::Tmp102<I2cMaster>::run()
 
 		if (updateTime & (1 << 15))
 		{
-			PT_CALL(startConversion(this));
+			PT_CALL(startConversion());
 			timeout.restart(29);
 		}
 
 		PT_WAIT_UNTIL(timeout.isExpired());
 		timeout.restart(updateTime & ~(1 << 15));
 
-		PT_CALL(readTemperature(this));
+		PT_CALL(this->readTemperature());
 	}
 
 	PT_END();
 }
 
-// ----------------------------------------------------------------------------
-// MARK: ping
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::ping(void *ctx)
+xpcc::tmp102::Data&
+xpcc::Tmp102<I2cMaster>::getData()
 {
-	CO_BEGIN(ctx);
-
-	CO_WAIT_UNTIL(adapter.configurePing() &&
-			(i2cTask = I2cTask::Ping, this->startTransaction(&adapter)));
-
-	CO_WAIT_WHILE(i2cTask == I2cTask::Ping);
-
-	CO_END_RETURN(i2cSuccess == I2cTask::Ping);
+	return reinterpret_cast<Data&>(this->data);
 }
 
+// ----------------------------------------------------------------------------
 // MARK: - tasks
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::setUpdateRate(void *ctx, uint8_t rate)
+xpcc::ResumableResult<bool>
+xpcc::Tmp102<I2cMaster>::setUpdateRate(uint8_t rate)
 {
-	CO_BEGIN(ctx);
+	RF_BEGIN();
 
 	this->restart();
 	// clamp conversion rate to max 33Hz (=~30ms)
@@ -74,165 +68,119 @@ xpcc::Tmp102<I2cMaster>::setUpdateRate(void *ctx, uint8_t rate)
 	if (rate == 0 || rate == 1 || rate == 4 || rate == 8)
 	{
 		// clear shutdown mode
-		config_msb &= ~Config1::ShutdownMode;
+		reinterpret_cast<Config1_t&>(this->config_msb).reset(Config1::ShutdownMode);
 		// clear conversion rate bits
-		config_lsb &= ~Config2::ConversionRateMask;
+		ConversionRate_t::reset(config_lsb);
 		// maps:
 		// 0 to 0b00
 		// 1 to 0b01
 		// 4 to 0b10
 		// 8 to 0b11
-		if (rate & 0b1001) config_lsb |= Config2::ConversionRate1Hz;
-		if (rate & 0b1100) config_lsb |= Config2::ConversionRate4Hz;
-		if ( CO_CALL(writeConfiguration(ctx, 3)) )
+		if (rate & 0b1001) ConversionRate_t::set(config_lsb, ConversionRate::Hz1);
+		if (rate & 0b1100) ConversionRate_t::set(config_lsb, ConversionRate::Hz4);
+		if ( RF_CALL(writeConfiguration(3)) )
 		{
 			if (rate == 0) updateTime = 4000;
 			else updateTime = 1000/rate;
-			CO_RETURN(true);
+			timeout.restart(updateTime & ~(1 << 15));
+			RF_RETURN(true);
 		}
 	}
 	else
 	{
 		updateTime = (1000/rate - 29) | (1 << 15);
-		CO_RETURN(true);
+		timeout.restart(updateTime & ~(1 << 15));
+		RF_RETURN(true);
 	}
 
 	this->stop();
 
-	CO_END_RETURN(false);
+	RF_END_RETURN(false);
 }
 
 // MARK: Extended mode
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::enableExtendedMode(void *ctx, bool enable)
+xpcc::ResumableResult<bool>
+xpcc::Tmp102<I2cMaster>::enableExtendedMode(bool enable)
 {
-	CO_BEGIN(ctx);
+	RF_BEGIN();
 
-	if (enable)	config_lsb |=  Config2::ExtendedMode;
-	else		config_lsb &= ~Config2::ExtendedMode;
+	config_lsb.update(Config2::ExtendedMode, enable);
 
-	CO_END_RETURN_CALL(writeConfiguration(ctx, 3));
-}
-
-// MARK: Alert mode
-template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::configureAlertMode(void *ctx, ThermostatMode mode, AlertPolarity polarity, FaultQueue faults)
-{
-	CO_BEGIN(ctx);
-
-	if (bool(mode))
-			config_msb |=  Config1::ThermostatMode;
-	else	config_msb &= ~Config1::ThermostatMode;
-
-	if (bool(polarity))
-			config_msb |=  Config1::Polarity;
-	else	config_msb &= ~Config1::Polarity;
-
-	config_msb &= ~Config1::FaultQueueMask;
-	config_msb |= Config1(faults);
-
-	CO_END_RETURN_CALL(writeConfiguration(ctx, 2));
+	RF_END_RETURN_CALL(writeConfiguration(3));
 }
 
 // MARK: conversion
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::startConversion(void *ctx)
+xpcc::ResumableResult<bool>
+xpcc::Tmp102<I2cMaster>::startConversion()
 {
-	CO_BEGIN(ctx);
+	RF_BEGIN();
 
-	config_msb |= Config1::OneShot;
+	reinterpret_cast<Config1_t&>(this->config_msb).set(Config1::OneShot);
 
-	if ( CO_CALL(writeConfiguration(ctx, 2)) )
+	if ( RF_CALL(writeConfiguration(2)) )
 	{
-		config_msb &= ~Config1::OneShot;
-		CO_RETURN(true);
+		reinterpret_cast<Config1_t&>(this->config_msb).reset(Config1::OneShot);
+		RF_RETURN(true);
 	}
 
-	CO_END_RETURN(false);
+	RF_END_RETURN(false);
 }
 
 // MARK: read temperature
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::readTemperature(void *ctx)
+xpcc::ResumableResult<bool>
+xpcc::Tmp102<I2cMaster>::readComparatorMode(bool &result)
 {
-	CO_BEGIN(ctx);
+	RF_BEGIN();
 
-	buffer[0] = uint8_t(Register::Temperature);
-	CO_WAIT_UNTIL(adapter.configureWriteRead(buffer, 1, data.data, 2) &&
-			(i2cTask = I2cTask::ReadTemperature, this->startTransaction(&adapter)));
+	this->buffer[0] = uint8_t(Register::Configuration);
+	this->transaction.configureWriteRead(this->buffer, 1, this->buffer, 2);
 
-	CO_WAIT_WHILE(i2cTask == I2cTask::ReadTemperature);
-
-	CO_END_RETURN(i2cSuccess == I2cTask::ReadTemperature);
-}
-
-// MARK: read temperature
-template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::readComparatorMode(void *ctx, bool &result)
-{
-	CO_BEGIN(ctx);
-
-	buffer[0] = i(Register::Configuration);
-	CO_WAIT_UNTIL(adapter.configureWriteRead(buffer, 1, buffer, 2) &&
-			(i2cTask = I2cTask::ReadAlert, this->startTransaction(&adapter)));
-
-	CO_WAIT_WHILE(i2cTask == I2cTask::ReadAlert);
-
-	if (i2cSuccess == I2cTask::ReadAlert)
+	if (RF_CALL( this->runTransaction() ))
 	{
-		config_msb = Config1_t(buffer[0]) & ~Config1::ResolutionMask;
-		result =     Config2_t(buffer[1]) &  Config2::Alert;
-		config_lsb = Config2_t(buffer[1]) & ~Config2::Alert;
-		CO_RETURN(true);
+		reinterpret_cast<Config1_t&>(this->config_msb) = Config1_t(this->buffer[0]) & ~Resolution_t::mask();
+		result =     Config2_t(this->buffer[1]) &  Config2::Alert;
+		config_lsb = Config2_t(this->buffer[1]) & ~Config2::Alert;
+		RF_RETURN(true);
 	}
 
-	CO_END_RETURN(false);
+	RF_END_RETURN(false);
 }
 
 // MARK: configuration
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::writeConfiguration(void *ctx, uint8_t length)
+xpcc::ResumableResult<bool>
+xpcc::Tmp102<I2cMaster>::writeConfiguration(uint8_t length)
 {
-	CO_BEGIN(ctx);
+	RF_BEGIN();
 
-	buffer[0] = i(Register::Configuration);
-	buffer[1] = config_msb.value;
-	buffer[2] = config_lsb.value;
+	this->buffer[0] = uint8_t(Register::Configuration);
+	this->buffer[1] = reinterpret_cast<Config1_t&>(this->config_msb).value;
+	this->buffer[2] = config_lsb.value;
 
-	CO_WAIT_UNTIL(adapter.configureWrite(buffer, length) &&
-			(i2cTask = I2cTask::Configuration, this->startTransaction(&adapter)));
+	this->transaction.configureWrite(this->buffer, length);
 
-	CO_WAIT_WHILE(i2cTask == I2cTask::Configuration);
-
-	CO_END_RETURN(i2cSuccess == I2cTask::Configuration);
+	RF_END_RETURN_CALL( this->runTransaction() );
 }
 
-// MARK: configuration
 template < typename I2cMaster >
-xpcc::co::Result<bool>
-xpcc::Tmp102<I2cMaster>::writeLimitRegister(void *ctx, Register reg, float temperature)
+xpcc::ResumableResult<bool>
+xpcc::Tmp102<I2cMaster>::setLimitRegister(Register reg, float temperature)
 {
-	CO_BEGIN(ctx);
+	RF_BEGIN();
 
 	{
 		int16_t temp = temperature * 16.f;
 		temp <<= (config_lsb & Config2::ExtendedMode) ? 3 : 4;
 
-		buffer[0] = i(reg);
-		buffer[1] = (temp >> 8);
-		buffer[2] = temp;
+		this->buffer[0] = uint8_t(reg);
+		this->buffer[1] = (temp >> 8);
+		this->buffer[2] = temp;
 	}
 
-	CO_WAIT_UNTIL(adapter.configureWrite(buffer, 3) &&
-			(i2cTask = I2cTask::LimitRegister, this->startTransaction(&adapter)));
+	this->transaction.configureWrite(this->buffer, 3);
 
-	CO_WAIT_WHILE(i2cTask == I2cTask::LimitRegister);
-
-	CO_END_RETURN(i2cSuccess == I2cTask::LimitRegister);
+	RF_END_RETURN_CALL( this->runTransaction() );
 }

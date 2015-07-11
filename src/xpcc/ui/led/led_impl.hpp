@@ -12,13 +12,15 @@
 #endif
 
 // ----------------------------------------------------------------------------
+ALWAYS_INLINE
 xpcc::ui::Led::Led()
 :	Led(nullptr)
 {
 }
 
-xpcc::ui::Led::Led(Animation<uint8_t>::Callback_t callback)
-:	animation(brightness, callback), brightness(0)
+ALWAYS_INLINE
+xpcc::ui::Led::Led(Animation<uint8_t>::Handler handler)
+:	animation(brightness, handler), brightness(0)
 {
 }
 

@@ -11,7 +11,7 @@
 #define XPCC_LIS3DSH_HPP
 
 #include <xpcc/architecture/interface/register.hpp>
-#include <xpcc/processing/coroutine.hpp>
+#include <xpcc/processing/resumable.hpp>
 #include <xpcc/math/utils/endianness.hpp>
 #include "lis3_transport.hpp"
 
@@ -135,7 +135,7 @@ public:
 		VFILT = Bit2,	///< Vector filter enable/disable.
 		STRT = Bit0,	///< Soft reset bit.
 	};
-	REGISTER8(Control3);
+	XPCC_FLAGS8(Control3);
 
 	/// CTRL_REG4 default value is 0x07
 	enum class
@@ -152,7 +152,7 @@ public:
 		YEN = Bit1,		///< Y axis enable
 		XEN = Bit0,		///< X axis enable
 	};
-	REGISTER8(Control4);
+	XPCC_FLAGS8(Control4);
 
 
 	/// CTRL_REG5 default value is 0x00
@@ -172,7 +172,7 @@ public:
 
 		SIM = Bit0,		///< PI serial interface mode selection.
 	};
-	REGISTER8(Control5);
+	XPCC_FLAGS8(Control5);
 
 	/// CTRL_REG6 default value is 0x00
 	enum class
@@ -187,7 +187,7 @@ public:
 		P1_OVERRUN = Bit1,	///< FIFO overrun interrupt on int1.
 		P2_BOOT = Bit0,		///< PI serial interface mode selection.
 	};
-	REGISTER8(Control6);
+	XPCC_FLAGS8(Control6);
 
 	/// STATUS is read-only
 	enum class
@@ -202,7 +202,7 @@ public:
 		YDA = Bit1,		///< Y axis new data available.
 		XDA = Bit0,		///< X axis new data available.
 	};
-	REGISTER8(Status);
+	XPCC_FLAGS8(Status);
 
 	/// STAT is read-only
 	enum class
@@ -217,7 +217,7 @@ public:
 		DOR = Bit1,		///< Data overrun indicates not read data from output register when next data samples measure start;
 		DRDY = Bit0,	///< data ready from output register
 	};
-	REGISTER8(IntStatus);
+	XPCC_FLAGS8(IntStatus);
 
 	/// FIFO_CTRL default value is 0x00
 	enum class
@@ -234,7 +234,7 @@ public:
 		WTMP0 = Bit0,
 		WTMP_Mask = Bit4 | Bit3 | Bit2 | Bit1 | Bit0,
 	};
-	REGISTER8(FifoControl);
+	XPCC_FLAGS8(FifoControl);
 
 	/// FIFO_SRC is read-only
 	enum class
@@ -251,7 +251,7 @@ public:
 		FSS0 = Bit0,
 		FSS_Mask = Bit4 | Bit3 | Bit2 | Bit1 | Bit0,
 	};
-	REGISTER8(FifoSource);
+	XPCC_FLAGS8(FifoSource);
 
 public:
 	/// MASK1_A, MASK1_B, MASK2_A, MASK2_B, OUTS1, OUTS2
@@ -270,7 +270,7 @@ public:
 		P_V = Bit1,
 		N_V = Bit0,
 	};
-	REGISTER8(AxisSign);
+	XPCC_FLAGS8(AxisSign);
 
 	/// CTRL_REG1, CTRL_REG2
 	enum class
@@ -285,7 +285,7 @@ public:
 
 		SM_EN = Bit0,
 	};
-	REGISTER8(SmControl);
+	XPCC_FLAGS8(SmControl);
 
 	/// SETT1, SETT2
 	enum class
@@ -299,10 +299,11 @@ public:
 		R_TAM = Bit1,
 		SITR = Bit0,
 	};
-	REGISTER8(Sett);
+	XPCC_FLAGS8(Sett);
 
-	REGISTER8_GROUP(Control,
-			SmControl, Control3, Control4, Control5, Control6);
+	typedef FlagsGroup<
+			SmControl_t, Control3_t, Control4_t, Control5_t, Control6_t
+	> Control_t;
 
 public:
 
@@ -523,57 +524,57 @@ public:
 	Lis3dsh(Data &data, uint8_t address=0x1D);
 
 	bool inline
-	initialize(Scale scale, MeasurementRate rate = MeasurementRate::Hz100)
+	configureBlocking(Scale scale, MeasurementRate rate = MeasurementRate::Hz100)
 	{
-		return CO_CALL_BLOCKING(initialize(this, scale, rate));
+		return RF_CALL_BLOCKING(configure(scale, rate));
 	}
 
-	xpcc::co::Result<bool>
-	initialize(void *ctx, Scale scale, MeasurementRate rate = MeasurementRate::Hz100);
+	xpcc::ResumableResult<bool>
+	configure(Scale scale, MeasurementRate rate = MeasurementRate::Hz100);
 
 	// MARK: Control Registers
-	xpcc::co::Result<bool> inline
-	updateSmControl1(void *ctx, SmControl_t setMask, SmControl_t clearMask = SmControl_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateSmControl1(SmControl_t setMask, SmControl_t clearMask = SmControl_t(0xff))
 	{
-		return updateControlRegister(ctx, 1, setMask, clearMask);
+		return updateControlRegister(1, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateSmControl2(void *ctx, SmControl_t setMask, SmControl_t clearMask = SmControl_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateSmControl2(SmControl_t setMask, SmControl_t clearMask = SmControl_t(0xff))
 	{
-		return updateControlRegister(ctx, 2, setMask, clearMask);
+		return updateControlRegister(2, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateControl(void *ctx, Control3_t setMask, Control3_t clearMask = Control3_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControl(Control3_t setMask, Control3_t clearMask = Control3_t(0xff))
 	{
-		return updateControlRegister(ctx, 3, setMask, clearMask);
+		return updateControlRegister(3, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateControl(void *ctx, Control4_t setMask, Control4_t clearMask = Control4_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControl(Control4_t setMask, Control4_t clearMask = Control4_t(0xff))
 	{
-		return updateControlRegister(ctx, 0, setMask, clearMask);
+		return updateControlRegister(0, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateControl(void *ctx, Control5_t setMask, Control5_t clearMask = Control5_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControl(Control5_t setMask, Control5_t clearMask = Control5_t(0xff))
 	{
-		return updateControlRegister(ctx, 4, setMask, clearMask);
+		return updateControlRegister(4, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateControl(void *ctx, Control6_t setMask, Control6_t clearMask = Control6_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControl(Control6_t setMask, Control6_t clearMask = Control6_t(0xff))
 	{
-		return updateControlRegister(ctx, 5, setMask, clearMask);
+		return updateControlRegister(5, setMask, clearMask);
 	}
 
 
 	// MARK: Read access
-	xpcc::co::Result<bool>
-	readAcceleration(void *ctx);
+	xpcc::ResumableResult<bool>
+	readAcceleration();
 
-	// instant access
+	// MARK: Registers with instant access
 	SmControl_t getControl1()
 	{ return SmControl_t(rawBuffer[1]); }
 
@@ -595,7 +596,7 @@ public:
 	FifoControl_t getFifoControl()
 	{ return FifoControl_t(rawBuffer[13]); }
 
-	// buffered access
+	// MARK: Registers with buffered access
 	Status_t getStatus()
 	{ return Status_t(rawBuffer[6]); }
 
@@ -603,22 +604,25 @@ public:
 	{ return FifoSource_t(rawBuffer[14]); }
 
 public:
-	/// the data object for this sensor.
-	Data &data;
+	/// Get the data object for this sensor.
+	inline Data&
+	getData()
+	{ return data; }
 
 private:
-	xpcc::co::Result<bool>
-	updateControlRegister(void *ctx, uint8_t index, Control_t setMask, Control_t clearMask = static_cast<Control_t>(0xff));
+	xpcc::ResumableResult<bool>
+	updateControlRegister(uint8_t index, Control_t setMask, Control_t clearMask = static_cast<Control_t>(0xff));
 
-	xpcc::co::Result<bool>
-	updateRegister(void *ctx, uint8_t reg, uint8_t setMask, uint8_t clearMask = 0xff);
+	xpcc::ResumableResult<bool>
+	updateRegister(uint8_t reg, uint8_t setMask, uint8_t clearMask = 0xff);
 
+	Data &data;
 	// the read buffer is for a continous read from address 0x20 -> 0x2F
 	// 0: control 4
 	// 1-3: control 1-3
 	// 4-5: control 5-6
 	// 6: status (read-only)
-	// 7: out x low -- also use for readBuffer in updateRegister!
+	// 7: out x low -- also used for readBuffer in updateRegister!
 	// 8: out x high
 	// 9: out y low
 	// 10: out y high

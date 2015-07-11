@@ -7,10 +7,10 @@
  */
 // ----------------------------------------------------------------------------
 
-#ifndef XPCC_PERIPHERAL_UART_HPP
-#define XPCC_PERIPHERAL_UART_HPP
+#ifndef XPCC_INTERFACE_UART_HPP
+#define XPCC_INTERFACE_UART_HPP
 
-#include "../interface.hpp"
+#include <xpcc/architecture/interface.hpp>
 
 /**
  * @ingroup		interface
@@ -37,7 +37,7 @@ public:
 	 * Most Serial-to-USB converters only support baudrates up to 115200 Baud
 	 */
 	enum
-	Baudrate
+	Baudrate : uint32_t
 	{
 #ifndef B300	// termios.h defines B300 .. B38400
 		    B300 =     300,
@@ -66,14 +66,14 @@ public:
 	/**
 	 * Initializes the hardware and sets the baudrate.
 	 *
-	 * @tparam	clockSource
+	 * @tparam	SystemClock
 	 * 		the currently active system clock
 	 * @tparam	baudrate
 	 *		desired baud rate in Hz
 	 * @tparam	tolerance
 	 * 		the allowed absolute tolerance for the resulting baudrate
 	 */
-	template< class clockSource, uint32_t baudrate,
+	template< class SystemClock, uint32_t baudrate,
 			uint16_t tolerance = Tolerance::OnePercent >
 	static void
 	initialize();
@@ -160,4 +160,4 @@ public:
 
 }	// namespace xpcc
 
-#endif // XPCC_PERIPHERAL_UART_HPP
+#endif // XPCC_INTERFACE_UART_HPP

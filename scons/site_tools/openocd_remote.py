@@ -16,8 +16,12 @@ from SCons.Script import *
 # openocd must be running on target at port 4444
 def openocd_remote_run(env, source, alias='openocd_remote_run'):
 	if platform.system() == "Windows":
-		print "Not supported under windows"
-		exit(1)
+
+		def fail(target, source, env):
+			raise Exception("Not supported under windows")
+		
+		action = fail
+		return env.AlwaysBuild(env.Alias(alias, source, action))
 	else:
 		commands = ["init", "reset halt", "flash write_image erase /tmp/openocd.hex", "reset run"]
 		action = Action("scp $SOURCE $OPENOCD_REMOTE_USER@$OPENOCD_REMOTE_HOST:/tmp/openocd.hex; echo %s | nc $OPENOCD_REMOTE_HOST 4444" % ' '.join(['"%s;"' % c for c in commands]),
@@ -26,28 +30,29 @@ def openocd_remote_run(env, source, alias='openocd_remote_run'):
 # -----------------------------------------------------------------------------
 # Program elf file via a remote gdb session
 def gdb_remote_program(env, source, alias='gdb_remote_program'):
-	if platform.system() == "Windows":
-		print "Not supported under windows"
-		exit(1)
-	else:
-		gdb = "arm-none-eabi-gdb"
-		cmd = [gdb, '-q',
-			'-ex "target remote $OPENOCD_REMOTE_HOST:3333"',
-			'-ex "load"',
-			'-ex "monitor reset"',
-			'-ex "disconnect"',
-			'-ex "quit"',
-			'$SOURCE']
+	gdb = "arm-none-eabi-gdb"
+	cmd = [gdb, '-q',
+		'-ex "target remote $OPENOCD_REMOTE_HOST:3333"',
+		'-ex "monitor reset halt"',
+		'-ex "load"',
+		'-ex "monitor reset "',
+		'-ex "disconnect"',
+		'-ex "quit"',
+		'$SOURCE']
 
-		action = Action(' '.join(cmd))
-		return env.AlwaysBuild(env.Alias(alias, source, action))
+	action = Action(' '.join(cmd))
+	return env.AlwaysBuild(env.Alias(alias, source, action))
 
 # -----------------------------------------------------------------------------
 # Reset processor via remote gdb session
 def gdb_remote_reset(env, alias='gdb_remote_reset'):
 	if platform.system() == "Windows":
-		print "Not supported under windows"
-		exit(1)
+
+		def fail(target, source, env):
+			raise Exception("Not supported under windows")
+		
+		action = fail
+		return env.AlwaysBuild(env.Alias(alias, '', action))
 	else:
 		gdb = "arm-none-eabi-gdb"
 		cmd = [gdb, '-q',

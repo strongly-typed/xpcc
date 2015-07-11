@@ -24,13 +24,16 @@ namespace stm32
  * Serial peripheral interface (SPI{{ id }}).
  *
  * Simple unbuffered implementation.
- * @ingroup	stm32
+ *
+ * @author	Niklas Hauser
+ * @ingroup	{{target.string}}_spi
  */
 class SpiMaster{{ id }} : public xpcc::SpiMaster
 {
 	static uint8_t state;
 	static uint8_t count;
 	static void *context;
+	static ConfigurationHandler configuration;
 public:
 	static const TypeId::SpiMaster{{ id }}Nss  Nss;
 	static const TypeId::SpiMaster{{ id }}Sck  Sck;
@@ -58,40 +61,40 @@ public:
 
 public:
 	// start documentation inherited
-	template< class clockSource, uint32_t baudrate,
+	template< class SystemClock, uint32_t baudrate,
 			uint16_t tolerance = xpcc::Tolerance::FivePercent >
 	static void
 	initialize()
 	{
 		// calculate the nearest prescaler from the baudrate
-		constexpr float pre_raw = (static_cast<float>(clockSource::Spi{{ id }}) / baudrate);
-		constexpr uint16_t pre = (
-				(pre_raw >= (128 * 4.f/3)) ? 256 : (
-				(pre_raw >= ( 64 * 4.f/3)) ? 128 : (
-				(pre_raw >= ( 32 * 4.f/3)) ?  64 : (
-				(pre_raw >= ( 16 * 4.f/3)) ?  32 : (
-				(pre_raw >= (  8 * 4.f/3)) ?  16 : (
-				(pre_raw >= (  4 * 4.f/3)) ?   8 : (
-				(pre_raw >= (  2 * 4.f/3)) ?   4 :
+		constexpr float desired = float(SystemClock::Spi{{ id }}) / baudrate;
+		constexpr uint16_t nearest = (
+				(desired >= (128 * 4.f/3)) ? 256 : (
+				(desired >= ( 64 * 4.f/3)) ? 128 : (
+				(desired >= ( 32 * 4.f/3)) ?  64 : (
+				(desired >= ( 16 * 4.f/3)) ?  32 : (
+				(desired >= (  8 * 4.f/3)) ?  16 : (
+				(desired >= (  4 * 4.f/3)) ?   8 : (
+				(desired >= (  2 * 4.f/3)) ?   4 :
 											   2
 				)))))));
 
 		// check if we found a prescaler which generates a baudrate within the tolerance
 		assertBaudrateInTolerance<
-				/* nearest possible value */ clockSource::Spi{{ id }} / pre,
-				/* desired = */ baudrate,
+				SystemClock::Spi{{ id }} / nearest,
+				baudrate,
 				tolerance >();
 
 		// translate the prescaler into the bitmapping
 		constexpr SpiHal{{ id }}::Prescaler prescaler = (
-				(pre >= 256) ? SpiHal{{ id }}::Prescaler::Div256 : (
-				(pre >= 128) ? SpiHal{{ id }}::Prescaler::Div128 : (
-				(pre >=  64) ? SpiHal{{ id }}::Prescaler::Div64  : (
-				(pre >=  32) ? SpiHal{{ id }}::Prescaler::Div32  : (
-				(pre >=  16) ? SpiHal{{ id }}::Prescaler::Div16  : (
-				(pre >=   8) ? SpiHal{{ id }}::Prescaler::Div8   : (
-				(pre >=   4) ? SpiHal{{ id }}::Prescaler::Div4   :
-							   SpiHal{{ id }}::Prescaler::Div2
+				(nearest >= 256) ? SpiHal{{ id }}::Prescaler::Div256 : (
+				(nearest >= 128) ? SpiHal{{ id }}::Prescaler::Div128 : (
+				(nearest >=  64) ? SpiHal{{ id }}::Prescaler::Div64  : (
+				(nearest >=  32) ? SpiHal{{ id }}::Prescaler::Div32  : (
+				(nearest >=  16) ? SpiHal{{ id }}::Prescaler::Div16  : (
+				(nearest >=   8) ? SpiHal{{ id }}::Prescaler::Div8   : (
+				(nearest >=   4) ? SpiHal{{ id }}::Prescaler::Div4   :
+								   SpiHal{{ id }}::Prescaler::Div2
 				)))))));
 
 		// initialize the Spi
@@ -100,13 +103,13 @@ public:
 	}
 
 
-	static void
+	static ALWAYS_INLINE void
 	setDataMode(DataMode mode)
 	{
 		SpiHal{{ id }}::setDataMode(static_cast<SpiHal{{ id }}::DataMode>(mode));
 	}
 
-	static void
+	static ALWAYS_INLINE void
 	setDataOrder(DataOrder order)
 	{
 		SpiHal{{ id }}::setDataOrder(static_cast<SpiHal{{ id }}::DataOrder>(order));
@@ -114,7 +117,7 @@ public:
 
 
 	static uint8_t
-	aquire(void *ctx);
+	aquire(void *ctx, ConfigurationHandler handler = nullptr);
 
 	static uint8_t
 	release(void *ctx);
@@ -123,20 +126,20 @@ public:
 	static uint8_t
 	transferBlocking(uint8_t data)
 	{
-		return CO_CALL_BLOCKING(transfer(data));
+		return RF_CALL_BLOCKING(transfer(data));
 	}
 
 	static void
 	transferBlocking(uint8_t *tx, uint8_t *rx, std::size_t length)
 	{
-		CO_CALL_BLOCKING(transfer(tx, rx, length));
+		RF_CALL_BLOCKING(transfer(tx, rx, length));
 	}
 
 
-	static xpcc::co::Result<uint8_t>
+	static xpcc::ResumableResult<uint8_t>
 	transfer(uint8_t data);
 
-	static xpcc::co::Result<void>
+	static xpcc::ResumableResult<void>
 	transfer(uint8_t *tx, uint8_t *rx, std::size_t length);
 	// end documentation inherited
 };

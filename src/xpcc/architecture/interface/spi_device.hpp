@@ -7,8 +7,8 @@
  */
 // ----------------------------------------------------------------------------
 
-#ifndef XPCC_PERIPHERAL_SPI_DEVICE_HPP
-#define XPCC_PERIPHERAL_SPI_DEVICE_HPP
+#ifndef XPCC_INTERFACE_SPI_DEVICE_HPP
+#define XPCC_INTERFACE_SPI_DEVICE_HPP
 
 #include "spi.hpp"
 #include "spi_master.hpp"
@@ -28,7 +28,7 @@ namespace xpcc
 template < class SpiMaster >
 class SpiDevice
 {
-	Spi::Configuration_t configuration;
+	Spi::ConfigurationHandler configuration;
 
 public:
 	SpiDevice()
@@ -37,36 +37,25 @@ public:
 	}
 
 	void inline
-	attachPeripheralConfiguration(Spi::Configuration_t configuration)
+	attachConfigurationHandler(Spi::ConfigurationHandler handler)
 	{
-		this->configuration = configuration;
+		configuration = handler;
 	}
 
 protected:
 	bool inline
-	aquireMaster(void *ctx)
+	aquireMaster()
 	{
-		uint8_t response = SpiMaster::aquire(ctx);
-
-		// another context is using it
-		if (response == 0)
-			return false;
-
-		// call configure only on the first aquire
-		if (response == 1 && this->configuration)
-			this->configuration();
-
-		// we have successfully aquired the master
-		return true;
+		return (SpiMaster::aquire(this, configuration) != 0);
 	}
 
 	bool inline
-	releaseMaster(void *ctx)
+	releaseMaster()
 	{
-		return (SpiMaster::release(ctx) == 0);
+		return (SpiMaster::release(this) == 0);
 	}
 };
 
 }	// namespace xpcc
 
-#endif // XPCC_PERIPHERAL_SPI_DEVICE_HPP
+#endif // XPCC_INTERFACE_SPI_DEVICE_HPP

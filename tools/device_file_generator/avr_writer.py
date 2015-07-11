@@ -79,6 +79,16 @@ class AVRDeviceWriter(XMLDeviceWriter):
 				ram_size_child.setAttributes(attr)
 				ram_size_child.setValue(size)
 
+				attr2 = self._getAttributeDictionaryFromId(id)
+				attr2['name'] = 'ram_block_length'
+				block_size = 4
+				while (size / block_size > 127):
+					block_size *= 2
+
+				ram_block_child = core_child.addChild('parameter')
+				ram_block_child.setAttributes(attr2)
+				ram_block_child.setValue(block_size)
+
 		# ADC
 		self.addAdcToNode(self.root)
 		# Clock
@@ -94,8 +104,8 @@ class AVRDeviceWriter(XMLDeviceWriter):
 		self.addTimerToNode(self.root)
 		# UART
 		self.addUartToNode(self.root)
-		# USI
-		self.addUsiToNode(self.root)
+		# USI can be used to emulate UART, SPI and I2C, so there should not be a seperate driver for it.
+		# self.addUsiToNode(self.root)
 		# GPIO
 		self.addGpioToNode(self.root)
 
@@ -169,10 +179,11 @@ class AVRDeviceWriter(XMLDeviceWriter):
 			self.addModuleAttributesToNode(node, 'SPI', 'spi', family)
 
 	def addAdcToNode(self, node):
+		family = 'at90_tiny_mega' if (self.family in ['at90', 'attiny', 'atmega']) else self.family
 		if self.family == 'xmega':
-			self.addModuleInstancesAttributesToNode(node, 'ADC', 'adc')
+			self.addModuleInstancesAttributesToNode(node, 'ADC', 'adc', family)
 		else:
-			self.addModuleAttributesToNode(node, 'AD_CONVERTER', 'adc')
+			self.addModuleAttributesToNode(node, 'AD_CONVERTER', 'adc', family)
 
 	def addDacToNode(self, node):
 		if self.family == 'xmega':

@@ -47,24 +47,24 @@ public:
 		while (true)
 		{
 			// we wait until the task started
-			if (PT_CALL(colorSensor.ping(this))) {
+			if (PT_CALL(colorSensor.ping())) {
 			 	break;
 			}
 			// otherwise, try again in 100ms
-			this->timer.restart(100);
-			PT_WAIT_UNTIL(this->timer.isExpired());
+			this->timeout.restart(100);
+			PT_WAIT_UNTIL(this->timeout.isExpired());
 		}
 
 		stream << "Device responded" << xpcc::endl;
 
 		while (true)
 		{
-			if (PT_CALL(colorSensor.initialize(this))) {
+			if (PT_CALL(colorSensor.initialize())) {
 				break;
 			}
 			// otherwise, try again in 100ms
-			this->timer.restart(100);
-			PT_WAIT_UNTIL(this->timer.isExpired());
+			this->timeout.restart(100);
+			PT_WAIT_UNTIL(this->timeout.isExpired());
 		}
 
 		stream << "Device initialized" << xpcc::endl;
@@ -72,7 +72,6 @@ public:
 		while (true)
 		{
 			if (PT_CALL(colorSensor.configure(
-					this,
 					xpcc::tcs3414::Gain::X16,
 					xpcc::tcs3414::Prescaler::DEFAULT,
 					xpcc::tcs3414::IntegrationMode::INTERNAL,
@@ -80,30 +79,30 @@ public:
 				break;
 			}
 			// otherwise, try again in 100ms
-			this->timer.restart(100);
-			PT_WAIT_UNTIL(this->timer.isExpired());
+			this->timeout.restart(100);
+			PT_WAIT_UNTIL(this->timeout.isExpired());
 		}
 
 		stream << "Device configured" << xpcc::endl;
 
 		while (true)
 		{
-			if (PT_CALL(colorSensor.refreshAllColors(this))) {
+			if (PT_CALL(colorSensor.refreshAllColors())) {
 				auto colors = colorSensor.getOldColors();
 				stream.printf("RGB: %5d %5d %5d", colors.red, colors.green, colors.blue);
 				xpcc::color::HsvT<xpcc::tcs3414::UnderlyingType> hsv;
 				colors.toHsv(&hsv);
 				stream.printf("  %5d\n", hsv.hue);
 			}
-			this->timer.restart(500);
-			PT_WAIT_UNTIL(this->timer.isExpired());
+			this->timeout.restart(500);
+			PT_WAIT_UNTIL(this->timeout.isExpired());
 		}
 
 		PT_END();
 	}
 
 private:
-	xpcc::Timeout<> timer;
+	xpcc::ShortTimeout timeout;
 	xpcc::Tcs3414<MyI2cMaster> colorSensor;
 };
 
@@ -133,12 +132,12 @@ MAIN_FUNCTION
 
 	stream << "\n\nWelcome to TCS3414 demo!\n\n";
 
-	xpcc::PeriodicTimer<> tmr(500);
+	xpcc::ShortPeriodicTimer tmr(500);
 
 	while (1)
 	{
 		one.update();
-		if (tmr.isExpired()) {
+		if (tmr.execute()) {
 			LedOrange::toggle();
 		}
 	}

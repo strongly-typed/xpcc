@@ -41,6 +41,23 @@ Polygon2DTest::testConstructor()
 }
 
 void
+Polygon2DTest::testInitializerListConstructor()
+{
+	xpcc::Polygon2D<int16_t> polygon {
+		xpcc::Vector2i(1,35), xpcc::Vector2i(56,2), xpcc::Vector2i(3,76),
+		xpcc::Vector2i(19,4), xpcc::Vector2i(93,5), xpcc::Vector2i(6,66) };
+
+	TEST_ASSERT_EQUALS(polygon.getNumberOfPoints(), 6U);
+	TEST_ASSERT_EQUALS(polygon[0], xpcc::Vector2i(1,35));
+	TEST_ASSERT_EQUALS(polygon[1], xpcc::Vector2i(56,2));
+	TEST_ASSERT_EQUALS(polygon[2], xpcc::Vector2i(3,76));
+	TEST_ASSERT_EQUALS(polygon[3], xpcc::Vector2i(19,4));
+	TEST_ASSERT_EQUALS(polygon[4], xpcc::Vector2i(93,5));
+	TEST_ASSERT_EQUALS(polygon[5], xpcc::Vector2i(6,66));
+
+}
+
+void
 Polygon2DTest::testAppendAndAccess()
 {
 	xpcc::Polygon2D<int16_t> polygon(5);
@@ -321,43 +338,39 @@ Polygon2DTest::testIntersectionPointsLineSegment()
 
 /**
  * Check if a point is contained inside the area of a polygon.
- * 
- * 
- * 
- *                .    (10,30)  -    -   -    (50,30)
- *         .  /                            .
- *  (0,0)                        (30, 0)
- *                                         .
- *                                               .   
- *                                                  (60,-50)
- * 
+ *
+ * See SVG image for a graphical representation of the polygon and the
+ * test points.
  */
 void
 Polygon2DTest::testPointContainedCW()
 {
-	// this is a concave polygon 
-	xpcc::Polygon2D<int16_t> polygon(5);
-	polygon << xpcc::Vector<int16_t, 2>(0, 0)
-			<< xpcc::Vector<int16_t, 2>(10, 30)
-			<< xpcc::Vector<int16_t, 2>(50, 30)
-			<< xpcc::Vector<int16_t, 2>(30, 0)
-			<< xpcc::Vector<int16_t, 2>(60, -50);
+	typedef int16_t Type;
+	//typedef float Type;
+
+	// this is a convex polygon 
+	xpcc::Polygon2D<Type> polygon(5);
+	polygon << xpcc::Vector<Type, 2>(0, 0)
+			<< xpcc::Vector<Type, 2>(10, 30)
+			<< xpcc::Vector<Type, 2>(50, 30)
+			// Change this to 30,0 to generate a concave polygon, the test
+			// can be kept the same. Requires a different algorithm.
+			<< xpcc::Vector<Type, 2>(55, 0)
+			<< xpcc::Vector<Type, 2>(60, -50);
 	
-	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<int16_t, 2>(0, 0)));
-	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<int16_t, 2>(5, 0)));
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(5, 30)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(0, 0)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(5, 0)));
+	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<Type, 2>(5, 30)));
 	
-	// point is
-	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<int16_t, 2>(30, 29)));
-	
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(15, 35)));
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(40, 28)));
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(40, 20)));
-	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<int16_t, 2>(60, -50)));
-	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<int16_t, 2>(45, -33)));
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(70, -40)));
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(30, -40)));
-	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<int16_t, 2>(-1, 0)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(30, 29)));
+	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<Type, 2>(15, 35)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(40, 28)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(40, 20)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(60, -50)));
+	TEST_ASSERT_TRUE(polygon.isInside(xpcc::Vector<Type, 2>(45, -33)));
+	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<Type, 2>(70, -40)));
+	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<Type, 2>(30, -40)));
+	TEST_ASSERT_FALSE(polygon.isInside(xpcc::Vector<Type, 2>(-1, 0)));
 }
 
 void

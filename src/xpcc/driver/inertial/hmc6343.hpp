@@ -12,10 +12,13 @@
 
 #include <xpcc/architecture/interface/i2c_device.hpp>
 #include <xpcc/processing/protothread.hpp>
-#include <xpcc/processing/coroutine.hpp>
 
 namespace xpcc
 {
+
+// forward declaration for friending with hmc6343::Data
+template < class I2cMaster >
+class Hmc6343;
 
 struct hmc6343
 {
@@ -26,10 +29,13 @@ struct hmc6343
 		SoftwareVersion = 0x02,		///< Software Version Number
 		OperationMode1 = 0x04,		///< Operation Mode Register 1
 		OperationMode2 = 0x05,		///< Operation Mode Register 2
+		/// @cond
 		DeviceSerialLsb = 0x06,		///< Device Serial Number
 		DeviceSerialMsb = 0x07,		///< Device Serial Number
+		/// @endcond
 		DateCodeYear = 0x08,		///< Package Date Code: Last two digits of the year
 		DateCodeWeek = 0x09,		///< Package Date Code: Fiscal Week
+		/// @cond
 		DeviationAngleLsb = 0x0A,	///< Deviation Angle (+-1800) in tenth of a degree
 		DeviationAngleMsb = 0x0B,	///< Deviation Angle (+-1800) in tenth of a degree
 		VariationAngleLsb = 0x0C,	///< Variation Angle (+-1800) in tenth of a degree
@@ -40,8 +46,8 @@ struct hmc6343
 		Y_OffsetMsb = 0x11,			///< Hard-Iron Calibration Offset for the Y-axis
 		Z_OffsetLsb = 0x12,			///< Hard-Iron Calibration Offset for the Z-axis
 		Z_OffsetMsb = 0x13,			///< Hard-Iron Calibration Offset for the Z-axis
-		FilterLsb = 0x14,			///< Heading IIR Filter (0x00 to 0x0F typical)
-		FilterMsb = 0x15,			///< Heading IIR Filter (set at zero)
+		/// @endcond
+		Filter = 0x14,				///< Heading IIR Filter (0x00 to 0x0F typical)
 	};
 
 	enum class
@@ -56,6 +62,7 @@ struct hmc6343
 	};
 
 protected:
+	/// @cond
 	enum class
 	Command : uint8_t
 	{
@@ -77,6 +84,7 @@ protected:
 		ReadEeprom = 0xE1,
 		WriteEeprom = 0xF1,
 	};
+	/// @endcond
 
 public:
 	enum class
@@ -99,7 +107,7 @@ public:
 		UprightEdgeOrientation = Bit1,	///< Upright Edge Orientation if set.
 		LevelOrientation = Bit0,		///< Level Orientation if set
 	};
-	REGISTER8(OperationMode);
+	XPCC_FLAGS8(OperationMode);
 
 	enum class
 	MeasurementRate : uint8_t
@@ -112,6 +120,9 @@ public:
 	struct ATTRIBUTE_PACKED
 	Data
 	{
+		template < class I2cMaster >
+		friend class Hmc6343;
+
 		// DATA ACCESS
 		/// returns the acceleration in unknown units
 		///@{
@@ -154,17 +165,13 @@ public:
 		getTemperature() { return swapData(9); }
 
 		/// returns the value of the operation mode register
-		uint8_t ALWAYS_INLINE
-		getOperationMode() { return data[20]; }
+		OperationMode_t ALWAYS_INLINE
+		getOperationMode() { return OperationMode_t(data[20]); }
 
 
 		inline int16_t
-		operator [](size_t index)
+		operator [](uint8_t index)
 		{ return (index < 10) ? swapData(index) : 0; }
-
-		ALWAYS_INLINE uint8_t*
-		getPointer()
-		{ return data; }
 
 	private:
 		uint8_t data[21];
@@ -178,8 +185,7 @@ public:
 	};
 
 protected:
-	/// @{
-	/// @private enum class to integer helper functions.
+	/// @cond
 	static constexpr uint8_t
 	i(Command command) { return uint8_t(command); }
 	static constexpr uint8_t
@@ -190,7 +196,7 @@ protected:
 	i(Orientation orientation) { return uint8_t(orientation); }
 	static constexpr uint8_t
 	i(MeasurementRate rate) { return uint8_t(rate); }
-	/// @}
+	/// @endcond
 }; // struct hmc6343
 
 /**
@@ -207,181 +213,162 @@ protected:
  * @author	Niklas Hauser
  */
 template < class I2cMaster >
-class Hmc6343 : public hmc6343, public xpcc::I2cDevice< I2cMaster >, protected xpcc::co::NestedCoroutine<1>
+class Hmc6343 : public hmc6343, public xpcc::I2cDevice< I2cMaster, 2 >
 {
 public:
 	/// Constructor, requires a hmc6343::Data object, sets address to default of 0x19
 	Hmc6343(Data &data, uint8_t address=0x19);
 
-	/// pings the sensor
-	xpcc::co::Result<bool>
-	ping(void *ctx);
-
-
 
 	// READING RAM
 	/// read operation mode register 2
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	readOperationMode(void *ctx)
-	{ return readPostData(ctx, Command::PostOperationMode, 20, 1); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	readOperationMode()
+	{ return readPostData(Command::PostOperationMode, 20, 1); }
 
 
 
 	// WRITING EEPROM
 	/// Configures the sensor to normal orientation mode with 10Hz data rate.
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	setMeasurmentRate(void *ctx, MeasurementRate measurementRate=MeasurementRate::Hz10)
-	{ return writeRegister(ctx, Register::OperationMode2, i(measurementRate)); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	setMeasurementRate(MeasurementRate measurementRate=MeasurementRate::Hz10)
+	{ return writeRegister(Register::OperationMode2, i(measurementRate)); }
 
 	/// sets a new deviation angle in eeprom
-	xpcc::co::Result<bool> inline
-	setDeviationAngle(void *ctx, int16_t angle)
-	{ return writeRegister(ctx, Register16::DeviationAngle, static_cast<uint16_t>(angle)); }
+	xpcc::ResumableResult<bool> inline
+	setDeviationAngle(int16_t angle)
+	{ return writeRegister(Register16::DeviationAngle, static_cast<uint16_t>(angle)); }
 
 	/// sets a new variation angle in eeprom
-	xpcc::co::Result<bool> inline
-	setVariationAngle(void *ctx, int16_t angle)
-	{ return writeRegister(ctx, Register16::VariationAngle, static_cast<uint16_t>(angle)); }
+	xpcc::ResumableResult<bool> inline
+	setVariationAngle(int16_t angle)
+	{ return writeRegister(Register16::VariationAngle, static_cast<uint16_t>(angle)); }
 
 	/// sets a new IIR filter in eeprom
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	setIIR_Filter(void *ctx, uint8_t filter)
-	{ return writeRegister(ctx, Register::FilterLsb, filter & 0x0f); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	setIIR_Filter(uint8_t filter)
+	{ return writeRegister(Register::Filter, filter & 0x0f); }
 
 
 
 	// READING EEPROM
 	/// reads the device id from eeprom
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	readDeviceId(void *ctx, uint16_t &value)
-	{ return readRegister(ctx, Register16::DeviceSerial, value); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	getDeviceId(uint16_t &value)
+	{ return readRegister(Register16::DeviceSerial, value); }
+
+	/// sets a new IIR filter in eeprom
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	getIIR_Filter(uint8_t &value)
+	{ return readRegister(Register::Filter, value); }
 
 
 
 	// COMMANDS
 	/// Sets the specified orientation
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	setOrientation(void *ctx, Orientation orientation)
-	{ return writeCommand(ctx, static_cast<Command>(orientation)); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	setOrientation(Orientation orientation)
+	{ return writeCommand(static_cast<Command>(orientation)); }
 
 	/// enters run mode
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	enterRunMode(void *ctx)
-	{ return writeCommand(ctx, Command::EnterRunMode); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	enterRunMode()
+	{ return writeCommand(Command::EnterRunMode); }
 
 	/// enters standby mode
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	enterStandbyMode(void *ctx)
-	{ return writeCommand(ctx, Command::EnterStandbyMode); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	enterStandbyMode()
+	{ return writeCommand(Command::EnterStandbyMode); }
 
 	/// enters sleep mode
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	enterSleepMode(void *ctx)
-	{ return writeCommand(ctx, Command::EnterSleepMode); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	enterSleepMode()
+	{ return writeCommand(Command::EnterSleepMode); }
 
 	/// exit sleep mode
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	exitSleepMode(void *ctx)
-	{ return writeCommand(ctx, Command::ExitSleepMode, 20); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	exitSleepMode()
+	{ return writeCommand(Command::ExitSleepMode, 20); }
 
 	/// enters user calibration mode
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	enterUserCalibrationMode(void *ctx)
-	{ return writeCommand(ctx, Command::EnterUserCalibrationMode); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	enterUserCalibrationMode()
+	{ return writeCommand(Command::EnterUserCalibrationMode); }
 
 	/// exit user calibration mode
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	exitUserCalibrationMode(void *ctx)
-	{ return writeCommand(ctx, Command::ExitUserCalibrationMode, 50); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	exitUserCalibrationMode()
+	{ return writeCommand(Command::ExitUserCalibrationMode, 50); }
 
 	/// resets the processor, any new command is delayed by 500ms
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	resetProcessor(void *ctx)
-	{ return writeCommand(ctx, Command::ResetProcessor, 500); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	resetProcessor()
+	{ return writeCommand(Command::ResetProcessor, 500); }
 
 
 
 	// DATA REQUESTS
 	/// reads the Acceleration registers and buffer the results
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	readAcceleration(void *ctx)
-	{ return readPostData(ctx, Command::PostAccelData, 0, 6); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	readAcceleration()
+	{ return readPostData(Command::PostAccelData, 0, 6); }
 
 	/// reads the Magnetometer registers and buffer the results
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	readMagneticField(void *ctx)
-	{ return readPostData(ctx, Command::PostMagData, 6, 6); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	readMagneticField()
+	{ return readPostData(Command::PostMagData, 6, 6); }
 
 	/// reads the Heading registers and buffer the results
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	readHeading(void *ctx)
-	{ return readPostData(ctx, Command::PostHeadingData, 12, 6); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	readHeading()
+	{ return readPostData(Command::PostHeadingData, 12, 6); }
 
 	/// reads the Tilt registers and buffer the results
-	xpcc::co::Result<bool> ALWAYS_INLINE
-	readTilt(void *ctx)
-	{ return readPostData(ctx, Command::PostTiltData, 14, 6); }
+	xpcc::ResumableResult<bool> ALWAYS_INLINE
+	readTilt()
+	{ return readPostData(Command::PostTiltData, 14, 6); }
 
 
+protected:
+	/// Use these methods with caution!
+	/// @{
 
 	// RAW REGISTER ACCESS
 	/// write a 8bit value into the eeprom
-	xpcc::co::Result<bool>
-	writeRegister(void *ctx, Register reg, uint8_t value);
+	xpcc::ResumableResult<bool>
+	writeRegister(Register reg, uint8_t value);
 
 	/// write a 16bit value into the eeprom
-	xpcc::co::Result<bool>
-	writeRegister(void *ctx, Register16 reg, uint16_t value);
+	xpcc::ResumableResult<bool>
+	writeRegister(Register16 reg, uint16_t value);
 
 	/// read a 8bit value from the eeprom
-	xpcc::co::Result<bool>
-	readRegister(void *ctx, Register reg, uint8_t &value);
+	xpcc::ResumableResult<bool>
+	readRegister(Register reg, uint8_t &value);
 
 	/// read a 16bit value from the eeprom
-	xpcc::co::Result<bool>
-	readRegister(void *ctx, Register16 reg, uint16_t &value);
+	xpcc::ResumableResult<bool>
+	readRegister(Register16 reg, uint16_t &value);
 
+	/// @}
 
 public:
-	/// the data object for this sensor.
+	/// Get the data object for this sensor.
+	inline Data&
+	getData()
+	{ return data; }
+
+private:
+	xpcc::ResumableResult<bool>
+	writeCommand(Command command, uint16_t timeout = 1);
+
+	xpcc::ResumableResult<bool>
+	readPostData(Command command, uint8_t offset, uint8_t readSize);
+
+private:
 	Data &data;
-
-private:
-	xpcc::co::Result<bool>
-	writeCommand(void *ctx, Command command, uint16_t timeout = 1);
-
-	xpcc::co::Result<bool>
-	readPostData(void *ctx, Command command, uint8_t offset, uint8_t readSize);
-
-	enum I2cTask : uint8_t
-	{
-		Idle = 0,
-
-		// insert all registers from 0x00 to 0x15 for writing (+0x01)
-		WriteEepromBase = 0x01,
-		// insert all registers from 0x00 to 0x15 for posting (+0x17)
-		PostEepromBase = 0x17,
-		// insert all registers from 0x00 to 0x15 for reading (+0x2C)
-		ReadEepromBase = 0x2C,
-
-		// insert all post commands from 0x40 to 0x65 for writing (+0x02)
-		PostCommandBase = 0x02,
-		// insert all post commands from 0x40 to 0x65 for reading (+0x03)
-		ReadCommandBase = 0x03,
-		// insert all remaining commands from 0x71 to 0xF1 (+0x02)
-		WriteCommandBase = PostCommandBase,
-
-		// ping \o/
-		Ping = 0xFF
-	};
-
-private:
-	uint8_t buffer[3];
-	xpcc::Timeout<> timeout;
-
-	volatile uint8_t i2cTask;
-	volatile uint8_t i2cSuccess;
-	xpcc::I2cTagAdapter<xpcc::I2cWriteReadAdapter> adapter;
+	uint8_t buffer[4];
+	xpcc::ShortTimeout timeout;
 };
 
 } // namespace xpcc

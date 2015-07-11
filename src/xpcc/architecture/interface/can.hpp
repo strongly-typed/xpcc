@@ -7,15 +7,24 @@
  */
 // ----------------------------------------------------------------------------
 
-#ifndef XPCC_PERIPHERAL_CAN_HPP
-#define XPCC_PERIPHERAL_CAN_HPP
+#ifndef XPCC_INTERFACE_CAN_HPP
+#define XPCC_INTERFACE_CAN_HPP
 
-#include "../interface.hpp"
+#include <xpcc/architecture/interface.hpp>
 #include "can_message.hpp"
 
 /**
  * @ingroup		interface
  * @defgroup	can		Controller Area Network (CAN)
+ * @brief 		Interface to the CAN-Communication BUS.
+ *
+ * Controller–area network (CAN or CAN-bus) is a vehicle bus standard designed
+ * to allow microcontrollers and devices to communicate with each other within
+ * a vehicle without a host computer.
+ *
+ * CAN is a message based protocol, designed specifically for automotive
+ * applications but now also used in other areas such as industrial automation
+ * and medical equipment.
  */
 
 namespace xpcc
@@ -36,19 +45,17 @@ public:
 	};
 
 	/// Supported CAN bitrates; maybe different on a per device basis
-	struct Bitrate
+	enum
+	Bitrate : uint32_t
 	{
-		enum
-		{
-			kBps10  =   10000,
-			kBps20  =   20000,
-			kBps50  =   50000,
-			kBps100 =  100000,
-			kBps125 =  125000,
-			kBps250 =  250000,
-			kBps500 =  500000,
-			MBps1   = 1000000,
-		};
+		kBps10  =   10000,
+		kBps20  =   20000,
+		kBps50  =   50000,
+		kBps100 =  100000,
+		kBps125 =  125000,
+		kBps250 =  250000,
+		kBps500 =  500000,
+		MBps1   = 1000000,
 	};
 
 	enum class
@@ -70,15 +77,15 @@ public:
 	/**
 	 * Initializes the hardware and sets the baudrate.
 	 *
-	 * @tparam clockSource
-	 *		the targets system clock
+	 * @tparam SystemClock
+	 * 		the currently active system clock
 	 * @tparam bitrate
 	 * 		the desired bitrate in Hz
 	 * @tparam	tolerance
 	 * 		the allowed relative tolerance for the resulting baudrate
 	 */
-	template< class clockSource, uint32_t bitrate = Bitrate::kBps125,
-			Tolerance tolerance = Tolerance::OnePercent >
+	template< class SystemClock, uint32_t bitrate = Bitrate::kBps125,
+			uint16_t tolerance = Tolerance::OnePercent >
 	static void
 	initialize(Mode startupMode);
 
@@ -120,4 +127,4 @@ public:
 
 } // namespace xpcc
 
-#endif // XPCC_PERIPHERAL_CAN_HPP
+#endif // XPCC_INTERFACE_CAN_HPP

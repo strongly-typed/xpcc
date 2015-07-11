@@ -11,7 +11,7 @@
 #define XPCC_LIS302DL_HPP
 
 #include <xpcc/architecture/interface/register.hpp>
-#include <xpcc/processing/coroutine.hpp>
+#include <xpcc/processing/resumable.hpp>
 #include "lis3_transport.hpp"
 
 namespace xpcc
@@ -24,6 +24,7 @@ class Lis302dl;
 struct lis302dl
 {
 protected:
+	/// @cond
 	enum class
 	Register : uint8_t
 	{
@@ -57,6 +58,7 @@ protected:
 		ClickLatency = 0x3E,	///< Click latency register
 		ClickWindow = 0x3F,		///< Click window register
 	};
+	/// @endcond
 
 public:
 	/// CTRL_REG1 default value is 0x07
@@ -72,7 +74,7 @@ public:
 		Yen = Bit1,		///< Y axis enable. (0: Y axis disabled; 1: Y axis enabled)
 		Xen = Bit0,		///< X axis enable. (0: X axis disabled; 1: X axis enabled)
 	};
-	REGISTER8(Control1);
+	XPCC_FLAGS8(Control1);
 
 	/// CTRL_REG2 default value is 0x00
 	enum class
@@ -87,7 +89,7 @@ public:
 		HP_COEFF2 = Bit1,	///< High pass filter cut-off frequency configuration.
 		HP_COEFF1 = Bit0,	///< High pass filter cut-off frequency configuration.
 	};
-	REGISTER8(Control2);
+	XPCC_FLAGS8(Control2);
 
 	/// CTRL_REG3 default value is 0x00
 	enum class
@@ -104,10 +106,9 @@ public:
 		I1CFG1 = Bit1,	///< Data Signal on Int1 pad control bits.
 		I1CFG0 = Bit0,	///< Data Signal on Int1 pad control bits.
 	};
-	REGISTER8(Control3);
+	XPCC_FLAGS8(Control3);
 
-	REGISTER8_GROUP(Control,
-			Control1, Control2, Control3);
+	typedef FlagsGroup<Control1_t, Control2_t, Control3_t> Control_t;
 
 	/// STATUS_REG default value is 0x00
 	enum class
@@ -123,7 +124,7 @@ public:
 		YDA = Bit1,		///< Y axis new data available.
 		XDA = Bit0,		///< X axis new data available.
 	};
-	REGISTER8(Status);
+	XPCC_FLAGS8(Status);
 
 	/// FF_WU_CFG default value is 0x00
 	enum class
@@ -138,7 +139,7 @@ public:
 		XHIE = Bit1,	///< Enable interrupt generation on X high event.
 		XLIE = Bit0,	///< Enable interrupt generation on X low event.
 	};
-	REGISTER8(FreeFallConfig);
+	XPCC_FLAGS8(FreeFallConfig);
 
 	/// FF_WU_SRC default value is 0x00
 	enum class
@@ -152,7 +153,7 @@ public:
 		XH = Bit1,	///< X high.
 		XL = Bit0,	///< X low.
 	};
-	REGISTER8(FreeFallSource);
+	XPCC_FLAGS8(FreeFallSource);
 
 	/// FF_WU_THS default value is 0x00
 	enum class
@@ -161,7 +162,7 @@ public:
 		DRCM = Bit7,		///< Resetting mode selection.
 		THS_Mask = 0x7F,	///< Free-fall / wake-up Threshold.
 	};
-	REGISTER8(FreeFallThreshold);
+	XPCC_FLAGS8(FreeFallThreshold);
 
 	/// CLOCK_CFG default value is 0x00
 	enum class
@@ -175,7 +176,7 @@ public:
 		DoubleX = Bit1,
 		SingleX = Bit0,
 	};
-	REGISTER8(ClickConfig);
+	XPCC_FLAGS8(ClickConfig);
 
 	/// CLOCK_SRC default value is 0x00
 	enum class
@@ -189,12 +190,13 @@ public:
 		DoubleX = Bit1,
 		SingleX = Bit0,
 	};
-	REGISTER8(ClickSource);
+	XPCC_FLAGS8(ClickSource);
 
-	REGISTER8_GROUP(Register,
-			Control1, Control2, Control3, Status,
-			FreeFallConfig, FreeFallSource, FreeFallThreshold,
-			ClickConfig, ClickSource);
+	typedef FlagsGroup<
+			Control1_t, Control2_t, Control3_t, Status_t,
+			FreeFallConfig_t, FreeFallSource_t, FreeFallThreshold_t,
+			ClickConfig_t, ClickSource_t
+	> Register_t;
 
 public:
 	enum class
@@ -315,103 +317,103 @@ public:
 	Lis302dl(Data &data, uint8_t address=0x1D);
 
 	bool inline
-	initialize(Scale scale, MeasurementRate rate = MeasurementRate::Hz100)
+	configureBlocking(Scale scale, MeasurementRate rate = MeasurementRate::Hz100)
 	{
-		return CO_CALL_BLOCKING(initialize(this, scale, rate));
+		return RF_CALL_BLOCKING(configure(scale, rate));
 	}
 
-	xpcc::co::Result<bool>
-	initialize(void *ctx, Scale scale, MeasurementRate rate = MeasurementRate::Hz100);
+	xpcc::ResumableResult<bool>
+	configure(Scale scale, MeasurementRate rate = MeasurementRate::Hz100);
 
 	// MARK: Control Registers
-	xpcc::co::Result<bool> inline
-	updateControlRegister(void *ctx, Control1_t setMask, Control1_t clearMask = Control1_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControlRegister(Control1_t setMask, Control1_t clearMask = Control1_t(0xff))
 	{
-		return updateControlRegister(ctx, 0, setMask, clearMask);
+		return updateControlRegister(0, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateControlRegister(void *ctx, Control2_t setMask, Control2_t clearMask = Control2_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControlRegister(Control2_t setMask, Control2_t clearMask = Control2_t(0xff))
 	{
-		return updateControlRegister(ctx, 1, setMask, clearMask);
+		return updateControlRegister(1, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	updateControlRegister(void *ctx, Control3_t setMask, Control3_t clearMask = Control3_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateControlRegister(Control3_t setMask, Control3_t clearMask = Control3_t(0xff))
 	{
-		return updateControlRegister(ctx, 2, setMask, clearMask);
+		return updateControlRegister(2, setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	writeInterruptSource(void *ctx, Interrupt interrupt, InterruptSource source)
+	xpcc::ResumableResult<bool> inline
+	writeInterruptSource(Interrupt interrupt, InterruptSource source)
 	{
 		if (interrupt == Interrupt::One)
-			return updateControlRegister(ctx, r(source), Control3(0b111));
+			return updateControlRegister(r(source), Control3(0b111));
 
-		return updateControlRegister(ctx, Control3(i(source) << 3), Control3(0b111000));
+		return updateControlRegister(Control3(i(source) << 3), Control3(0b111000));
 	}
 
 	// MARK: Free Fall Registers
-	xpcc::co::Result<bool> inline
-	updateFreeFallConfiguration(void *ctx, Interrupt interrupt, FreeFallConfig_t setMask, FreeFallConfig_t clearMask = FreeFallConfig_t(0xff))
+	xpcc::ResumableResult<bool> inline
+	updateFreeFallConfiguration(Interrupt interrupt, FreeFallConfig_t setMask, FreeFallConfig_t clearMask = FreeFallConfig_t(0xff))
 	{
-		return updateRegister(ctx, i(Register::FfWuCfg1) | i(interrupt), setMask.value, clearMask.value);
+		return updateRegister(i(Register::FfWuCfg1) | i(interrupt), setMask.value, clearMask.value);
 	}
 
-	xpcc::co::Result<bool> inline
-	readFreeFallSource(void *ctx, Interrupt interrupt, FreeFallSource_t &source)
+	xpcc::ResumableResult<bool> inline
+	readFreeFallSource(Interrupt interrupt, FreeFallSource_t &source)
 	{
-		return this->read(ctx, i(Register::FfWuSrc1) | i(interrupt), source.value);
+		return this->read(i(Register::FfWuSrc1) | i(interrupt), source.value);
 	}
 
-	xpcc::co::Result<bool> inline
-	writeFreeFallThreshold(void *ctx, Interrupt interrupt, uint8_t threshold)
+	xpcc::ResumableResult<bool> inline
+	setFreeFallThreshold(Interrupt interrupt, uint8_t threshold)
 	{
-		return this->write(ctx, i(Register::FfWuThs1) | i(interrupt), threshold);
+		return this->write(i(Register::FfWuThs1) | i(interrupt), threshold);
 	}
 
-	xpcc::co::Result<bool> inline
-	writeFreeFallDuration(void *ctx, Interrupt interrupt, uint8_t duration)
+	xpcc::ResumableResult<bool> inline
+	setFreeFallDuration(Interrupt interrupt, uint8_t duration)
 	{
-		return this->write(ctx, i(Register::FfWuDuration1) | i(interrupt), duration);
+		return this->write(i(Register::FfWuDuration1) | i(interrupt), duration);
 	}
 
 	// MARK: Clock Registers
-	xpcc::co::Result<bool> inline
-	updateClickConfiguration(void *ctx, ClickConfig_t setMask, ClickConfig_t clearMask)
+	xpcc::ResumableResult<bool> inline
+	updateClickConfiguration(ClickConfig_t setMask, ClickConfig_t clearMask)
 	{
-		return updateRegister(ctx, i(Register::ClickCfg), setMask, clearMask);
+		return updateRegister(i(Register::ClickCfg), setMask, clearMask);
 	}
 
-	xpcc::co::Result<bool> inline
-	readClickSource(void *ctx, ClickSource_t &source)
+	xpcc::ResumableResult<bool> inline
+	readClickSource(ClickSource_t &source)
 	{
-		return this->read(ctx, i(Register::ClickSrc), source);
+		return this->read(i(Register::ClickSrc), source);
 	}
 
-	xpcc::co::Result<bool> inline
-	writeClickThreshold(void *ctx, Axis axis, uint8_t threshold);
+	xpcc::ResumableResult<bool> inline
+	setClickThreshold(Axis axis, uint8_t threshold);
 
-	xpcc::co::Result<bool> inline
-	writeClickTimeLimit(void *ctx, uint8_t limit)
+	xpcc::ResumableResult<bool> inline
+	setClickTimeLimit(uint8_t limit)
 	{
-		return this->write(ctx, i(Register::ClickTimeLimit), limit);
+		return this->write(i(Register::ClickTimeLimit), limit);
 	}
 
-	xpcc::co::Result<bool> inline
-	writeClickLatency(void *ctx, uint8_t latency)
+	xpcc::ResumableResult<bool> inline
+	setClickLatency(uint8_t latency)
 	{
-		return this->write(ctx, i(Register::ClickLatency), latency);
+		return this->write(i(Register::ClickLatency), latency);
 	}
 
-	xpcc::co::Result<bool> inline
-	writeClickWindow(void *ctx, uint8_t window)
+	xpcc::ResumableResult<bool> inline
+	setClickWindow(uint8_t window)
 	{
-		return this->write(ctx, i(Register::ClickWindow), window);
+		return this->write(i(Register::ClickWindow), window);
 	}
 
-	xpcc::co::Result<bool>
-	readAcceleration(void *ctx);
+	xpcc::ResumableResult<bool>
+	readAcceleration();
 
 	Status_t
 	getStatus()
@@ -430,16 +432,19 @@ public:
 	{ return Control3_t(rawBuffer[3]); }
 
 public:
-	/// the data object for this sensor.
-	Data &data;
+	/// Get the data object for this sensor.
+	inline Data&
+	getData()
+	{ return data; }
 
 private:
-	xpcc::co::Result<bool>
-	updateControlRegister(void *ctx, uint8_t index, Control_t setMask, Control_t clearMask = Control_t(0xff));
+	xpcc::ResumableResult<bool>
+	updateControlRegister(uint8_t index, Control_t setMask, Control_t clearMask = Control_t(0xff));
 
-	xpcc::co::Result<bool>
-	updateRegister(void *ctx, uint8_t reg, uint8_t setMask, uint8_t clearMask = 0xff);
+	xpcc::ResumableResult<bool>
+	updateRegister(uint8_t reg, uint8_t setMask, uint8_t clearMask = 0xff);
 
+	Data &data;
 	// 0-2: control 0-2
 	// 3: status
 	// 4: -- buffer for updateRegister, but overridden in readAcceleration --
