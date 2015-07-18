@@ -4,12 +4,12 @@
 
 
 #ifdef USE_TCPIP
-#include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip.hpp>
 xpcc::TcpIpConnector connector;
 #endif
 
 #ifdef USE_TIPC
-#include <xpcc/communication/xpcc/backend/tipc/tipc.hpp>
+#include <xpcc/communication/xpcc/backend/tipc.hpp>
 xpcc::TipcConnector connector;
 #endif
 

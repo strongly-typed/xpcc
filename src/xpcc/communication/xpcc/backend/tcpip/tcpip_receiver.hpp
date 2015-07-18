@@ -18,7 +18,7 @@
 
 #include <list>
 
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_message.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_message.hpp>
 
 namespace xpcc
 {

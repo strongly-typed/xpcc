@@ -7,10 +7,10 @@
  */
 // ----------------------------------------------------------------------------
 
-#include "tcpip.hpp"
+#include "../tcpip.hpp"
 #include <xpcc/debug/logger.hpp>
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_message.hpp>
-#include <xpcc/processing/timeout.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_message.hpp>
+#include <xpcc/processing/timer/timeout.hpp>
 
 
 #undef  XPCC_LOG_LEVEL
@@ -45,7 +45,7 @@ bool
 xpcc::TcpIpConnector::connect(std::string ip, int port)
 {
 	this->client.connect(ip, port);
-	xpcc::Timeout<> timeout(1500);
+	xpcc::Timeout timeout(1500);
 
 	while(this->client.isConnecting())
 	{

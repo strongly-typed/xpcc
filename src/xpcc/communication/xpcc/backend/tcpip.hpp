@@ -10,10 +10,10 @@
 #ifndef XPCC_TCPIP_CONNECTOR_HPP
 #define XPCC_TCPIP_CONNECTOR_HPP
 
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_client.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_client.hpp>
 #include <xpcc/container/smart_pointer.hpp>
 
-#include "../backend_interface.hpp"
+#include <xpcc/communication/xpcc/backend/backend_interface.hpp>
 
 #include <list>
 #include <string>

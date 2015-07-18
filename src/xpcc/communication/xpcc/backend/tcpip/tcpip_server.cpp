@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include <xpcc/debug/logger.hpp>
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_distributor.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_distributor.hpp>
 
 xpcc::tcpip::Server::Server(int port):
 	ioService(new boost::asio::io_service()),

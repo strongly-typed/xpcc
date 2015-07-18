@@ -4,15 +4,15 @@
 
 
 #ifdef USE_TCPIP
-#include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip.hpp>
 xpcc::TcpIpConnector connector;
 
-#include <xpcc/processing/timeout.hpp>
+#include <xpcc/processing/timer/timeout.hpp>
 
 #endif
 
 #ifdef USE_TIPC
-#include <xpcc/communication/xpcc/backend/tipc/tipc.hpp>
+#include <xpcc/communication/xpcc/backend/tipc.hpp>
 xpcc::TipcConnector connector;
 #endif
 
@@ -51,7 +51,7 @@ main(void)
 	bool connect = true;
 	connector.connect("127.0.0.1", 7666);
 
-	xpcc::PeriodicTimer<> timer(20000);
+	xpcc::PeriodicTimer timer(20000);
 #endif
 
 	connector.addReceiverId(robot::component::RECEIVER);
@@ -67,7 +67,7 @@ main(void)
 		
 		xpcc::delayMicroseconds(100);
 #ifdef USE_TCPIP
-		if(timer.isExpired()){
+		if(timer.execute()){
 			if(connect){	
 				std::cout << "Initiating Component shutdown!" << std::endl;
 				connector.disconnect();

@@ -9,7 +9,7 @@
 
 #include "tcpip_receiver.hpp"
 #include <xpcc/debug/logger.hpp>
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_client.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_client.hpp>
 
 #include <iostream>
 

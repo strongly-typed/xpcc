@@ -3,14 +3,14 @@
 #include <xpcc_config.hpp>
 
 #ifdef USE_TCPIP
-#include <xpcc/architecture/platform/hosted/tcpip/tcpip_server.hpp>
-#include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_server.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip.hpp>
 xpcc::tcpip::Server server(6666);
 xpcc::TcpIpConnector connector;
 #endif
 
 #ifdef USE_TIPC
-#include <xpcc/communication/xpcc/backend/tipc/tipc.hpp>
+#include <xpcc/communication/xpcc/backend/tipc.hpp>
 xpcc::TipcConnector connector;
 #endif
 

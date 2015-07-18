@@ -1,7 +1,7 @@
 #include <xpcc_config.hpp>
 
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_server.hpp>
-#include <xpcc/communication/xpcc/backend/tcpip/tcpip.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_server.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip.hpp>
 #include <xpcc/debug/logger.hpp>
 
 // set new log level

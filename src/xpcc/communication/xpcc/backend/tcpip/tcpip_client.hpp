@@ -24,9 +24,9 @@
 
 //-----------------------------------------------------------------------------
 //xpcc dependencies
-#include <xpcc/processing/periodic_timer.hpp>
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_message.hpp>
-#include <xpcc/architecture/platform/driver/tcpip/hosted/tcpip_receiver.hpp>
+#include <xpcc/processing/timer/periodic_timer.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_message.hpp>
+#include <xpcc/communication/xpcc/backend/tcpip/tcpip_receiver.hpp>
 #include <xpcc/debug/logger.hpp>
 
 
@@ -147,7 +147,7 @@ private:
 		}
 
 		uint8_t identifier;
-		xpcc::PeriodicTimer<> timer;
+		xpcc::PeriodicTimer timer;
 	};
 
 	bool connecting;
