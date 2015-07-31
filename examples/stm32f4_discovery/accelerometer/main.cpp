@@ -1,5 +1,6 @@
 #include <xpcc/architecture/platform.hpp>
 #include "../stm32f4_discovery.hpp"
+#include "stm32_ub_ws2812.h"
 
 // ST changed the accelerometer in the C revision (MB997C)
 // change this to `false`, if you have MB997A or MB997B!
@@ -59,6 +60,8 @@ public:
 	bool
 	update()
 	{
+		bool orange, red, green, blue;
+
 		PT_BEGIN();
 
 		// ping the device until it responds
@@ -82,17 +85,53 @@ public:
 			PT_CALL(accel.readAcceleration());
 
 #if REVISION_C
-			averageX.update(-accel.getData().getY());
-			averageY.update(accel.getData().getX());
+			averageX.update(-accel.getData().getZ());
+			averageY.update(accel.getData().getY());
 #else
 			averageX.update(accel.getData().getX());
 			averageY.update(accel.getData().getY());
 #endif
 
-			LedOrange::set(averageX.getValue() < -0.2);
-			LedBlue::set(averageX.getValue() > 0.2);
-			LedGreen::set(averageY.getValue() < -0.2);
-			LedRed::set(averageY.getValue() > 0.2);
+			orange = averageX.getValue() < -0.05;
+			blue = averageX.getValue() > 0.05;
+			green = averageY.getValue() < -0.05;
+			red = averageY.getValue() > 0.05;
+
+			LedOrange::set(orange);
+			LedBlue::set(blue);
+			LedGreen::set(green);
+			LedRed::set(red);
+
+			UB_WS2812_All_Led_HSV(WS2812_HSV_COL_OFF ,0);
+			if (orange) {
+				// North
+				for (uint8_t ii = 20; ii < 28; ++ii) {
+					UB_WS2812_One_Led_HSV(ii, WS2812_HSV_COL_ORANGE, 0);
+				}
+			} 
+			if (red) {
+				// East
+				for (uint8_t ii = 0; ii < 4; ++ii) {
+					UB_WS2812_One_Led_HSV(ii, WS2812_HSV_COL_RED, 0);
+				}
+				for (uint8_t ii = 28; ii < 32; ++ii) {
+					UB_WS2812_One_Led_HSV(ii, WS2812_HSV_COL_RED, 0);
+				}
+
+			}
+			if (blue) {
+				// South
+				for (uint8_t ii = 4; ii < 12; ++ii) {				
+					UB_WS2812_One_Led_HSV(ii, WS2812_HSV_COL_BLUE, 0);
+				}
+			}
+			if (green) {
+				// West
+				for (uint8_t ii = 12; ii < 20; ++ii) {
+					UB_WS2812_One_Led_HSV(ii, WS2812_HSV_COL_GREEN, 0);
+				}
+			}
+			UB_WS2812_Refresh();
 
 			this->timeout.restart(5);
 			PT_WAIT_UNTIL(this->timeout.isExpired());
@@ -137,6 +176,8 @@ MAIN_FUNCTION
 	lis::SpiMaster::initialize<defaultSystemClock, MHz10>();
 	lis::SpiMaster::setDataMode(lis::SpiMaster::DataMode::Mode3);
 #endif
+
+	UB_WS2812_Init();
 
 	while (1)
 	{
