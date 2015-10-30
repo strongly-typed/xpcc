@@ -23,6 +23,9 @@ public:
 	static void
 	initialize();
 
+	static bool
+	isPacketAvailable();
+
 	static uint16_t
 	receivePacket(uint16_t maxlen, uint8_t* packet);
 

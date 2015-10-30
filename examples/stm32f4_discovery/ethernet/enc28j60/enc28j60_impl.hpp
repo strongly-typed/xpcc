@@ -120,6 +120,17 @@ Enc28j60<SPI, CS>::initialize()
 }
 
 template < typename SPI, typename CS >
+bool
+Enc28j60<SPI, CS>::isPacketAvailable()
+{
+    // check if a packet has been received and buffered
+    // Errata: The Receive Packet Pending Interrupt Flag (EIR.PKTIF)
+    // does not reliably/accurately report the status of pending packets.
+    // If polling to see if a packet is pending, check the value in EPKTCNT.
+    return ( read(EPKTCNT) != 0 );
+}
+
+template < typename SPI, typename CS >
 uint16_t
 Enc28j60<SPI, CS>::receivePacket(uint16_t maxlen, uint8_t* packet)
 {
