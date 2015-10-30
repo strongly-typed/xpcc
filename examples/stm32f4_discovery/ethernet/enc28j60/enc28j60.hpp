@@ -52,9 +52,13 @@ protected:
 
     // buffer boundaries applied to internal 8K RAM
     // entire available packet buffer space is allocated
-    static constexpr uint16_t TXSTART_INIT = 0x0000;	// start TX buffer at 0
-    static constexpr uint16_t RXSTART_INIT = 0x0600;	// give TX buffer space for one full ethernet frame (~1500 bytes)
-    static constexpr uint16_t RXSTOP_INIT  = 0x1FFF;	// receive buffer gets the rest
+   	static constexpr uint16_t MAX_RAM = 0x1fff; // Highest address in 8 KiByte RAM
+
+   	// Errata: use the range (0000h to n) for the receive buffer and
+   	// ((n + 1) to 8191) for the transmit buffer.
+    static constexpr uint16_t RXSTART_INIT = 0x0000;	// Start the receive buffer at 0
+    static constexpr uint16_t RXSTOP_INIT  = 0x19ff;	// Leave space for TX Buffer for one full Ethernet frame (~1500 bytes)
+    static constexpr uint16_t TXSTART_INIT = 0x1A00;	// Place the TX buffer after the receive buffer
 
     static constexpr uint16_t MAX_FRAMELEN = 1518;	// maximum ethernet frame length
 
