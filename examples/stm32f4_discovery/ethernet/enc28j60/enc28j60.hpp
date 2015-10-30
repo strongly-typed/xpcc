@@ -16,6 +16,87 @@ static constexpr uint8_t ENC28J60_MAC3 = 0x55;
 static constexpr uint8_t ENC28J60_MAC4 = 0x1c;
 static constexpr uint8_t ENC28J60_MAC5 = 0xc3;
 
+template < typename ENC28 >
+class Enc28j60Can : public ::xpcc::Can
+{
+public:
+	static bool
+	isMessageAvailable() {
+		return ENC28::isPacketAvailable();
+	}
+
+	static bool
+	getMessage(can::Message & message)
+	{
+		if (not isMessageAvailable() ) {
+			return false;
+		}
+
+		static constexpr uint16_t BUFFER_SIZE = 64;
+		uint8_t buffer[BUFFER_SIZE];
+
+		uint16_t packet_length = ENC28::receivePacket(BUFFER_SIZE, buffer);
+
+		if (packet_length == 64) {
+			uint32_t id = (buffer[16] << 24) | (buffer[17] << 16) | (buffer[18] << 8) | (buffer[19]);
+			message.setIdentifier(id);
+
+			message.setLength(buffer[20]);
+
+			for (uint8_t ii = 0; ii < 8; ++ii) {
+				message.data[ii] = buffer[32 + ii];
+			}
+
+			message.setExtended();
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	static bool
+	isReadyToSend() {
+		return true;
+	}
+
+	static bool
+	sendMessage(const can::Message & message)
+	{
+		// 00 .. 05 Dest
+		// 06 .. 11 Src
+		// 12 .. 13 Ethertype
+		uint8_t buff[64] = {0};
+		for (uint8_t ii = 0; ii < 6; ++ii) {
+			buff[ii] = 0xff;
+		}
+
+		buff[12] = 0x88;
+		buff[13] = 0xb5;
+
+		buff[16] = message.getIdentifier() >> 24;
+		buff[17] = message.getIdentifier() >> 16;
+		buff[18] = message.getIdentifier() >>  8;
+		buff[19] = message.getIdentifier() >>  0;
+
+		uint8_t len = message.getLength();
+		buff[20] = len;
+
+		for (uint8_t ii = 0; ii < len; ++ii) {
+			buff[32 + ii] = message.data[ii];
+		}
+
+		ENC28::sendPacket(64, buff);
+
+		return true;
+	}
+
+    static BusState
+    getBusState() {
+        return BusState::Connected;
+    }
+
+};
+
 template < typename SPI, typename CS >
 class Enc28j60
 {
