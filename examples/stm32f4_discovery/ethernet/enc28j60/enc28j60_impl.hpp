@@ -210,4 +210,85 @@ Enc28j60<SPI, CS>::sendPacket(uint16_t len, uint8_t* packet)
     writeOp(SpiOperationCodes::BIT_FIELD_SET, ECON1, ECON1_TXRTS);
 }
 
+#define DUMP(REG)  XPCC_LOG_DEBUG.printf(#REG); XPCC_LOG_DEBUG.printf(" %02x %02x\n", read(REG ## H), read(REG ## L))
+#define DUMP8(REG) XPCC_LOG_DEBUG.printf(#REG); XPCC_LOG_DEBUG.printf(" %02x\n", read(REG))
+
+template < typename SPI, typename CS >
+void
+Enc28j60<SPI, CS>::dumpRegisters()
+{
+    XPCC_LOG_DEBUG.printf("Bank independent Status\n");
+    DUMP8(EIE);
+    DUMP8(EIR);
+    DUMP8(ESTAT);
+    DUMP8(ECON2);
+    DUMP8(ECON1);
+
+    XPCC_LOG_DEBUG.printf("Bank 0\n");
+    DUMP(ERDPT);
+    DUMP(EWRPT);
+    DUMP(ETXST);
+    DUMP(ETXND);
+    DUMP(ERXST);
+    DUMP(ERXND);
+    DUMP(ERXRDPT);
+    DUMP(ERXWRPT);
+    DUMP(EDMAST);
+    DUMP(EDMAND);
+    DUMP(EDMADST);
+    DUMP(EDMACS);
+
+    XPCC_LOG_DEBUG.printf("Bank 1\n");
+    DUMP8(EHT0);
+    DUMP8(EHT1);
+    DUMP8(EHT2);
+    DUMP8(EHT3);
+    DUMP8(EHT4);
+    DUMP8(EHT5);
+    DUMP8(EHT6);
+    DUMP8(EHT7);
+    DUMP8(EPMM0);
+    DUMP8(EPMM1);
+    DUMP8(EPMM2);
+    DUMP8(EPMM3);
+    DUMP8(EPMM4);
+    DUMP8(EPMM5);
+    DUMP8(EPMM6);
+    DUMP8(EPMM7);
+    DUMP(EPMO);
+    DUMP8(EWOLIE);
+    DUMP8(EWOLIR);
+    DUMP8(ERXFCON);
+    DUMP8(EPKTCNT);
+
+    XPCC_LOG_DEBUG.printf("Bank 2\n");
+    DUMP8(MACON1);
+    DUMP8(MACON2);
+    DUMP8(MACON3);
+    DUMP8(MACON4);
+    DUMP8(MABBIPG);
+    DUMP(MAIPG);
+    DUMP8(MACLCON1);
+    DUMP8(MACLCON2);
+    DUMP(MAMXFL);
+    DUMP8(MAPHSUP);
+    DUMP8(MICON);
+    DUMP8(MICMD);
+    DUMP8(MIREGADR);
+    DUMP(MIWR);
+    DUMP(MIRD);
+
+    XPCC_LOG_DEBUG.printf("Bank 3\n");
+    DUMP8(MAADR0);
+    DUMP8(MAADR1);
+    DUMP8(MAADR2);
+    DUMP8(MAADR3);
+    DUMP8(MAADR4);
+    DUMP8(MAADR5);
+    DUMP8(EBSTSD);
+    DUMP8(EBSTCON);
+    DUMP(EBSTCS);
+    DUMP8(MISTAT);
+}
+
 } // xpcc namespace

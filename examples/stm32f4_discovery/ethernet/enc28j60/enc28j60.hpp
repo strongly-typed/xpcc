@@ -29,6 +29,10 @@ public:
     static void
     sendPacket(uint16_t len, uint8_t* packet);
 
+    /// For debugging purposes: dump all registers to debug stream
+    static void
+    dumpRegisters();
+
 protected:
 	static constexpr uint8_t ADDR_MASK = 0x1F;
 	static constexpr uint8_t BANK_MASK = 0x60;
