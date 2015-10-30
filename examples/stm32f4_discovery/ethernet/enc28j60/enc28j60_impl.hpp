@@ -126,8 +126,12 @@ Enc28j60<SPI, CS>::receivePacket(uint16_t maxlen, uint8_t* packet)
     uint16_t rxstat;
 
     // check if a packet has been received and buffered
-    if( not(read(EIR) & EIR_PKTIF) )
+    // Errata: The Receive Packet Pending Interrupt Flag (EIR.PKTIF)
+    // does not reliably/accurately report the status of pending packets.
+    // If polling to see if a packet is pending, check the value in EPKTCNT.
+    if( read(EPKTCNT) == 0 ) {
         return 0;
+    }
 
     // Make absolutely certain that any previous packet was discarded
     //if( WasDiscarded == FALSE)
