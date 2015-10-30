@@ -95,28 +95,27 @@ MAIN_FUNCTION
 
 	while (true)
 	{
-
-        // XPCC_LOG_DEBUG.printf("Phy: 0x%04x\n", enc28::phyRead(0x01));
-        uint16_t packet_length = enc28::receivePacket(BUFFER_SIZE, buffer);
-
-		/* When a packet was received, packet_length > 0 */
-		if (packet_length) {
-            XPCC_LOG_DEBUG << "pLength = " << packet_length << xpcc::endl;
-            Board::LedRed::toggle();
-            uint16_t addr = 0;
-            XPCC_LOG_DEBUG.printf("%04x ", addr);
-            for (std::size_t ii = 0; ii < packet_length; ++ii) {
-                XPCC_LOG_DEBUG.printf("%02x ", buffer[ii]);
-                if (ii % 16 == 15) {
-                    XPCC_LOG_DEBUG << xpcc::endl;
-                    XPCC_LOG_DEBUG.printf("%04x ", addr);
-                    addr += 16;
-                }
-                if (ii % 16 == 7) {
-                    XPCC_LOG_DEBUG << " ";
-                }
-            }
-            XPCC_LOG_DEBUG << xpcc::endl;
+        while (not timer.execute())
+        {
+            uint16_t packet_length = enc28::receivePacket(BUFFER_SIZE, buffer);
+            if (packet_length) {
+                XPCC_LOG_DEBUG << "Receive pLength = " << packet_length << xpcc::endl;
+	            Board::LedRed::toggle();
+	            uint16_t addr = 0;
+	            XPCC_LOG_DEBUG.printf("%04x ", addr);
+	            for (std::size_t ii = 0; ii < packet_length; ++ii) {
+	                XPCC_LOG_DEBUG.printf("%02x ", buffer[ii]);
+	                if (ii % 16 == 15) {
+	                    XPCC_LOG_DEBUG << xpcc::endl;
+	                    XPCC_LOG_DEBUG.printf("%04x ", addr);
+	                    addr += 16;
+	                }
+	                if (ii % 16 == 7) {
+	                    XPCC_LOG_DEBUG << " ";
+	                }
+	            }
+	            XPCC_LOG_DEBUG << xpcc::endl;
+	        }
 		}
 
         // Always send a ping
@@ -145,12 +144,11 @@ MAIN_FUNCTION
         buff[41] = seq & 0xff;
         ++seq;
 
-        while (not timer.execute())
-            ;
-        {
-            enc28::sendPacket(42, buff);
-            Board::LedBlue::toggle();
-            Board::LedGreen::toggle();
+        XPCC_LOG_DEBUG.printf("Sending\n");
+        enc28::sendPacket(42, buff);
+
+        Board::LedBlue::toggle();
+        Board::LedGreen::toggle();
        }
 	}
 
