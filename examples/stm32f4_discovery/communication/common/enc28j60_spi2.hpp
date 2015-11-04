@@ -16,8 +16,7 @@ namespace enc28j60
 	typedef xpcc::stm32::GpioOutputB12 Cs;
 
 	typedef xpcc::stm32::SpiMaster2 Spi;
-	typedef xpcc::Enc28j60< Spi, Cs > enc28;
-	typedef xpcc::Enc28j60Can < enc28 > EthernetDevice;
+	typedef xpcc::Enc28j60< Spi, Cs > EthernetDevice;
 }
 
 void

@@ -1,8 +1,7 @@
 
 #include <xpcc/architecture.hpp>
 #include <xpcc/communication.hpp>
-#include <xpcc/communication/xpcc/backend/can.hpp>
-// #include <xpcc/communication/xpcc/backend/ethernet.hpp>
+#include <xpcc/communication/xpcc/backend/ethernet.hpp>
 #include <xpcc/debug/logger.hpp>
 
 #include "../../stm32f4_discovery.hpp"
@@ -31,7 +30,7 @@ xpcc::log::Logger xpcc::log::info(loggerDevice);
 #define XPCC_LOG_LEVEL xpcc::log::DEBUG
 
 static enc28j60::EthernetDevice ethernetDevice;
-static xpcc::CanConnector< enc28j60::EthernetDevice > ethernetConnector(&ethernetDevice);
+static xpcc::EthernetConnector< enc28j60::EthernetDevice > ethernetConnector(&ethernetDevice);
 
 // create an instance of the generated postman
 Postman ethernetPostman;
