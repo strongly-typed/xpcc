@@ -21,7 +21,7 @@ main()
 {
 	Board::initialize();
 
-	// initialize Uart2 for XPCC_LOG_
+	// initialize Uart1 for XPCC_LOG_
 	GpioOutputA9::connect(Usart1::Tx);
 	GpioInputA10::connect(Usart1::Rx, Gpio::InputType::PullUp);
 	Usart1::initialize<Board::systemClock, 115200>(12);
