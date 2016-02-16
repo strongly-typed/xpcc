@@ -69,6 +69,13 @@
  */
 
 /**
+ * \ingroup	driver
+ * \defgroup	driver_rtc	RTC
+ *
+ * Realtime Clock (RTC) drivers.
+ */
+
+/**
  * \ingroup		driver
  * \defgroup	driver_position	Position sensors
  *
