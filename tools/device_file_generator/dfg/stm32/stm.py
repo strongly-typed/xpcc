@@ -100,6 +100,18 @@ stm32_defines = \
 # The STM32F778 devices use the F777 header file.
 #		'STM32F777xx',	# STM32F778AI Devices
 		'STM32F779xx',	# STM32F779II, STM32F779BI, STM32F779NI, STM32F779AI Devices
+	],
+	'l4': [
+		'STM32L431xx',	# STM32L431xx Devices
+		'STM32L432xx',	# STM32L432xx Devices
+		'STM32L433xx',	# STM32L433xx Devices
+		'STM32L442xx',	# STM32L442xx Devices
+		'STM32L443xx',	# STM32L443xx Devices
+		'STM32L471xx',	# STM32L471xx Devices
+		'STM32L475xx',	# STM32L475xx Devices
+		'STM32L476xx',	# STM32L476xx Devices
+		'STM32L485xx',	# STM32L485xx Devices
+		'STM32L486xx',	# STM32L486xx Devices
 	]
 }
 
@@ -217,6 +229,23 @@ stm32_memory = \
 			{
 				'names': ['469', '479'],
 				'memories': {'flash': 0, 'ccm': 64, 'sram1': 0, 'sram2': 32, 'sram3': 128, 'backup': 4}
+			}
+		]
+	},
+	'l4': {
+		'start': {
+			'flash': 0x08000000,
+			'ccm': 0x10000000,
+			'sram': 0x20000000
+		},
+		'model': [
+			{
+				'names': ['432', '433', '442', '443'],
+				'memories': {'flash': 0, 'sram1': 0, 'sram2': 16}
+			},
+			{
+				'names': ['431', '471', '475', '476', '485', '486'],
+				'memories': {'flash': 0, 'ccm': 32, 'sram1': 0}
 			}
 		]
 	},
