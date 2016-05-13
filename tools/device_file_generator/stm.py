@@ -87,6 +87,18 @@ stm32_defines = \
 		'STM32F756xx',	# STM32F756VG, STM32F756ZG, STM32F756ZG, STM32F756IG, STM32F756BG and STM32F756NG Devices
 		'STM32F746xx',	# STM32F746VE, STM32F746VG, STM32F746ZE, STM32F746ZG, STM32F746IE, STM32F746IG, STM32F746BE, STM32F746BG, STM32F746NE and STM32F746NG Devices
 		'STM32F745xx',	# STM32F745VE, STM32F745VG, STM32F745ZG, STM32F745ZE, STM32F745IE and STM32F745IG Devices
+	],
+	'l4': [
+		'STM32L431xx',	# STM32L431xx Devices
+		'STM32L432xx',	# STM32L432xx Devices
+		'STM32L433xx',	# STM32L433xx Devices
+		'STM32L442xx',	# STM32L442xx Devices
+		'STM32L443xx',	# STM32L443xx Devices
+		'STM32L471xx',	# STM32L471xx Devices
+		'STM32L475xx',	# STM32L475xx Devices
+		'STM32L476xx',	# STM32L476xx Devices
+		'STM32L485xx',	# STM32L485xx Devices
+		'STM32L486xx',	# STM32L486xx Devices
 	]
 }
 
@@ -203,6 +215,23 @@ stm32_memory = \
 			{
 				'names': ['469', '479'],
 				'memories': {'flash': 0, 'ccm': 64, 'sram1': 0, 'sram2': 32, 'sram3': 128}
+			}
+		]
+	},
+	'l4': {
+		'start': {
+			'flash': 0x08000000,
+			'ccm': 0x10000000,
+			'sram': 0x20000000
+		},
+		'model': [
+			{
+				'names': ['432', '433', '442', '443'],
+				'memories': {'flash': 0, 'sram1': 0, 'sram2': 16}
+			},
+			{
+				'names': ['431', '471', '475', '476', '485', '486'],
+				'memories': {'flash': 0, 'ccm': 32, 'sram1': 0}
 			}
 		]
 	},
