@@ -463,7 +463,7 @@ class STMDeviceReader(XMLDeviceReader):
 		# get the defines for this device family
 		familyDefines = stm32_defines[self.id.family]
 		# get all defines for this device name
-		devName = 'STM32F{}'.format(self.id.name)
+		devName = 'STM32{}{}'.format(self.id.family[0].upper(), self.id.name)
 
 		# Map STM32F7x8 -> STM32F7x7
 		if self.id.family == 'f7' and devName[8] == '8':
