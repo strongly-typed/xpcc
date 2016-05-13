@@ -456,7 +456,7 @@ class STMDeviceReader(XMLDeviceReader):
 		# get the defines for this device family
 		familyDefines = stm32_defines[self.id.family]
 		# get all defines for this device name
-		devName = 'STM32F{}'.format(self.id.name)
+		devName = 'STM32{}{}'.format(self.id.family[0].upper(), self.id.name)
 		deviceDefines = sorted([define for define in familyDefines if define.startswith(devName)])
 		# if there is only one define thats the one
 		if len(deviceDefines) == 1:

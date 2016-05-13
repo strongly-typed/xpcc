@@ -54,7 +54,8 @@ class STMDeviceWriter(XMLDeviceWriter):
 				   'f2': 'stm32f2',
 				   'f3': 'stm32f3',
 				   'f4': 'stm32',
-				   'f7': 'stm32'}
+				   'f7': 'stm32',
+				   'l4': 'stm32'}
 		# ADC
 		self.addModuleAttributesToNode(self.root, 'ADC', 'adc', adc_map[self.device.id.family])
 		# CAN
@@ -64,7 +65,7 @@ class STMDeviceWriter(XMLDeviceWriter):
 		clock_child.setAttributes({'type': 'clock', 'name': 'stm32'})
 		# DAC
 		# self.addModuleAttributesToNode(self.root, 'DAC', 'dac')
-		if (self.device.id.family in ['f3', 'f4']):
+		if (self.device.id.family in ['f0', 'f3', 'f4', 'l4']):
 			# DMA
 			self.addModuleAttributesToNode(self.root, 'DMA', 'dma')
 		# FSMC
@@ -229,7 +230,7 @@ class STMDeviceWriter(XMLDeviceWriter):
 		return dict
 
 	def write(self, folder):
-		file_name = 'stm32f' + '_'.join(self.device.ids.getAttribute('name'))
+		file_name = 'stm32' + self.device.ids.getAttribute('family')[0][0] + '_'.join(self.device.ids.getAttribute('name'))
 		file_name += '-' + '_'.join(self.device.ids.getAttribute('pin_id'))
 		file_name += '-' + '_'.join(self.device.ids.getAttribute('size_id'))
 		self.writeToFolder(folder, file_name + '.xml')

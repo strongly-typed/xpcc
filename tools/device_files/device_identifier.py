@@ -83,7 +83,7 @@ class DeviceIdentifier:
 			# TODO: platform.win32_ver()
 			self.valid = True
 
-		elif string.startswith('stm32f'):
+		elif string.startswith('stm32'):
 			self.platform = "stm32"
 			self.family = string[5:7]
 			self.name = string[6:9]
