@@ -406,6 +406,9 @@ def generate(env, **kw):
 	def test_is_stm32f4(target):
 		return test_platform(target, 'stm32') and test_family(target, 'f4')
 	env.AddTemplateJinja2Test('stm32f4', test_is_stm32f4)
+	def test_is_stm32l4(target):
+		return test_platform(target, 'stm32') and test_family(target, 'l4')
+	env.AddTemplateJinja2Test('stm32l4', test_is_stm32l4)
 	def test_is_stm32f7(target):
 		return test_platform(target, 'stm32') and test_family(target, 'f7')
 	env.AddTemplateJinja2Test('stm32f7', test_is_stm32f7)
