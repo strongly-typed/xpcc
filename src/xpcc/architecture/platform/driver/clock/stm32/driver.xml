@@ -7,8 +7,8 @@
 		<template>clock.hpp.in</template>
 		<static>type_ids.hpp</static>
 
-		<template device-family="f1|f3|f4">static.hpp.in</template>
-		<static device-family="f1|f3|f4">pll_calculator.hpp</static>
+		<template device-family="f1|f3|f4|l4">static.hpp.in</template>
+		<static device-family="f1|f3|f4|l4">pll_calculator.hpp</static>
 
 		<usbprescaler device-name="042|048|070|072|078|102|103|302|303|373">True</usbprescaler>
 		<pllprediv device-family="f0|f3">True</pllprediv>
@@ -16,8 +16,8 @@
 		<hsi48 device-name="042|048|071|072|078|091|098">True</hsi48>
 
 		<hsi_frequency device-family="f0|f1|f3">8</hsi_frequency>
-		<hsi_frequency device-family="f2|f4|f7">16</hsi_frequency>
+		<hsi_frequency device-family="f2|f4|l4|f7">16</hsi_frequency>
 		<lsi_frequency device-family="f0|f1|f3">40</lsi_frequency>
-		<lsi_frequency device-family="f2|f4|f7">32</lsi_frequency>
+		<lsi_frequency device-family="f2|f4|l4|f7">32</lsi_frequency>
 	</driver>
 </rca>
