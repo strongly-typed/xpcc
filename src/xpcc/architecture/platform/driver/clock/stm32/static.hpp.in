@@ -48,7 +48,7 @@ namespace xpcc
 	namespace stm32
 	{
 
-%% if target is stm32f2 or target is stm32f4
+%% if target is stm32f2 or target is stm32f4 or target is stm32l4
 		/*
 		 * Used to setup pll with constants
 		 */
@@ -129,7 +129,29 @@ namespace xpcc
 %% set externalCrystal =	{'name': "ExternalCrystal",
 							 'minFrequency': "MHz4",
 							 'maxFrequency': "MHz32" }
-%% if target is stm32f2 or target is stm32f4
+%% if target is stm32l4
+	%% set ahb1 =	{'name': "AHB1",
+					 'prescaler': "1",
+					 'sinks': [  ] }
+	%% set ahb2 =	{'name': "AHB2",
+					 'prescaler': "1",
+					 'sinks': [ "Gpio" ] }
+	%% set pll =			{'name': "Pll",
+							 'setup': "PllSetup",
+							 'frequencies': ["UsbFrequency"],
+							 'sources': [internalClock,
+							 			 externalClock, externalCrystal] }
+	%% set systemClock =	{'name': "SystemClock",
+							 'minFrequency': "MHz8",
+							 'maxFrequency': "MHz80",
+							 'sources': [ internalClock, externalClock,
+							              externalCrystal, pll ],
+							 'sinks': [ ahb1, ahb2 ]}
+	%% set mco1 =			{'name': "ClockOutput",
+							 'divisions': [ 1, 2, 4, 8, 16 ],
+							 'sources': [internalClock, externalClock,
+										 externalCrystal, pll, systemClock] }
+%% elif target is stm32f2 or target is stm32f4
 	%% set sys_timer = 	{'name': "SystemTimer",
 					 'prescaler': "1/8" }
 	%% set apb1_timers = 	{'name': "APB1Timers",
