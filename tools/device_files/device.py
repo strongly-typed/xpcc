@@ -132,7 +132,7 @@ class DeviceFile:
 				% (self.core, cores))
 		# Checks for STM32 Platform
 		if self.platform == 'stm32':
-			families = ['f0', 'f1', 'f2', 'f3', 'f4', 'f7']
+			families = ['f0', 'f1', 'f2', 'f3', 'f4', 'f7', 'l4']
 			if self.family not in families:
 				self.log.error("Unknown family '%s' for platform %s."
 				" Valid families for this platform are: %s" %
