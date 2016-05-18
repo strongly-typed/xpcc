@@ -93,6 +93,9 @@ env.SConscript('SConscript.generate', exports='env')
 # Provides a 'check' target to compile all examples and the release tests.
 env.SConscript('SConscript.check', exports='env')
 
+# Provides a 'hwut' target to run Hardware Unit Testing
+env.SConscript('SConscript.hwut', exports='env')
+
 # Generate the doxygen documentation
 env.Doxygen('doc/doxyfile')
 env.Alias('doxygen', 'build/api')
