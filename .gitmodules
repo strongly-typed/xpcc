@@ -1,0 +1,3 @@
+[submodule "ext/pythongdbmi"]
+	path = ext/pythongdbmi
+	url = https://github.com/strongly-typed/python-gdb-mi.git
