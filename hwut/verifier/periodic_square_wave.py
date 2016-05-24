@@ -2,16 +2,22 @@
 
 
 class PeriodicSquareWave:
-	def __init__(self, low, high, 
-			period_tolerance = 0.01, 
-			low_tolerance = 0.01,
-			high_tolerance = 0.01):
-		self.low = low
-		self.high = high
-		self.period = low + high
-		self.period_tolerance = period_tolerance
-		self.low_tolerance = low_tolerance
-		self.high_tolerance = high_tolerance
+	def __init__(self, config):
+
+		# Default values
+		self.config = {
+			'low': 0.01,
+			'high': 0.01,
+			'period_tolerance': 0.01,
+			'low_tolerance': 0.01,
+			'high_tolerance': 0.01,
+			}
+
+		# Overwrite defaults with given values
+		self.config.update(config)
+		
+		self.config['period'] = self.config['low'] + self.config['high']
+
 		self.report = []
 
 	def _min_max_tolerance(self, value, tolerance):
@@ -36,15 +42,15 @@ class PeriodicSquareWave:
 			res = 'OK'
 			ok = True
 		else:
-			res = 'NOK'
-		self.report.append('%-3s %10s: %f <= %f <= %f' % (res, name, value_min, value, value_max))
+			res = 'FAIL'
+		self.report.append('%-4s %10s: %f <= %f <= %f' % (res, name, value_min, value, value_max))
 		return ok
 
 
 	def verify(self, trace):
-		period_min, period_max = self._min_max_tolerance(self.period, self.period_tolerance)
-		low_min,    low_max    = self._min_max_tolerance(self.low,    self.low_tolerance   )
-		high_min,   high_max   = self._min_max_tolerance(self.high,   self.high_tolerance  )
+		period_min, period_max = self._min_max_tolerance(self.config['period'], self.config['period_tolerance'])
+		low_min,    low_max    = self._min_max_tolerance(self.config['low'],    self.config['low_tolerance']   )
+		high_min,   high_max   = self._min_max_tolerance(self.config['high'],   self.config['high_tolerance']  )
 
 		values = self._trace_to_values(trace)
 

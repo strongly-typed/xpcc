@@ -1,197 +1,217 @@
 #!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 # 
-# Copyright (c) 2011, Roboterclub Aachen e.V.
-# All rights reserved.
-# 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-# 
-#  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-#  * Neither the name of the Roboterclub Aachen e.V. nor the
-#    names of its contributors may be used to endorse or promote products
-#    derived from this software without specific prior written permission.
-# 
-# THIS SOFTWARE IS PROVIDED BY ROBOTERCLUB AACHEN E.V. ''AS IS'' AND ANY
-# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL ROBOTERCLUB AACHEN E.V. BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -----------------------------------------------------------------------------
+# Copyright (c) 2016, Roboterclub Aachen e. V.
+# All Rights Reserved.
+#
+# The file is part of the xpcc library and is released under the 3-clause BSD
+# license. See the file `LICENSE` for the full license governing this code.
 
 import os
 import sys
 import string
-from tempfile import mkstemp
 from time import sleep
+
+import logging
+
+import subprocess
+import yaml
+
+import hwut.verifier.periodic_square_wave as psw
+# import hwut.openocd as openocd
+import hwut.acquirer_sigrok as acquirer_sigrok
+import hwut.decoder_sigrok as decoder_sigrok
+
+import ext.pythongdbmi.gdbmi.session as gdbmi
+
+logging.basicConfig(
+    level=logging.INFO,
+    # level=logging.DEBUG,
+    format='%(asctime)-15s '\
+        '%(levelname)-8s '\
+        '%(filename)18s:%(lineno)-4s '\
+        '%(message)s')
+
+
+class Target(object):
+	def __init__(self, debuggee, gdb="arm-none-eabi-gdb"):
+		self.s = gdbmi.Session(debuggee, gdb=gdb)
+
+	def prepare(self, label='hwut_begin'):
+		logging.debug('Target: Preparing')
+		token = self.s.target_select_remote()
+		while not self.s.wait_for(token): pass
+
+		token = self.s.monitor_reset_halt()
+		while not self.s.wait_for(token): pass
+
+		# Target is at ResetHandler
+
+		self.advance('hwut_begin')
+
+		self.wait_for_stop()
+		logging.debug('Target: Prepared')
+
+
+	def advance(self, label):
+		logging.debug('Target: Advancing to %s' % label)
+		token = self.s.exec_advance(label)
+
+		while not self.s.wait_for(None):
+			if self.s.exec_state == "running":
+				break
+
+	def wait_for_stop(self):
+		while not self.s.wait_for(None):
+			if self.s.exec_state == "stopped":
+				break
+		logging.debug('Target: Stopped')
+
 
 Import('env')
 
-import telnetlib
-
-import subprocess
-
-import hwut.verifier.periodic_square_wave as psw
-
-class Target(object):
-	def __init__(self, address='localhost', port=4444):
-		self.address = address
-		self.tn = telnetlib.Telnet(address, port)
-		self.TIMEOUT = 1.0
-
-	def init(self):
-		pass
-
-	def halt(self):
-		self.tn.write('halt\n')
-		(result, mobj, str) = self.tn.expect(["(.*)\n>"], self.TIMEOUT)
-
-	def resume(self):
-		self.tn.write('resume\n')
-		(result, mobj, str) = self.tn.expect(["(.*)\n>"], self.TIMEOUT)
-
-	def reset(self):
-		self.tn.write('reset run\n')
-		(result, mobj, str) = self.tn.expect(["(.*)\n>"], self.TIMEOUT)
-
-	def resetStopOnReset(self):
-		self.tn.write('reset halt\n')
-		(result, mobj, str) = self.tn.expect(["(.*)\n>"], self.TIMEOUT)
-
-
-print('Welcome to HWUT')
+logging.info('===== Welcome to HWUT =====')
 
 tests = {
-	'stm32l467disco1': {
-		'path': 'hwut/stm32l467disco1', 
+	'stm32l476disco1': {
+		'path': 'hwut/stm32l476disco1', 
 		'stimuli': None, 
 		'output': 'disco1.output' 
 		},
-	'stm32l467disco2': {
-		'path': 'hwut/stm32l467disco1', 
+	'stm32l476disco2': {
+		'path': 'hwut/stm32l476disco1', 
 		'stimuli': 'mystimuli', 
 		'output': 'disco2.output' 
-		}	
+		},
+	'stm32l476nucleo1': {
+		'path': 'hwut/stm32l476nucleo1',
+		'stimuli': None,
+		'output': 'nucleo1.output'
+	}
 }
 
 hwut = 'all' if 'hwut' in BUILD_TARGETS else ARGUMENTS.get('hwut')
 
-# Check that all examples compile without errors. The correct function of the
-# examples is not checked!
-
-if tests.has_key(hwut):
+if not tests.has_key(hwut):
+	logging.error('\nFAIL! %s is not in list of test.\nValid tests are:\n%s' % (hwut, '\n'.join(x for x in tests.keys())))
+	Exit(1)
+else:
 	test = tests[hwut]
 
-	result = []
-	everythingOk = True
+result = []
+everythingOk = True
 
-	if str(Platform()) != "win32":
-		color_red = "\033[0;31m"
-		color_green = "\033[0;32m"
-		color_yellow = "\033[0;33m"
-		color_default = "\033[0m"
-	else:
-		color_red = ""
-		color_green = ""
-		color_yellow = ""
-		color_default = ""
+if str(Platform()) != "win32":
+	color_red = "\033[0;31m"
+	color_green = "\033[0;32m"
+	color_yellow = "\033[0;33m"
+	color_default = "\033[0m"
+else:
+	color_red = ""
+	color_green = ""
+	color_yellow = ""
+	color_default = ""
 
-	for path, directories, files in os.walk(test['path']):
-		if 'SConstruct' in files:
+for path, directories, files in os.walk(test['path']):
+	if 'SConstruct' in files:
 
-			# Build and program with scons
-			action = [] # ['build', 'program']
-			for act in action:
-				if not everythingOk:
-					continue
+		# Find and open the hwut.cfg
+		hwut_cfg = os.path.abspath(os.path.join(path, 'hwut.cfg'))
 
-				exitStatus = os.system("scons -Q -C %s %s" % (path, act))
-				if exitStatus == 0:
-					result.append("%s: %s -> Ok" % (path, act))
-				else:
-					result.append(color_red + ("%s: %s -> FAIL!" % (path, act)) + color_default)
-					everythingOk = False
+		if os.path.isfile(hwut_cfg):
+			y = yaml.load(open(hwut_cfg))
+		else:
+			logging.error('%s is missing' % hwut_cfg)
+			Exit(1)
 
-			# 
-			t = Target()
-			t.resetStopOnReset()
 
-			fd, sroutfile = mkstemp()
-			os.close(fd)
+		# Build and program project with scons
+		action = [] # ['build', 'program']
+		for act in action:
+			if not everythingOk:
+				continue
 
-			p = subprocess.Popen([
-				'/usr/local/bin/sigrok-cli', 
-					'-d', 'fx2lafw', 
-					'--config', 'samplerate=100000', 
-					'--samples', '200000',
-					'--channels', 'D0=PB2,D1=SDA',
-					'--triggers', 'PB2=f',
-					'--wait-trigger',
-					'--output-file', sroutfile
-				])
-
-			# Wait for sigrok to settle and arm trigger
-			print('About to start ...')
-			sleep(0.5)
-
-			# Start target
-			t.resume()
-
-			# Wait for normal termination or kill sigrok
-			timeout = 10
-			while timeout != 0:
-				if p.poll() is not None:
-					break
-				print('timeout = %d' % timeout)
-				timeout -= 1
-				sleep(1)
-
-			if timeout == 0:
-				p.kill()
-				print('Termination by timeout')
+			exitStatus = os.system("scons -Q -C %s %s" % (path, act))
+			if exitStatus == 0:
+				result.append("%s: %s -> Ok" % (path, act))
 			else:
-				print('Normal termination')
+				result.append(color_red + ("%s: %s -> FAIL!" % (path, act)) + color_default)
+				everythingOk = False
 
-			# Decode trace
-			fd, srdecodefile = mkstemp()
-			p = subprocess.Popen([
-				'/usr/local/bin/sigrok-cli',
-				'--input-file', sroutfile,
-				'--output-file', srdecodefile,
-				'--protocol-decoders', 'timing'
-				], stdout=fd) # subprocess.PIPE)
-			p.wait()
+		logging.info('About to start test suite %s ...' % hwut)
+
+		if y['acquirer']['name'] == 'sigrok':
+			acquirer = acquirer_sigrok.SigrokAcquirer(y['acquirer'])
+
+		target = Target(debuggee = "/Users/usr/Dev/2016imr/xpcc/build/stm32l476_discovery/stm32l476disco1/stm32l476disco1.elf")
+		target.prepare()
+		
+		# CPU just before first test
+
+		for test in y['tests']:
+			logging.info('=== Starting test %s ===' % test['name'])
+
+			# Start the acquirer
+			logging.info('--- Start Acquirer %s ---' % y['acquirer']['name'])
+			acquirer.start(test['acquirer'])
+
+			# Start target and run until end of this test
+			target.advance(test['name'] + '_end')
+
+			# Wait for normal termination or kill acquirer
+			if not acquirer.waitForCompletion():
+				logging.error('Acquiring failed')
+				Exit(1)
+
+			logging.info('--- Waiting for target to stop ---')
+			target.wait_for_stop()
+			logging.info('--- Target stopped ---')
+
+			sroutfile = acquirer.getOutputFilename()
+
+
+			# Decode
+			decoder = decoder_sigrok.SigrokDecoder()
+			decoder.decode(test['decoder'], sroutfile)
+
 
 			# Verify trace
+			srdecodefile = decoder.getOutputFilename()
+
 			with open(srdecodefile) as fp:
 				trace = fp.readlines()
 
-			v = psw.PeriodicSquareWave(high=0.4, low=0.1)
-			everythingOk &= v.verify(trace)
+			for (verifier, config) in test['verifier'].iteritems():
+				if verifier == 'PeriodicSquareWave':
+					v = psw.PeriodicSquareWave(config)
+				elif verifier == 'String':
+					continue
 
-			for l in v.getReport():
-				print l
+				everythingOk &= v.verify(trace)
 
-			os.unlink(sroutfile)
-			os.unlink(srdecodefile)
+				logging.info('--- Verifier Report ---')
+				for l in v.getReport():
+					logging.info(l)
 
-	print "\nRESULTS:\n"
-	print '\n'.join(result)
-	if everythingOk:
-		print "\nOK!"
-		Exit(0)
-	else:
-		print "\nFAIL!"
-		Exit(1)
+			if everythingOk:
+				result.append("%s -> Ok" % test['name'])
+			else:
+				result.append("%s -> FAIL!" % test['name'])
 
-print "\nFAIL!"
-Exit(1)
+			# Cleanup
+			acquirer.close()
+			decoder.close()
+
+			logging.info('=== Test %s ended ===' % test['name'])
+
+		target.advance('hwut_end')
+		target.wait_for_stop()
+
+logging.info("###### FINAL RESULTS ######")
+for line in result:
+	logging.info(line)
+if everythingOk:
+	logging.info("OK!")
+	Exit(0)
+else:
+	logging.error("FAIL!")
+	Exit(1)
