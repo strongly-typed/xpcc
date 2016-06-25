@@ -25,10 +25,46 @@ using namespace xpcc::stm32;
 namespace Board
 {
 
-/// STM32L4 running at 80MHz (USB Clock qt 48MHz) generated from the
-/// external on-board 8MHz crystal
-// using systemClock = SystemClock<Pll<ExternalCrystal<MHz8>, MHz168, MHz48> >;
+/// STM32L4 running at 48MHz generated from the
+/// internal Multispeed oscillator
 
+// Dummy clock for devices
+struct systemClock {
+	static constexpr uint32_t Frequency = 48 * MHz1;
+	static constexpr uint32_t Ahb = Frequency;
+	static constexpr uint32_t Apb1 = Frequency;
+	static constexpr uint32_t Apb2 = Frequency;
+
+	static bool inline
+	enable()
+	{
+		// set flash latency first because system already runs from MSI
+		ClockControl::setFlashLatency(Frequency);
+
+		ClockControl::enableMultiSpeedInternalClock(ClockControl::MsiFrequency::MHz48);
+
+		// ClockControl::enablePll(
+		// 	ClockControl::PllSource::MultiSpeedInternalClock,
+		// 	1,	// 4MHz / N=1 -> 4MHz
+		// 	16,	// 4MHz * M=16 -> 64MHz <= 344MHz = PLL VCO output max, >= 64 MHz = PLL VCO out min
+		// 	1,	// 64MHz / P=1 -> 64MHz = F_cpu
+		// 	2	// 64MHz / Q=2 -> 32MHz = F_usb
+		// );
+		// switch system clock to PLL output
+		// ClockControl::enableSystemClock(ClockControl::SystemClockSource::Pll);
+		// ClockControl::setAhbPrescaler(ClockControl::AhbPrescaler::Div1);
+		// APB1 has max. 50MHz
+		// ClockControl::setApb1Prescaler(ClockControl::Apb1Prescaler::Div2);
+		// ClockControl::setApb2Prescaler(ClockControl::Apb2Prescaler::Div1);
+		// update frequencies for busy-wait delay functions
+		xpcc::clock::fcpu     = Frequency;
+		xpcc::clock::fcpu_kHz = Frequency / 1000;
+		xpcc::clock::fcpu_MHz = Frequency / 1000000;
+		xpcc::clock::ns_per_loop = 47; // 3000 / 64 = 31.125 = ~31ns per delay loop
+
+		return true;
+	}
+};
 
 using Button = GpioInputA0;
 
@@ -103,7 +139,7 @@ using LedGreen = GpioOutputE8;	// User LED 5
 inline void
 initialize()
 {
-	// systemClock::enable();
+	systemClock::enable();
 	// xpcc::cortex::SysTickTimer::initialize<systemClock>();
 
 	LedGreen::setOutput(xpcc::Gpio::Low);
