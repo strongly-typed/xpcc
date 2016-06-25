@@ -35,6 +35,13 @@ struct systemClock {
 	static constexpr uint32_t Apb1 = Frequency;
 	static constexpr uint32_t Apb2 = Frequency;
 
+	static constexpr uint32_t Usart1 = Apb2;
+
+	static constexpr uint32_t Usart2 = Apb1;
+	static constexpr uint32_t Usart3 = Apb1;
+	static constexpr uint32_t Usart4 = Apb1;
+	static constexpr uint32_t Usart5 = Apb1;
+
 	static bool inline
 	enable()
 	{
@@ -140,7 +147,7 @@ inline void
 initialize()
 {
 	systemClock::enable();
-	// xpcc::cortex::SysTickTimer::initialize<systemClock>();
+	xpcc::cortex::SysTickTimer::initialize<systemClock>();
 
 	LedGreen::setOutput(xpcc::Gpio::Low);
 	LedRed::setOutput(xpcc::Gpio::Low);
