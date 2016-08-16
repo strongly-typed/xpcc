@@ -137,8 +137,9 @@ namespace xpcc
     class Mcp2515 : public ::xpcc::Can
 	{
 	public:
+		template < uint32_t McpClock, xpcc::Can::Bitrate >
 		static bool
-		initialize(uint32_t bitrate);
+		initialize();
 
 		static void
 		setFilter(accessor::Flash<uint8_t> filter);
@@ -211,6 +212,66 @@ namespace xpcc
 
 		static inline bool
 		readIdentifier(uint32_t& identifier);
+
+	protected:
+
+		/// {Clocks}, {Baudrates}, {CFG3 downto CFG1}
+		static constexpr uint8_t cfg[3][8][3] = {
+			{ // 8 MHz
+				{0x07, 0xbf, 0x0f}, //  10 kBps // Does not work
+				{0x04, 0xb6, 0x09}, //  20 kBps
+				{0x04, 0xb6, 0x03}, //  50 kBps
+				{0x04, 0xb6, 0x01}, // 100 kBps
+				{0x03, 0xac, 0x41}, // 125 kBps
+				{0x03, 0xac, 0x00}, // 250 kBps
+				{0x01, 0x91, 0x00}, // 500 kBps
+				{0x00, 0x80, 0x00}, //   1 MBps
+			},
+			{ // 16 MHz
+				{0x04, 0xb6, 0xe7}, //  10 kBps
+				{0x04, 0xb6, 0xd3}, //  20 kBps
+				{0x04, 0xb6, 0xc7}, //  50 kBps
+				{0x04, 0xb6, 0xc3}, // 100 kBps
+				{xpcc::mcp2515::PHSEG21, xpcc::mcp2515::BTLMODE | xpcc::mcp2515::PHSEG11, xpcc::mcp2515::MCP2515_BRP2 | xpcc::mcp2515::MCP2515_BRP1 | xpcc::mcp2515::MCP2515_BRP0}, // 125 kBps
+				{0x03, 0xac, 0x81}, // 250 kBps
+				{0x03, 0xac, 0x80}, // 500 kBps
+				{xpcc::mcp2515::PHSEG21, xpcc::mcp2515::BTLMODE | xpcc::mcp2515::PHSEG11, 0x00}, // 1 MBps
+			},
+			{ // 20 MHz
+				{0x04, 0xb6, 0x31}, //  10 kBps
+				{0x04, 0xb6, 0x18}, //  20 kBps
+				{0x04, 0xb6, 0x18}, //  50 kBps
+				{0x04, 0xb6, 0x04}, // 100 kBps
+				{0x04, 0xb6, 0x03}, // 125 kBps
+				{0x04, 0xb6, 0x01}, // 250 kBps
+				{0x04, 0xb6, 0x00}, // 500 kBps
+				{0x02, 0x92, 0x00}, //   1 MBps
+			}
+		};
+
+		static constexpr uint8_t
+		getCfg(uint32_t clock, xpcc::Can::Bitrate bitrate, uint8_t conf)
+		{
+			return
+			cfg[
+					(clock ==  8000000ul) ? (0u) : (
+					(clock == 16000000ul) ? (1u) : (
+					(clock == 20000000ul) ? (2u) : (0u)
+					) )
+				]
+				[
+					(bitrate == xpcc::Can::Bitrate::kBps10)  ? (0u) : (
+					(bitrate == xpcc::Can::Bitrate::kBps20)  ? (1u) : (
+					(bitrate == xpcc::Can::Bitrate::kBps50)  ? (2u) : (
+					(bitrate == xpcc::Can::Bitrate::kBps100) ? (3u) : (
+					(bitrate == xpcc::Can::Bitrate::kBps125) ? (4u) : (
+					(bitrate == xpcc::Can::Bitrate::kBps250) ? (5u) : (
+					(bitrate == xpcc::Can::Bitrate::kBps500) ? (6u) : (
+					(bitrate == xpcc::Can::Bitrate::MBps1)   ? (7u) : (0u)
+					) ) ) ) ) ) )
+				]
+				[conf];
+		}
 
 	protected:
 		static SPI spi;

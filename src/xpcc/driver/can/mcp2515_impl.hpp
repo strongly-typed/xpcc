@@ -41,22 +41,11 @@ SPI xpcc::Mcp2515<SPI, CS, INT>::spi;
 template <typename SPI, typename CS, typename INT>
 CS xpcc::Mcp2515<SPI, CS, INT>::chipSelect;
 
-template <typename SPI, typename CS, typename INT>
-INT xpcc::Mcp2515<SPI, CS, INT>::interruptPin;
-
-// ----------------------------------------------------------------------------
-namespace xpcc
-{
-	namespace mcp2515
-	{
-		EXTERN_FLASH_STORAGE(uint8_t configuration[24]);
-	}
-}
-
 // ----------------------------------------------------------------------------
 template <typename SPI, typename CS, typename INT>
+template < uint32_t mcpClock, xpcc::Can::Bitrate bitrate >
 bool
-xpcc::Mcp2515<SPI, CS, INT>::initialize(uint32_t bitrate)
+xpcc::Mcp2515<SPI, CS, INT>::initialize()
 {
 	using namespace mcp2515;
 
@@ -74,14 +63,15 @@ xpcc::Mcp2515<SPI, CS, INT>::initialize(uint32_t bitrate)
 	spi.transferBlocking(WRITE);
 	spi.transferBlocking(CNF3);
 
-	accessor::Flash<uint8_t> cfgPtr(mcp2515::configuration);
-	for (uint8_t i = 0; i < 3; ++i)
-	{
-		// load CNF1..3
-		spi.transferBlocking(cfgPtr[static_cast<uint8_t>(bitrate) * 3 + i]);
-	}
+	uint8_t cfg3 = xpcc::Mcp2515<SPI, CS, INT>::getCfg(mcpClock, bitrate, 0);
+	uint8_t cfg2 = xpcc::Mcp2515<SPI, CS, INT>::getCfg(mcpClock, bitrate, 1);
+	uint8_t cfg1 = xpcc::Mcp2515<SPI, CS, INT>::getCfg(mcpClock, bitrate, 2);
 
-	// enable interrupts
+	spi.transferBlocking(cfg3);
+	spi.transferBlocking(cfg2);
+	spi.transferBlocking(cfg1);
+
+	// enable interrupts in CANINTE
 	spi.transferBlocking(RX1IE | RX0IE);
 	chipSelect.set();
 
@@ -92,7 +82,7 @@ xpcc::Mcp2515<SPI, CS, INT>::initialize(uint32_t bitrate)
 	writeRegister(BFPCTRL, 0);
 
 	// check if we could read back some of the values
-	if (readRegister(CNF2) != cfgPtr[static_cast<uint8_t>(bitrate) * 3 + 1])
+	if (readRegister(CNF2) != cfg2)
 	{
 		// we are not able to communicate with the MCP2515 => abort
 		return false;
@@ -171,7 +161,7 @@ template <typename SPI, typename CS, typename INT>
 bool
 xpcc::Mcp2515<SPI, CS, INT>::isMessageAvailable()
 {
-	return !interruptPin.read();
+	return not interruptPin.read();
 }
 
 // ----------------------------------------------------------------------------
