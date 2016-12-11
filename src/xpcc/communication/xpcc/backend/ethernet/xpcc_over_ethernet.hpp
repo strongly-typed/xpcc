@@ -34,16 +34,16 @@ public:
 		ethFrame[1] = macPreamble[1];
 		ethFrame[2] = macPreamble[2];
 		ethFrame[3] = macPreamble[3];
-		ethFrame[4] = 0; // padding or container
-		ethFrame[5] = header.destination;
+		ethFrame[4] = 0x20; // container
+		ethFrame[5] = header.destination; // component
 
 		// Source MAC
 		ethFrame[6 + 0] = macPreamble[0];
 		ethFrame[6 + 1] = macPreamble[1];
 		ethFrame[6 + 2] = macPreamble[2];
 		ethFrame[6 + 3] = macPreamble[3];
-		ethFrame[6 + 4] = 0; // padding or container
-		ethFrame[6 + 5] = header.source;
+		ethFrame[6 + 4] = 0x10; // container
+		ethFrame[6 + 5] = header.source; // component
 
 		// Frame Type
 		ethFrame[12 + 0] = 0x82;

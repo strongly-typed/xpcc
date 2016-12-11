@@ -202,12 +202,15 @@ main()
   // RECEIVER = 0x02,
 
   // Sender
-	// uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 0x00, 0x01 };
+	uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 
+    static_cast<uint8_t>(robot::container::Identifier::Sender),
+    robot::component::Identifier::SENDER };
 
   // Receiver
-  uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 
-    robot::container::Identifier::Receiver,
-    robot::component::Identifier::Receiver };
+  // uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 
+  //   static_cast<uint8_t>(robot::container::Identifier::Receiver),
+  //   robot::component::Identifier::RECEIVER };
+
 	#define LAN8742A_PHY_ADDRESS            0x00
 
 	// HAL_Init();
@@ -267,8 +270,8 @@ main()
     // deliver received messages
     dispatcher.update();
 
-    component::receiver.update();
-    // component::sender.update();
+    // component::receiver.update();
+    component::sender.update();
 
 		// xpcc::delayMilliseconds(Button::read() ? 100 : 500);
 
