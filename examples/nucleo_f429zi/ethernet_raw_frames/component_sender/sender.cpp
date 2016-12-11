@@ -22,7 +22,7 @@
 component::Sender::Sender(uint8_t id, xpcc::Dispatcher &communication) :
 	xpcc::AbstractComponent(id, communication),
 	positionCallback(this, &Sender::getPositionCallback),
-	timer(1000),
+	timer(10000),
 	location(10, 20, 0.0f)
 {
 }
