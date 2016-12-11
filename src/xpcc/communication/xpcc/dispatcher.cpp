@@ -146,7 +146,7 @@ xpcc::Dispatcher::handlePacket(const Header& header,
 				else
 				{
 					// response or negative response
-					if (!header.isAcknowledge) {
+					if (not header.isAcknowledge) {
 						entry->callbackResponse(header, payload);
 					} else {
 						// cannot happen, since responses with callbacks are
