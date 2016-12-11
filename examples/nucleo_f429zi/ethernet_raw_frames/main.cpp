@@ -1,4 +1,5 @@
 #include <xpcc/architecture/platform.hpp>
+#include <xpcc/processing/timer/periodic_timer.hpp>
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_eth.h"
@@ -222,7 +223,8 @@ main()
 	HAL_ETH_Start(&heth);
 
 
-
+  uint8_t writeCounter = 0;
+  xpcc::ShortPeriodicTimer tmr(1500);
 
 	while (true)
 	{
@@ -274,8 +276,21 @@ main()
 				/* Resume DMA reception */
 				heth.Instance->DMARPDR = 0;
 			}
- 
+
 		}
+
+    if (tmr.execute())
+    {
+      uint8_t *buffer = (uint8_t *)(heth.TxDesc->Buffer1Addr);
+
+      for (uint8_t ii = 0; ii < 64; ++ii) {
+        buffer[ii] = 0xff;
+      }
+
+      HAL_ETH_TransmitFrame(&heth, 64);
+
+      ++writeCounter;
+    }
 
 	}
 
