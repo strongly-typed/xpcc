@@ -26,7 +26,7 @@ class XpccOverEthernet
 public:
 	static void
 	ethernetFrameFromXpccPacket(
-		/* in  */ const Header &header, const SmartPointer payload,
+		/* in  */ const Header &header, const uint8_t container, const SmartPointer payload,
 		/* out */ EthernetFrame &ethFrame)
 	{
 		// Destination MAC
@@ -34,7 +34,7 @@ public:
 		ethFrame[1] = macPreamble[1];
 		ethFrame[2] = macPreamble[2];
 		ethFrame[3] = macPreamble[3];
-		ethFrame[4] = 0x20; // container
+		ethFrame[4] = container; // container
 		ethFrame[5] = header.destination; // component
 
 		// Source MAC
@@ -42,7 +42,7 @@ public:
 		ethFrame[6 + 1] = macPreamble[1];
 		ethFrame[6 + 2] = macPreamble[2];
 		ethFrame[6 + 3] = macPreamble[3];
-		ethFrame[6 + 4] = 0x10; // container
+		ethFrame[6 + 4] = 0x00; // container, don't care
 		ethFrame[6 + 5] = header.source; // component
 
 		// Frame Type

@@ -35,15 +35,15 @@ EthernetConnectorTest::testConversionToEthernetFrame()
 	expectedEthernetFrame[ 1] = 'R';
 	expectedEthernetFrame[ 2] = 'C';
 	expectedEthernetFrame[ 3] = 'A';
-	expectedEthernetFrame[ 4] = 0x00;
-	expectedEthernetFrame[ 5] = 0x00; // dst
+	expectedEthernetFrame[ 4] = 0x00; // dst container
+	expectedEthernetFrame[ 5] = 0x00; // dst component
 	
 	expectedEthernetFrame[ 6] = 0x8e;
 	expectedEthernetFrame[ 7] = 'R';
 	expectedEthernetFrame[ 8] = 'C';
 	expectedEthernetFrame[ 9] = 'A';
-	expectedEthernetFrame[10] = 0x00;
-	expectedEthernetFrame[11] = 0x00; // src
+	expectedEthernetFrame[10] = 0x00; // src container
+	expectedEthernetFrame[11] = 0x00; // src component
 	
 	expectedEthernetFrame[12] = 0x82;
 	expectedEthernetFrame[13] = 0x11;

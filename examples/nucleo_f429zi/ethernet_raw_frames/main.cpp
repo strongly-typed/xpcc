@@ -240,8 +240,27 @@ public:
 
 /** ***************************************************************** */
 
+static uint8_t
+containerLut(const xpcc::Header& header)
+{
+  robot::container::Identifier ret = robot::container::Identifier::Gui;
+
+  switch (header.destination)
+  {
+    case robot::component::Identifier::SENDER:
+      ret = robot::container::Identifier::Sender;
+      break;
+    case robot::component::Identifier::RECEIVER:
+      ret = robot::container::Identifier::Receiver;
+      break;
+  }
+
+  return static_cast<uint8_t>(ret);
+
+}
+
 static xpcc::EthernetDevice ethDevice;
-static xpcc::EthernetConnector< xpcc::EthernetDevice > connector(ethDevice);
+static xpcc::EthernetConnector< xpcc::EthernetDevice > connector(ethDevice, containerLut);
 
 // create an instance of the generated postman
 Postman postman;

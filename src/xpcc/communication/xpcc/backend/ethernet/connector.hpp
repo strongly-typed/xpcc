@@ -21,13 +21,16 @@
 
 namespace xpcc
 {
+typedef uint8_t (*lut_function)(const Header&);
+
 template <typename Driver>
 class EthernetConnector : public BackendInterface
 {
 public:
-	EthernetConnector(Driver &ethDriver ) :
+	EthernetConnector(Driver &ethDriver, lut_function lut ) :
 		isAvailable(false),
-		driver(ethDriver)
+		driver(ethDriver),
+		lut(lut)
 	{
 	}
 
@@ -40,10 +43,14 @@ public:
 	{
 		XPCC_LOG_DEBUG.printf("EC::sendPacket\n");
 
+		uint8_t container = lut(header);
+		XPCC_LOG_DEBUG.printf("  component id = %02x, container id = %02x\n", header.destination, container);
+
 		xpcc::EthernetFrame ethFrame;
 
 		xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(
-			/* header */ header, 
+			/* header */ header,
+			/* container */ container,
 			/* payload */payload, 
 			/* EthernetFrame */ ethFrame);
 
@@ -146,6 +153,7 @@ protected:
 	ReceiveItem *receiveItem;
 
 	Driver &driver;
+	lut_function lut; // LUT for determining the container id from component id.
 }; // EthernetConnector class
 } // xpcc namespace
 
