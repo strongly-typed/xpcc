@@ -63,6 +63,11 @@ namespace xpcc
 		/// check if there are any nodes in the list
 		inline bool
 		isEmpty() const;
+
+		/// check if there are any nodes in the list
+		inline bool
+		isNotEmpty() const
+		{ return not isEmpty(); }
 		
 		/**
 		 * \brief	Get number of elements

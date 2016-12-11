@@ -52,7 +52,7 @@ template<typename Driver>
 bool
 xpcc::CanConnector<Driver>::isPacketAvailable() const
 {
-	return !this->receivedMessages.isEmpty();
+	return this->receivedMessages.isNotEmpty();
 }
 
 template<typename Driver>
@@ -78,14 +78,14 @@ xpcc::CanConnector<Driver>::sendPacket(const Header &header, SmartPointer payloa
 	bool fragmented = (payload.getSize() > 8);
 
 	uint32_t identifier = convertToIdentifier(header, fragmented);
-	if (!fragmented && this->canDriver->isReadyToSend())
+	if ((not fragmented) and (this->canDriver->isReadyToSend()))
 	{
 		// try to send the message directly
 		successful = this->sendMessage(identifier,
 				payload.getPointer(), payload.getSize());
 	}
 
-	if (!successful)
+	if (not successful)
 	{
 		// append the message to the list of waiting messages
 		this->sendList.append(SendListItem(identifier, payload));
@@ -138,7 +138,7 @@ xpcc::CanConnector<Driver>::sendWaitingMessages()
 	}
 	else if (canDriver->getBusState() != Driver::BusState::Connected) {
 		// No connection to the CAN bus, drop all messages which should be send
-		while (!sendList.isEmpty()) {
+		while (sendList.isNotEmpty()) {
 			sendList.removeFront();
 		}
 		return;
@@ -200,7 +200,7 @@ xpcc::CanConnector<Driver>::retrieveMessage()
 		xpcc::Header header;
 		bool isFragment = convertToHeader(message.identifier, header);
 
-		if (!isFragment)
+		if (not isFragment)
 		{
 			this->receivedMessages.append(ReceiveListItem(message.length, header));
 			std::memcpy(this->receivedMessages.getBack().payload.getPointer(),
