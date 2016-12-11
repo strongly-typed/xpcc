@@ -201,7 +201,7 @@ public:
       length = heth.RxFrameInfos.length;
 
       /* Copy buffer to frame */
-      if (length < 64) {
+      if (length <= 64) {
         memcpy(frame, buffer, length);
       }
 
