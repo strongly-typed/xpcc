@@ -14,23 +14,6 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_eth.h"
 
-static uint8_t ethDevice;
-static xpcc::EthernetConnector< uint8_t > connector(ethDevice);
-
-// create an instance of the generated postman
-Postman postman;
-
-xpcc::Dispatcher dispatcher(&connector, &postman);
-
-namespace component
-{
-  Receiver receiver(robot::component::RECEIVER, dispatcher);
-  Sender sender(robot::component::SENDER, dispatcher);
-}
-
-
-using namespace Board;
-
 // Declare a ETH_HandleTypeDef handle structure, for example:
 ETH_HandleTypeDef  heth;
 
@@ -181,6 +164,98 @@ static void SystemClock_Config(void)
   //  while(1) {};
   // }
 }
+
+/** ***************************************************************** */
+
+namespace xpcc {
+
+extern "C" {
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_eth.h"
+}
+
+
+typedef uint8_t EthernetFrame[64];
+
+class EthernetDevice
+{
+public:
+  static bool
+  sendMessage(EthernetFrame &frame)
+  {
+    uint8_t *buffer = (uint8_t *)(heth.TxDesc->Buffer1Addr);
+    memcpy(buffer, frame, 64);
+    HAL_ETH_TransmitFrame(&heth, 64);
+
+    return true;
+  }
+
+  static bool
+  getMessage(uint8_t &length, EthernetFrame &frame)
+  {
+    if (HAL_ETH_GetReceivedFrame(&heth) == HAL_OK)
+    {
+      /* Get buffer */
+      __IO ETH_DMADescTypeDef *dmarxdesc = heth.RxFrameInfos.FSRxDesc;
+      uint8_t const *buffer = (uint8_t *)heth.RxFrameInfos.buffer;
+      length = heth.RxFrameInfos.length;
+
+      /* Copy buffer to frame */
+      if (length < 64) {
+        memcpy(frame, buffer, length);
+      }
+
+      /* Release descriptors to DMA */
+      /* Point to first descriptor */
+      dmarxdesc = heth.RxFrameInfos.FSRxDesc;
+      /* Set Own bit in Rx descriptors: gives the buffers back to DMA */
+      for (uint32_t i=0; i< heth.RxFrameInfos.SegCount; i++)
+      {
+        dmarxdesc->Status |= ETH_DMARXDESC_OWN;
+        dmarxdesc = (ETH_DMADescTypeDef *)(dmarxdesc->Buffer2NextDescAddr);
+      }
+
+      /* Clear Segment_Count */
+      heth.RxFrameInfos.SegCount = 0;
+
+      /* When Rx Buffer unavailable flag is set: clear it and resume reception */
+      if ((heth.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET)
+      {
+        /* Clear RBUS ETHERNET DMA flag */
+        heth.Instance->DMASR = ETH_DMASR_RBUS;
+        /* Resume DMA reception */
+        heth.Instance->DMARPDR = 0;
+      }
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+};
+
+
+} // xpcc namespace
+
+/** ***************************************************************** */
+
+static xpcc::EthernetDevice ethDevice;
+static xpcc::EthernetConnector< xpcc::EthernetDevice > connector(ethDevice);
+
+// create an instance of the generated postman
+Postman postman;
+
+xpcc::Dispatcher dispatcher(&connector, &postman);
+
+namespace component
+{
+  Receiver receiver(robot::component::RECEIVER, dispatcher);
+  Sender sender(robot::component::SENDER, dispatcher);
+}
+
+
+using namespace Board;
 
 int
 main()
