@@ -31,6 +31,11 @@ import re
 import SCons
 import SCons.Errors
 
+import logging
+
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
+
 # TODO make this more robust against whitespace etc.
 includeExpression = re.compile(r'<include>(\S+)</include>', re.M)
 
@@ -102,6 +107,8 @@ def identifier_emitter(target, source, env):
 	return (target, source)
 
 def postman_emitter(target, source, env):
+	logging.debug('postman_emitter: source before = %s' % source[0])
+	logging.debug('postman_emitter: target before = %s' % target[0])
 	try:
 		path = env['path']
 	except KeyError:
@@ -109,16 +116,20 @@ def postman_emitter(target, source, env):
 	
 	target = [os.path.join(path, "postman.cpp"),
 			  os.path.join(path, "postman.hpp")]
+	logging.debug('postman_emitter: target after = %s' % target[0])
 	
 	return (target, source)
 
 def communication_emitter(target, source, env):
+	logging.debug('communication_emitter: source before = %s' % source[0])
+	logging.debug('communication_emitter: target before = %s' % target[0])
 	try:
 		path = env['path']
 	except KeyError:
 		path = '.'
 	
 	target = [os.path.join(path, "communication.hpp")]
+	logging.debug('communication_emitter: target after = %s' % ', '.join(t for t in target))
 	
 	return (target, source)
 
@@ -133,6 +144,7 @@ def xpcc_task_caller_emitter(target, source, env):
 
 # -----------------------------------------------------------------------------
 def generate(env, **kw):
+	logging.debug('generate')
 	env.SetDefault(XPCC_SYSTEM_DESIGN_SCANNERS = {})
 	env['XPCC_SYSTEM_DESIGN_SCANNERS']['XML'] = SCons.Script.Scanner(
 					function = xml_include_scanner,

@@ -42,6 +42,11 @@ from device_identifier import DeviceIdentifier
 from SCons.Script import *
 import SCons.Tool		# to get the SCons default tool search path
 
+import logging
+
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
+
 # -----------------------------------------------------------------------------
 def exclude_from_scanner(path, filename='build.cfg'):
 	filename = os.path.join(path, filename)
@@ -160,18 +165,34 @@ def xpcc_library(env, buildpath=None):
 	return library
 
 def xpcc_communication_header(env, xmlfile, path='.', dtdPath=None, namespace='robot'):
-	files  = env.SystemCppPackets(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
-	files += env.SystemCppIdentifier(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
-	files += env.SystemCppCommunication(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
-	files += env.SystemCppXpccTaskCaller(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
+	files = []
+	cppPacketFiles = env.SystemCppPackets(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
+	logging.debug('cppPacketfiles = %s' % cppPacketFiles)
+	files += cppPacketFiles
+
+	cppIdentifierFiles = env.SystemCppIdentifier(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
+	logging.debug('cppIdentifierFiles = %s' % cppIdentifierFiles)
+	files += cppIdentifierFiles
+
+	cppCommunicationFiles = env.SystemCppCommunication(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
+	logging.debug('cppCommunicationFiles = %s' % cppCommunicationFiles)
+	files += cppCommunicationFiles
+
+	cppXpccTaskCallerFiles = env.SystemCppXpccTaskCaller(xmlfile, path=path, dtdPath=dtdPath, namespace=namespace)
+	logging.debug('cppXpccTaskCallerFiles = %s' % cppXpccTaskCallerFiles)
+	files += cppXpccTaskCallerFiles
+
 	if 'communication' in env['XPCC_CONFIG']:
-		files += env.SystemCppPostman(
+		cppSystemPostmanFiles = env.SystemCppPostman(
 				target='postman',
 				source=xmlfile,
 				container=env['XPCC_CONFIG']['communication']['container'],
 				path=path,
 				dtdPath=dtdPath,
 				namespace=namespace)
+		logging.debug('cppSystemPostmanFiles = %s' % cppSystemPostmanFiles)
+		files += cppSystemPostmanFiles
+
 
 	source = []
 	for file in files:
