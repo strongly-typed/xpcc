@@ -1,13 +1,38 @@
 #include <xpcc/architecture/platform.hpp>
 #include <xpcc/processing/timer/periodic_timer.hpp>
 
+#include <xpcc/communication.hpp>
+#include <xpcc/communication/xpcc/backend/ethernet.hpp>
+
+#include "component_receiver/receiver.hpp"
+#include "component_sender/sender.hpp"
+
+#include "communication/postman.hpp"
+#include "communication/identifier.hpp"
+
+
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_eth.h"
+
+static uint8_t ethDevice;
+static xpcc::EthernetConnector< uint8_t > connector(ethDevice);
+
+// create an instance of the generated postman
+Postman postman;
+
+xpcc::Dispatcher dispatcher(&connector, &postman);
+
+namespace component
+{
+  Receiver receiver(robot::component::RECEIVER, dispatcher);
+  Sender sender(robot::component::SENDER, dispatcher);
+}
+
 
 using namespace Board;
 
 // Declare a ETH_HandleTypeDef handle structure, for example:
-ETH_HandleTypeDef  heth;  
+ETH_HandleTypeDef  heth;
 
 extern "C" void ETH_IRQHandler(void)
 {
@@ -40,7 +65,7 @@ extern "C" void HAL_Delay(__IO uint32_t Delay)
 }
 
 /* Callback for Init */
-extern "C" void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
+extern "C" void HAL_ETH_MspInit(ETH_HandleTypeDef * /* heth */)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
   
@@ -114,26 +139,26 @@ extern "C" void HAL_ETH_MspInit(ETH_HandleTypeDef *heth)
   */
 static void SystemClock_Config(void)
 {
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_OscInitTypeDef RCC_OscInitStruct;
+  // RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  // RCC_OscInitTypeDef RCC_OscInitStruct;
 
   /* Enable Power Control clock */
-  __HAL_RCC_PWR_CLK_ENABLE();
+  // __HAL_RCC_PWR_CLK_ENABLE();
   
   /* The voltage scaling allows optimizing the power consumption when the device is 
      clocked below the maximum system frequency, to update the voltage scaling value 
      regarding system frequency refer to product datasheet.  */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  // __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   
   /* Enable HSE Oscillator and activate PLL with HSE as source */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 360;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 7;
+  // RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  // RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  // RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  // RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  // RCC_OscInitStruct.PLL.PLLM = 8;
+  // RCC_OscInitStruct.PLL.PLLN = 360;
+  // RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  // RCC_OscInitStruct.PLL.PLLQ = 7;
   // if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   // {
   //  while(1) {};
@@ -146,11 +171,11 @@ static void SystemClock_Config(void)
   
   /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2 
      clocks dividers */
-  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;  
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;  
+  // RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  // RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  // RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  // RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;  
+  // RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;  
   // if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   // {
   //  while(1) {};
@@ -173,36 +198,45 @@ main()
 	uint32_t counter(0);
 
 	// Fill parameters of Init structure in heth handle
-	uint8_t macaddress[6]= { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
+  // SENDER = 0x01,
+  // RECEIVER = 0x02,
+
+  // Sender
+	// uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 0x00, 0x01 };
+
+  // Receiver
+  uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 
+    robot::container::Identifier::Receiver,
+    robot::component::Identifier::Receiver };
 	#define LAN8742A_PHY_ADDRESS            0x00
 
-	HAL_Init();
+	// HAL_Init();
 	SystemClock_Config(); 
-  
-  	heth.Instance = ETH;  
-  	heth.Init.MACAddr = macaddress;
-  	heth.Init.AutoNegotiation = ETH_AUTONEGOTIATION_ENABLE;
-  	heth.Init.Speed = ETH_SPEED_100M;
-  	heth.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
-  	heth.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
-  	heth.Init.RxMode = ETH_RXINTERRUPT_MODE;
-  	heth.Init.ChecksumMode = ETH_CHECKSUM_BY_HARDWARE;
-  	heth.Init.PhyAddress = LAN8742A_PHY_ADDRESS;
 
-  	// Call HAL_ETH_Init() API to initialize the Ethernet peripheral (MAC, DMA, ...)
-  	XPCC_LOG_DEBUG.printf("HAL_ETH_Init ... ");
-  	if (HAL_ETH_Init(&heth) == HAL_OK) {
-  		XPCC_LOG_DEBUG.printf("OK\n");
-  	} else {
-  		XPCC_LOG_DEBUG.printf("FAIL\n");
-  	}
+  heth.Instance = ETH;  
+  heth.Init.MACAddr = macaddress;
+  heth.Init.AutoNegotiation = ETH_AUTONEGOTIATION_ENABLE;
+  heth.Init.Speed = ETH_SPEED_100M;
+  heth.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
+  heth.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
+  heth.Init.RxMode = ETH_RXINTERRUPT_MODE;
+  heth.Init.ChecksumMode = ETH_CHECKSUM_BY_HARDWARE;
+  heth.Init.PhyAddress = LAN8742A_PHY_ADDRESS;
 
-  	// Initialize the ETH low level resources through the HAL_ETH_MspInit() API:
+  // Call HAL_ETH_Init() API to initialize the Ethernet peripheral (MAC, DMA, ...)
+  XPCC_LOG_DEBUG.printf("HAL_ETH_Init ... ");
+  if (HAL_ETH_Init(&heth) == HAL_OK) {
+    XPCC_LOG_DEBUG.printf("OK\n");
+  } else {
+    XPCC_LOG_DEBUG.printf("FAIL\n");
+  }
 
-  	// (##) Enable the Ethernet interface clock using
-  	// __HAL_RCC_ETHMAC_CLK_ENABLE();
-  	// __HAL_RCC_ETHMACTX_CLK_ENABLE();
-    // __HAL_RCC_ETHMACRX_CLK_ENABLE();
+  // Initialize the ETH low level resources through the HAL_ETH_MspInit() API:
+
+  // (##) Enable the Ethernet interface clock using
+  // __HAL_RCC_ETHMAC_CLK_ENABLE();
+  // __HAL_RCC_ETHMACTX_CLK_ENABLE();
+  // __HAL_RCC_ETHMACRX_CLK_ENABLE();
 
 	// (##) Initialize the related GPIO clocks
 	// (##) Configure Ethernet pin-out
@@ -223,74 +257,81 @@ main()
 	HAL_ETH_Start(&heth);
 
 
-  uint8_t writeCounter = 0;
-  xpcc::ShortPeriodicTimer tmr(1500);
+  // uint8_t writeCounter = 0;
+  // xpcc::ShortPeriodicTimer tmr(1500);
 
 	while (true)
 	{
 		Leds::write(1 << (counter % Leds::width));
+
+    // deliver received messages
+    dispatcher.update();
+
+    component::receiver.update();
+    // component::sender.update();
+
 		// xpcc::delayMilliseconds(Button::read() ? 100 : 500);
 
 		// XPCC_LOG_INFO << "loop: " << counter++ << xpcc::endl;
 
-		if(HAL_ETH_GetReceivedFrame(&heth) == HAL_OK)
-		{
-			++counter;
-			__IO ETH_DMADescTypeDef *dmarxdesc = heth.RxFrameInfos.FSRxDesc;
-			uint8_t *buffer = (uint8_t *)heth.RxFrameInfos.buffer;
-			uint32_t length = heth.RxFrameInfos.length;
-			XPCC_LOG_DEBUG.printf("ETH: RX: %d ***********************\n", length);
+		// if(HAL_ETH_GetReceivedFrame(&heth) == HAL_OK)
+		// {
+		// 	++counter;
+		// 	__IO ETH_DMADescTypeDef *dmarxdesc = heth.RxFrameInfos.FSRxDesc;
+		// 	uint8_t *buffer = (uint8_t *)heth.RxFrameInfos.buffer;
+		// 	uint32_t length = heth.RxFrameInfos.length;
+		// 	XPCC_LOG_DEBUG.printf("ETH: RX: %d ***********************\n", length);
 
-			for (uint32_t ii = 0; ii < length; ++ii) {
-				XPCC_LOG_DEBUG.printf("%02x ", *buffer);
-				++buffer;
+		// 	for (uint32_t ii = 0; ii < length; ++ii) {
+		// 		XPCC_LOG_DEBUG.printf("%02x ", *buffer);
+		// 		++buffer;
 
-				if (ii % 8 == 7) {
-					XPCC_LOG_DEBUG.printf(" ");
-				}
-				if (ii % 16 == 15) {
-					XPCC_LOG_DEBUG.printf("\n");
-				}
-			}
-			XPCC_LOG_DEBUG.printf("\n");
+		// 		if (ii % 8 == 7) {
+		// 			XPCC_LOG_DEBUG.printf(" ");
+		// 		}
+		// 		if (ii % 16 == 15) {
+		// 			XPCC_LOG_DEBUG.printf("\n");
+		// 		}
+		// 	}
+		// 	XPCC_LOG_DEBUG.printf("\n");
 
 
-			/* Release descriptors to DMA */
-			/* Point to first descriptor */
-			dmarxdesc = heth.RxFrameInfos.FSRxDesc;
-			/* Set Own bit in Rx descriptors: gives the buffers back to DMA */
-			for (uint32_t i=0; i< heth.RxFrameInfos.SegCount; i++)
-			{  
-				dmarxdesc->Status |= ETH_DMARXDESC_OWN;
-				dmarxdesc = (ETH_DMADescTypeDef *)(dmarxdesc->Buffer2NextDescAddr);
-			}
+		// 	/* Release descriptors to DMA */
+		// 	/* Point to first descriptor */
+		// 	dmarxdesc = heth.RxFrameInfos.FSRxDesc;
+		// 	/* Set Own bit in Rx descriptors: gives the buffers back to DMA */
+		// 	for (uint32_t i=0; i< heth.RxFrameInfos.SegCount; i++)
+		// 	{  
+		// 		dmarxdesc->Status |= ETH_DMARXDESC_OWN;
+		// 		dmarxdesc = (ETH_DMADescTypeDef *)(dmarxdesc->Buffer2NextDescAddr);
+		// 	}
 
-			/* Clear Segment_Count */
-			heth.RxFrameInfos.SegCount =0;
+		// 	/* Clear Segment_Count */
+		// 	heth.RxFrameInfos.SegCount =0;
 
-			/* When Rx Buffer unavailable flag is set: clear it and resume reception */
-			if ((heth.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET)  
-			{
-				/* Clear RBUS ETHERNET DMA flag */
-				heth.Instance->DMASR = ETH_DMASR_RBUS;
-				/* Resume DMA reception */
-				heth.Instance->DMARPDR = 0;
-			}
+		// 	/* When Rx Buffer unavailable flag is set: clear it and resume reception */
+		// 	if ((heth.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET)  
+		// 	{
+		// 		/* Clear RBUS ETHERNET DMA flag */
+		// 		heth.Instance->DMASR = ETH_DMASR_RBUS;
+		// 		/* Resume DMA reception */
+		// 		heth.Instance->DMARPDR = 0;
+		// 	}
 
-		}
+		// }
 
-    if (tmr.execute())
-    {
-      uint8_t *buffer = (uint8_t *)(heth.TxDesc->Buffer1Addr);
+    // if (tmr.execute())
+    // {
+    //   uint8_t *buffer = (uint8_t *)(heth.TxDesc->Buffer1Addr);
 
-      for (uint8_t ii = 0; ii < 64; ++ii) {
-        buffer[ii] = 0xff;
-      }
+    //   for (uint8_t ii = 0; ii < 64; ++ii) {
+    //     buffer[ii] = 0xff;
+    //   }
 
-      HAL_ETH_TransmitFrame(&heth, 64);
+    //   HAL_ETH_TransmitFrame(&heth, 64);
 
-      ++writeCounter;
-    }
+    //   ++writeCounter;
+    // }
 
 	}
 

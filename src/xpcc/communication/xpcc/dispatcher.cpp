@@ -52,14 +52,14 @@ xpcc::Dispatcher::update()
 		const Header& header = this->backend->getPacketHeader();
 		const SmartPointer& payload = this->backend->getPacketPayload();
 		
-		if (header.type == Header::Type::REQUEST && !header.isAcknowledge)
+		if ((header.type == Header::Type::REQUEST) and (not header.isAcknowledge))
 		{
 			this->handleActionCall(header, payload);
 		}
 		else
 		{
 			this->handlePacket(header, payload);
-			if (!header.isAcknowledge && header.destination != 0)
+			if ((not header.isAcknowledge) and (header.destination != 0))
 			{
 				if (postman->isComponentAvailable(header.destination)) {
 					this->sendAcknowledge(header);
@@ -80,7 +80,7 @@ xpcc::Dispatcher::handleActionCall(const Header& header,
 {
 	xpcc::Postman::DeliverInfo result = postman->deliverPacket(header, payload);
 	
-	if (result == Postman::OK && header.destination != 0)
+	if ((result == Postman::OK) and (header.destination != 0))
 	{
 		// transmit ACK:
 		// Message is not an EVENT and the destination is outside

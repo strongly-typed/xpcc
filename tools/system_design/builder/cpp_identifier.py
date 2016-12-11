@@ -54,6 +54,7 @@ class IdentifierBuilder(builder_base.Builder):
 			raise builder_base.BuilderException("You need to provide a namespace!")
 
 		cppFilter = {
+			'enumElementStrong': filter.typeName,
 			'enumElement': filter.enumElement,
 			'enumElementStrong': filter.typeName,
 			'enumValue': filter.toHexValue,
@@ -64,6 +65,8 @@ class IdentifierBuilder(builder_base.Builder):
 		components = []
 		for component in self.tree.components.iter(abstract=False):
 			components.append(component.flattened())
+
+		print(self.tree.dump())
 		
 		substitutions = {
 			'domains' : self.tree.domains,

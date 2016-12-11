@@ -47,6 +47,7 @@ class Container:
 		self.description = xml_utils.get_description(node)
 		self.id = xml_utils.get_identifier(self.node)
 		
+		self.id = None
 		self.components = None
 		self.events = EventContainer()
 		self.subscriptions = None
@@ -56,6 +57,8 @@ class Container:
 	def evaluate(self, tree):
 		if self.node is None:
 			return
+
+		self.id = xml_utils.get_identifier(self.node)
 
 		self.components = utils.SingleAssignDictionary("component")
 		self.subscriptions = {}

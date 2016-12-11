@@ -12,15 +12,14 @@
 
 #include <xpcc/communication/xpcc/backend/header.hpp>
 
+#include <xpcc/debug/logger/logger.hpp>
+// set the Loglevel
+#undef  XPCC_LOG_LEVEL
+#define XPCC_LOG_LEVEL xpcc::log::DEBUG
+
 namespace xpcc {
 
-/* Ethernet Frame of minimal length */
-class xpcc_packed
-EthernetFrame
-{
-public:
-	uint8_t buffer[64];
-};
+typedef uint8_t EthernetFrame[64];
 
 class XpccOverEthernet
 {
@@ -31,51 +30,52 @@ public:
 		/* out */ EthernetFrame &ethFrame)
 	{
 		// Destination MAC
-		ethFrame.buffer[0] = macPreamble[0];
-		ethFrame.buffer[1] = macPreamble[1];
-		ethFrame.buffer[2] = macPreamble[2];
-		ethFrame.buffer[3] = macPreamble[3];
-		ethFrame.buffer[4] = 0; // padding or container
-		ethFrame.buffer[5] = header.destination;
+		ethFrame[0] = macPreamble[0];
+		ethFrame[1] = macPreamble[1];
+		ethFrame[2] = macPreamble[2];
+		ethFrame[3] = macPreamble[3];
+		ethFrame[4] = 0; // padding or container
+		ethFrame[5] = header.destination;
 
 		// Source MAC
-		ethFrame.buffer[6 + 0] = macPreamble[0];
-		ethFrame.buffer[6 + 1] = macPreamble[1];
-		ethFrame.buffer[6 + 2] = macPreamble[2];
-		ethFrame.buffer[6 + 3] = macPreamble[3];
-		ethFrame.buffer[6 + 4] = 0; // padding or container
-		ethFrame.buffer[6 + 5] = header.source;
+		ethFrame[6 + 0] = macPreamble[0];
+		ethFrame[6 + 1] = macPreamble[1];
+		ethFrame[6 + 2] = macPreamble[2];
+		ethFrame[6 + 3] = macPreamble[3];
+		ethFrame[6 + 4] = 0; // padding or container
+		ethFrame[6 + 5] = header.source;
 
 		// Frame Type
-		ethFrame.buffer[12 + 0] = 0x82;
-		ethFrame.buffer[12 + 1] = 0x11;
+		ethFrame[12 + 0] = 0x82;
+		ethFrame[12 + 1] = 0x11;
 
 		// Payload of Ethernet frame
-		ethFrame.buffer[14 + 0] = static_cast<uint8_t>(header.type);
-		ethFrame.buffer[14 + 1] = header.isAcknowledge;
-		ethFrame.buffer[14 + 2] = header.packetIdentifier;
+		ethFrame[14 + 0] = static_cast<uint8_t>(header.type);
+		ethFrame[14 + 1] = header.isAcknowledge;
+		ethFrame[14 + 2] = header.packetIdentifier;
 		uint8_t pSize = payload.getSize();
-		ethFrame.buffer[14 + 3] = pSize;
+		ethFrame[14 + 3] = pSize;
 
 		// Payload of XPCC Message
-		memcpy(ethFrame.buffer + 18, payload.getPointer(), pSize);
+		memcpy(ethFrame + 18, payload.getPointer(), pSize);
 
 		// Padding
-		memset(ethFrame.buffer + 18 + pSize, 0x00, 64 - 18 - pSize);
+		memset(ethFrame + 18 + pSize, 0x00, 64 - 18 - pSize);
 	}
 
-	static void
-	XpccPacketFromEthernetFram(
-		/* in  */ EthernetFrame &ethFrame,
-		/* out */ Header &header, SmartPointer payload)
+	static uint8_t
+	xpccPacketHeaderFromEthernetFrame(
+		/* in  */ const uint8_t *ethFrame,
+		/* out */ Header &header)
 	{
-		header.destination = ethFrame.buffer[5];
-		header.source = ethFrame.buffer[6 + 5];
-		header.type = static_cast<Header::Type>(ethFrame.buffer[14 + 0]);
-		header.isAcknowledge = ethFrame.buffer[14 + 1];
-		header.packetIdentifier = ethFrame.buffer[14 + 2];
+		header.destination = ethFrame[5];
+		header.source = ethFrame[6 + 5];
+		header.type = static_cast<Header::Type>(ethFrame[14 + 0]);
+		header.isAcknowledge = ethFrame[14 + 1];
+		header.packetIdentifier = ethFrame[14 + 2];
 
-		// payload.setSize(ethFrame.buffer[14 + 3]);
+		uint8_t size = ethFrame[14 + 3];
+		return size;
 	}
 
 protected:

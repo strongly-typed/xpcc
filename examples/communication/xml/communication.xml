@@ -39,7 +39,13 @@
 
 <!-- Components -->
 <component name="sender" id="0x01">
-	
+	<actions>
+	</actions>
+	<events>
+		<publish>
+			<event name="Robot Location" />
+		</publish>
+	</events>
 </component>
 
 <component name="receiver" id="0x02">

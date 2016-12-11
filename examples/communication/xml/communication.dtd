@@ -78,6 +78,7 @@
 
 <!ELEMENT container (description|component)*>
 <!ATTLIST container
+	id CDATA #REQUIRED
 	name CDATA #REQUIRED
 	id CDATA #REQUIRED
 >
