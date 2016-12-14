@@ -18,13 +18,15 @@ EthernetConnectorTest::testConversionToEthernetFrame()
 	// xpcc::EthernetConnector connector;
 	xpcc::Header header;
 	xpcc::SmartPointer sp;
+	uint8_t container = 0x22;
 
 	xpcc::EthernetFrame ethFrame;
 
 	// type(Type::REQUEST),	isAcknowledge(false), destination(0), source(0), packetIdentifier(0)
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, /* ack */ false, /* dst */ 0, /* src */ 0, /* id */ 0);
 	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(
-		/* header */ header, /* payload */sp, /* EthernetFrame */ ethFrame);
+		/* header */ header, /* container */ container, 
+		/* payload */sp, /* EthernetFrame */ ethFrame);
 
 	xpcc::EthernetFrame expectedEthernetFrame;
 
@@ -35,7 +37,7 @@ EthernetConnectorTest::testConversionToEthernetFrame()
 	expectedEthernetFrame[ 1] = 'R';
 	expectedEthernetFrame[ 2] = 'C';
 	expectedEthernetFrame[ 3] = 'A';
-	expectedEthernetFrame[ 4] = 0x00; // dst container
+	expectedEthernetFrame[ 4] = 0x22; // dst container
 	expectedEthernetFrame[ 5] = 0x00; // dst component
 	
 	expectedEthernetFrame[ 6] = 0x8e;
@@ -60,70 +62,70 @@ EthernetConnectorTest::testConversionToEthernetFrame()
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::RESPONSE, false, 0, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[14] = 1; // type = RESPONSE
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::NEGATIVE_RESPONSE, false, 0, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[14] = 2; // type = NEGATIVE_RESPONSE
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[14] = 0; // type = REQUEST
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, true, 0, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[15] = 1; // ack
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0xff, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[ 5] = 0xff; // dst
 	expectedEthernetFrame[15] = 0; // not ack
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0xcc, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[ 5] = 0xcc; // dst
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0x0a, 0, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[ 5] = 0x0a; // dst
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0xff, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[ 5] = 0x0; // dst
 	expectedEthernetFrame[11] = 0xff; // src
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0xcc, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[11] = 0xcc; // src
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0x0a, 0);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[11] = 0x0a; // src
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0, 0xff);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[11] = 0x0; // src
 	expectedEthernetFrame[16] = 0xff; // packet identifier
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0, 0xcc);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[16] = 0xcc; // packet identifier
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 
 	header = xpcc::Header(xpcc::Header::Type::REQUEST, false, 0, 0, 0x0a);
-	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, sp, ethFrame);
+	xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(header, container, sp, ethFrame);
 	expectedEthernetFrame[16] = 0x0a; // packet identifier
 	TEST_ASSERT_EQUALS_ARRAY(expectedEthernetFrame, ethFrame, 64, 0);
 }
