@@ -31,22 +31,18 @@ namespace Board
 // Instead this manual implementation of the system clock is used:
 /// STM32F407 running at 168MHz generated from the external 8MHz crystal
 struct systemClock {
-	static constexpr uint32_t Frequency = 168 * MHz1;
-	static constexpr uint32_t Ahb = Frequency;
-	static constexpr uint32_t Apb1 = Frequency / 4;
-	static constexpr uint32_t Apb2 = Frequency / 2;
+	static constexpr uint32_t Frequency = 216 * MHz1;
+	static constexpr uint32_t Apb1 = Frequency / 8;
+	static constexpr uint32_t Apb2 = Frequency / 4;
 
-	static constexpr uint32_t Adc = Apb2;
+	static constexpr uint32_t Adc1 = Apb2;
+	static constexpr uint32_t Adc2 = Apb2;
+	static constexpr uint32_t Adc3 = Apb2;
 
-	static constexpr uint32_t Can1   = Apb1;
-	static constexpr uint32_t Can2   = Apb1;
-
-	static constexpr uint32_t Spi1   = Apb2;
-	static constexpr uint32_t Spi2   = Apb1;
-	static constexpr uint32_t Spi3   = Apb1;
-	static constexpr uint32_t Spi4   = Apb2;
-	static constexpr uint32_t Spi5   = Apb2;
-	static constexpr uint32_t Spi6   = Apb2;
+	static constexpr uint32_t Spi1 = Apb2;
+	static constexpr uint32_t Spi2 = Apb1;
+	static constexpr uint32_t Spi3 = Apb1;
+	static constexpr uint32_t Spi4 = Apb2;
 
 	static constexpr uint32_t Usart1 = Apb2;
 	static constexpr uint32_t Usart2 = Apb1;
@@ -57,9 +53,13 @@ struct systemClock {
 	static constexpr uint32_t Uart7  = Apb1;
 	static constexpr uint32_t Uart8  = Apb1;
 
-	static constexpr uint32_t I2c1   = Apb1;
-	static constexpr uint32_t I2c2   = Apb1;
-	static constexpr uint32_t I2c3   = Apb1;
+	static constexpr uint32_t Can1 = Apb1;
+	static constexpr uint32_t Can2 = Apb1;
+
+	static constexpr uint32_t I2c1 = Apb1;
+	static constexpr uint32_t I2c2 = Apb1;
+	static constexpr uint32_t I2c3 = Apb1;
+	static constexpr uint32_t I2c4 = Apb1;
 
 	static constexpr uint32_t Apb1Timer = Apb1 * 2;
 	static constexpr uint32_t Apb2Timer = Apb2 * 2;
@@ -71,7 +71,6 @@ struct systemClock {
 	static constexpr uint32_t Timer6  = Apb1Timer;
 	static constexpr uint32_t Timer7  = Apb1Timer;
 	static constexpr uint32_t Timer8  = Apb2Timer;
-	static constexpr uint32_t Timer9  = Apb2Timer;
 	static constexpr uint32_t Timer10 = Apb2Timer;
 	static constexpr uint32_t Timer11 = Apb2Timer;
 	static constexpr uint32_t Timer12 = Apb1Timer;
@@ -81,28 +80,36 @@ struct systemClock {
 	static bool inline
 	enable()
 	{
-		ClockControl::enableExternalCrystal();	// 8MHz
+		ClockControl::enableExternalClock();	// 8MHz
 		ClockControl::enablePll(
 			ClockControl::PllSource::ExternalCrystal,
-			4,		// 8MHz / N=2 -> 2MHz
-			168,	// 2MHz * M=168 -> 336MHz
-			2,		// 336MHz / P=2 -> 168MHz = F_cpu
-			7		// 336MHz / Q=7 -> 48MHz = F_usb
+			8,		// 8MHz / N=8 -> 1MHz
+			432,	// 1MHz * M=432 -> 432MHz
+			2,		// 432MHz / P=2 -> 216MHz = F_cpu
+			9		// 432MHz / Q=9 -> 48MHz = F_usb
 		);
-		// set flash latency for 168MHz
+		// set flash latency for 216MHz
 		ClockControl::setFlashLatency(Frequency);
 		// switch system clock to PLL output
 		ClockControl::enableSystemClock(ClockControl::SystemClockSource::Pll);
+
 		ClockControl::setAhbPrescaler(ClockControl::AhbPrescaler::Div1);
-		// APB1 has max. 42MHz
-		// APB2 has max. 84MHz
-		ClockControl::setApb1Prescaler(ClockControl::Apb1Prescaler::Div4);
-		ClockControl::setApb2Prescaler(ClockControl::Apb2Prescaler::Div2);
+
+		// APB1 is running only at 27MHz, since AHB / 4 = 54MHz > 45MHz limit!
+		ClockControl::setApb1Prescaler(ClockControl::Apb1Prescaler::Div8);
+		// APB2 is running only at 54MHz, since AHB / 2 = 108MHz > 90MHz limit!
+		ClockControl::setApb2Prescaler(ClockControl::Apb2Prescaler::Div4);
 		// update frequencies for busy-wait delay functions
 		xpcc::clock::fcpu     = Frequency;
 		xpcc::clock::fcpu_kHz = Frequency / 1000;
 		xpcc::clock::fcpu_MHz = Frequency / 1000000;
 		xpcc::clock::ns_per_loop = ::round(3000 / (Frequency / 1000000));
+
+		static const TypeId::ClockOutput2 nana;
+		GpioOutputC9::connect(nana);
+		ClockControl::enableClockOutput2(ClockControl::ClockOutput2Source::Pll, 5);
+
+		// ClockControl::enableClockOutput2(ClockControl::ClockOutput2Source::ExternalClock, 4);
 
 		return true;
 	}
@@ -137,10 +144,10 @@ initialize()
 	systemClock::enable();
 	xpcc::cortex::SysTickTimer::initialize<systemClock>();
 
-	LedGreen::setOutput(xpcc::Gpio::Low);
-	LedRed::setOutput(xpcc::Gpio::Low);
+	LedGreen::setOutput(xpcc::Gpio::High);
+	LedRed::setOutput(xpcc::Gpio::High);
 
-	// Enable USART 2
+	// Enable USART 1
 	GpioOutputA9::connect(Usart1::Tx);
 	GpioInputA10::connect(Usart1::Rx, Gpio::InputType::PullUp);
 	Usart1::initialize<Board::systemClock, 115200>(12);
