@@ -70,7 +70,7 @@ void
 xpcc::Communicator::publishEvent(uint8_t eventIdentifier, const T& data)
 {
 	Header header(Header::Type::REQUEST, false,
-			0,
+			0 /* broadcast id */,
 			this->ownIdentifier,
 			eventIdentifier);
 	

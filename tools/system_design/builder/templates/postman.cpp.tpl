@@ -88,6 +88,7 @@ Postman::deliverPacket(const xpcc::Header& header, const xpcc::SmartPointer& pay
 {% endfor %}
 
 		// Events
+		// Component Id 0 is reserved for broadcasts.
 		case 0:
 			switch (header.packetIdentifier)
 			{

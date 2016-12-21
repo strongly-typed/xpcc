@@ -194,6 +194,9 @@ class Component(object):
 		
 		self.description = xml_utils.get_description(self.node)
 		self.id = xml_utils.get_identifier(self.node)
+
+		if (self.id == 0) and (self.name != 'broadcast'):
+			raise ParserException("In component '%s' id 0x00 is reserved for virtual component 'broadcast'. Please use a different id." % self.name)
 		
 		extends = self.node.get('extends')
 		if extends is None:
