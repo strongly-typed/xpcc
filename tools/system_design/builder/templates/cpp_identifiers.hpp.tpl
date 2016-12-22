@@ -68,6 +68,21 @@ namespace {{ namespace }}
 		}
 	}
 	
+	/** Looks up in which container a component is instantiated */
+	inline container::Identifier
+	containerLut(const component::Identifier component)
+	{
+		switch(component)
+		{
+		{%- for container in containers %}
+			{%- for component in container.components %}
+			case component::{{ component.name | enumElement }}:
+			{%- endfor %}
+				return container::Identifier::{{ container.name | enumElementStrong }};
+		{%- endfor %}
+		}
+	}
+
 	namespace action
 	{
 		enum Identifier
