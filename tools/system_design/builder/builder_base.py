@@ -134,7 +134,7 @@ class Builder(object):
 		
 		self.tree = parser.tree
 		self.globals = {
-			'time': time.strftime("%d %b %Y, %H:%M:%S", time.localtime()),
+			'time': time.strftime("%Y-%b-%d %H:%M:%S", time.localtime()),
 		}
 		
 		if self.options.templatePath == None:
