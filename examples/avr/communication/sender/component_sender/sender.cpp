@@ -34,7 +34,7 @@
 #undef XPCC_LOG_LEVEL
 #define	XPCC_LOG_LEVEL xpcc::log::DEBUG
 
-#include "communication/identifier.hpp"
+#include "communication/identifiers.hpp"
 #include "communication/packets.hpp"
 
 #include "sender.hpp"

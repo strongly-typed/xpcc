@@ -60,7 +60,7 @@ class IdentifierBuilder(builder_base.Builder):
 			'enumValue': filter.toHexValue,
 		}
 		
-		template = self.template('templates/robot_identifier.tpl', filter=cppFilter)
+		template = self.template('templates/cpp_identifiers.hpp.tpl', filter=cppFilter)
 			
 		components = []
 		for component in self.tree.components.iter(abstract=False):
@@ -78,7 +78,7 @@ class IdentifierBuilder(builder_base.Builder):
 		}
 					
 		if os.path.splitext(self.options.outpath)[1] == '':
-			file = os.path.join(self.options.outpath, 'identifier.hpp')
+			file = os.path.join(self.options.outpath, 'identifiers.hpp')
 		else:
 			file = self.options.outpath
 		self.write(file, template.render(substitutions) + "\n")

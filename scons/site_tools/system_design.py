@@ -102,7 +102,7 @@ def identifier_emitter(target, source, env):
 	except KeyError:
 		path = '.'
 	
-	target = [os.path.join(path, "identifier.hpp")]
+	target = [os.path.join(path, "identifiers.hpp")]
 	
 	return (target, source)
 
@@ -168,7 +168,7 @@ def generate(env, **kw):
 	env['BUILDERS']['SystemCppIdentifier'] = \
 		SCons.Script.Builder(
 			action = SCons.Action.Action(
-				'python2 "${XPCC_SYSTEM_BUILDER}/cpp_identifier.py" ' \
+				'python2 "${XPCC_SYSTEM_BUILDER}/cpp_identifiers.py" ' \
 					'--outpath ${TARGET.dir} ' \
 					'--dtdpath "${dtdPath}" ' \
 					'--namespace "${namespace}" ' \

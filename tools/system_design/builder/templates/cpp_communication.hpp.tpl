@@ -1,5 +1,5 @@
 /*
- * WARNING: This file is generated automatically from cpp_communication.tpl.
+ * WARNING: This file is generated automatically from cpp_communication.hpp.tpl.
  * Do not edit! Please modify the corresponding XML file instead.
  */
 // ----------------------------------------------------------------------------
@@ -7,14 +7,15 @@
 #ifndef {{ namespace | upper }}_CPP_COMMUNICATION_HPP
 #define {{ namespace | upper }}_CPP_COMMUNICATION_HPP
 
-#include "identifier.hpp"
+#include "identifiers.hpp"
 #include "packets.hpp"
+
 #include <xpcc/communication/xpcc/communicator.hpp>
 
 namespace {{ namespace }}
 {
 
-	/** Using this class you can publish events.*/
+	/** Using this class you can publish events in a typesafe way.*/
 	class EventPublisher
 	{
 	public:

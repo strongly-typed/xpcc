@@ -1,13 +1,13 @@
 /*
- * WARNING: This file is generated automatically from cpp_xpcc_task_caller.tpl.
+ * WARNING: This file is generated automatically from cpp_caller.hpp.tpl.
  * Do not edit! Please modify the corresponding XML file instead.
  */
 // ----------------------------------------------------------------------------
 
-#ifndef {{ namespace | upper }}_CPP_COMMUNICATION_XPCC_TASK_CALLER_HPP
-#define {{ namespace | upper }}_CPP_COMMUNICATION_XPCC_TASK_CALLER_HPP
+#ifndef {{ namespace | upper }}_CPP_COMMUNICATION_CALLER_HPP
+#define {{ namespace | upper }}_CPP_COMMUNICATION_CALLER_HPP
 
-#include "identifier.hpp"
+#include "identifiers.hpp"
 #include "packets.hpp"
 
 #include <xpcc/communication/xpcc/communicatable_task.hpp>
@@ -209,4 +209,4 @@ public:
 
 } // namespace {{ namespace }}
 
-#endif // {{ namespace | upper }}_CPP_COMMUNICATION_XPCC_TASK_CALLER_HPP
+#endif // {{ namespace | upper }}_CPP_COMMUNICATION_CALLER_HPP

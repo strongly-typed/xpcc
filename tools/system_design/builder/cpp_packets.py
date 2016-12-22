@@ -148,8 +148,8 @@ class TypeBuilder(builder_base.Builder):
 			'generateInitializationList': filter_initialization_list
 		}
 		
-		template_header = self.template('templates/robot_packets.hpp.tpl', filter=cppFilter)
-		template_source = self.template('templates/robot_packets.cpp.tpl', filter=cppFilter)
+		template_header = self.template('templates/cpp_packets.hpp.tpl', filter=cppFilter)
+		template_source = self.template('templates/cpp_packets.cpp.tpl', filter=cppFilter)
 		
 		substitutions = {
 			'components': self.tree.components,

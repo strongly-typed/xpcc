@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------------
 /*
- * WARNING: This file is generated automatically from robot_identifiers.tpl.
+ * WARNING: This file is generated automatically from cpp_identifiers.hpp.tpl.
  * Do not edit! Please modify the corresponding XML file instead.
  */
 // ----------------------------------------------------------------------------

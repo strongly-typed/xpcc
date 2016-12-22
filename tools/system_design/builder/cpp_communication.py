@@ -73,7 +73,7 @@ class CppCommunicationBuilder(builder_base.Builder):
 			'CamelCase': filter.typeName,
 			'CAMELCASE': filter.enumElement,
 		}
-		template = self.template('templates/cpp_communication.tpl',
+		template = self.template('templates/cpp_communication.hpp.tpl',
 								filter = cppFilter)
 		
 		# Bool has a special status because its primitive but user generated

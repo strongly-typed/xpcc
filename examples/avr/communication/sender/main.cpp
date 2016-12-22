@@ -16,7 +16,7 @@ typedef xpcc::avr::SystemClock clock;
 #include "component_sender/sender.hpp"
 
 #include "communication/postman.hpp"
-#include "communication/identifier.hpp"
+#include "communication/identifiers.hpp"
 
 // ----------------------------------------------------------------------------
 // Logging

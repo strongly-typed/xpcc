@@ -9,7 +9,7 @@
 #include "component_{{ component.name | camelcase }}/{{ component.name | camelcase }}.hpp"
 {%- endfor %}
 
-#include "identifier.hpp"
+#include "identifiers.hpp"
 #include "postman.hpp"
 
 namespace component

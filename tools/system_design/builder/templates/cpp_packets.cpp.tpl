@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------------
 /*
- * WARNING: This file is generated automatically from robot_packets.cpp.tpl.
+ * WARNING: This file is generated automatically from cpp_packets.cpp.tpl.
  * Do not edit! Please modify the corresponding XML file instead.
  */
 // ----------------------------------------------------------------------------
