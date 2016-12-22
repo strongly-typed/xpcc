@@ -242,28 +242,8 @@ public:
 
 /** ***************************************************************** */
 
-// static robot::container::Identifier
-static uint8_t
-containerLut(const uint8_t component)
-{
-  robot::container::Identifier ret;
-  switch (component)
-  {
-    case robot::component::Identifier::SENDER:
-      ret = robot::container::Identifier::Sender;
-      break;
-    case robot::component::Identifier::RECEIVER:
-      ret = robot::container::Identifier::Receiver;
-      break;
-    default:
-      ret = robot::container::Identifier::Gui;
-      break;
-  }
-  return static_cast<typename std::underlying_type<robot::container::Identifier>::type>(ret);
-}
-
 static xpcc::EthernetDevice ethDevice;
-static xpcc::EthernetConnector< xpcc::EthernetDevice > connector(ethDevice, containerLut);
+static xpcc::EthernetConnector< xpcc::EthernetDevice > connector(ethDevice, robot::containerLut);
 
 // create an instance of the generated postman
 Postman postman;

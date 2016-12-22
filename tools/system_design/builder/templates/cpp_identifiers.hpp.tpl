@@ -69,8 +69,8 @@ namespace {{ namespace }}
 	}
 	
 	/** Looks up in which container a component is instantiated */
-	inline container::Identifier
-	containerLut(const component::Identifier component)
+	inline uint8_t /* container::Identifier */
+	containerLut(const /* component::Identifier */ uint8_t component)
 	{
 		switch(component)
 		{
@@ -78,8 +78,11 @@ namespace {{ namespace }}
 			{%- for component in container.components %}
 			case component::{{ component.name | enumElement }}:
 			{%- endfor %}
-				return container::Identifier::{{ container.name | enumElementStrong }};
+				return static_cast<uint8_t>(container::Identifier::{{ container.name | enumElementStrong }});
 		{%- endfor %}
+			default:
+				// Error.
+				return 0xff;
 		}
 	}
 
