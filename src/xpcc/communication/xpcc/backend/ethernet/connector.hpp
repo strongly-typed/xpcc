@@ -102,12 +102,12 @@ public:
 
 				// Check if valid xpcc message
 				if ((length == 64) and 
-					(message[0] = XpccOverEthernet::macPreamble[0]) and
-					(message[1] = XpccOverEthernet::macPreamble[1]) and
-					(message[2] = XpccOverEthernet::macPreamble[2]) and
-					(message[6] = XpccOverEthernet::macPreamble[0]) and
-					(message[7] = XpccOverEthernet::macPreamble[1]) and
-					(message[8] = XpccOverEthernet::macPreamble[2]))
+					((message[0] & 0xfe) == XpccOverEthernet::macPreamble[0]) and /* ignore multicast bit */
+					(message[1] == XpccOverEthernet::macPreamble[1]) and
+					(message[2] == XpccOverEthernet::macPreamble[2]) and
+					(message[6] == XpccOverEthernet::macPreamble[0]) and
+					(message[7] == XpccOverEthernet::macPreamble[1]) and
+					(message[8] == XpccOverEthernet::macPreamble[2]))
 				{
 					// Valid
 
