@@ -12,11 +12,6 @@
 
 #include <xpcc/communication/xpcc/backend/header.hpp>
 
-#include <xpcc/debug/logger/logger.hpp>
-// set the Loglevel
-#undef  XPCC_LOG_LEVEL
-#define XPCC_LOG_LEVEL xpcc::log::DEBUG
-
 namespace xpcc {
 
 typedef uint8_t EthernetFrame[64];

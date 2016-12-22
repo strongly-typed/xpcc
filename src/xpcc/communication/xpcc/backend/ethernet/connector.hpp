@@ -12,12 +12,12 @@
 
 #include <cstring>		// for std::memcpy
 
-#include <xpcc/debug/logger.hpp>
-#undef XPCC_LOG_LEVEL
-#define	XPCC_LOG_LEVEL xpcc::log::DEBUG
-
 #include "../backend_interface.hpp"
 #include "xpcc_over_ethernet.hpp"
+
+#include <xpcc/debug/logger.hpp>
+#undef XPCC_LOG_LEVEL
+#define	XPCC_LOG_LEVEL xpcc::log::ERROR
 
 namespace xpcc
 {
