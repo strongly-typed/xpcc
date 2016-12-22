@@ -1,3 +1,5 @@
+#include <type_traits> //for std::underlying_type
+
 #include <xpcc/architecture/platform.hpp>
 #include <xpcc/processing/timer/periodic_timer.hpp>
 
@@ -240,12 +242,12 @@ public:
 
 /** ***************************************************************** */
 
+// static robot::container::Identifier
 static uint8_t
-containerLut(const xpcc::Header& header)
+containerLut(const uint8_t component)
 {
-  robot::container::Identifier ret = robot::container::Identifier::Gui;
-
-  switch (header.destination)
+  robot::container::Identifier ret;
+  switch (component)
   {
     case robot::component::Identifier::SENDER:
       ret = robot::container::Identifier::Sender;
@@ -253,10 +255,11 @@ containerLut(const xpcc::Header& header)
     case robot::component::Identifier::RECEIVER:
       ret = robot::container::Identifier::Receiver;
       break;
+    default:
+      ret = robot::container::Identifier::Gui;
+      break;
   }
-
-  return static_cast<uint8_t>(ret);
-
+  return static_cast<typename std::underlying_type<robot::container::Identifier>::type>(ret);
 }
 
 static xpcc::EthernetDevice ethDevice;
@@ -296,14 +299,16 @@ main()
   // RECEIVER = 0x02,
 
   // Sender
-	uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 
-    static_cast<uint8_t>(robot::container::Identifier::Sender),
-    robot::component::Identifier::SENDER };
+	uint8_t macaddress[6]= { 'R', 'C', 'A',
+    0 /* container */ ,
+    robot::component::Identifier::SENDER /* component */,
+    0 /* packetId */ };
 
   // Receiver
-  // uint8_t macaddress[6]= { 0x8E, 0x52, 0x43, 0x41, 
-  //   static_cast<uint8_t>(robot::container::Identifier::Receiver),
-  //   robot::component::Identifier::RECEIVER };
+  // uint8_t macaddress[6]= {'R', 'C', 'A', 
+  // 0 /* container */
+  //   robot::component::Identifier::RECEIVER,
+  // 0 /* packetId */ };
 
 	#define LAN8742A_PHY_ADDRESS            0x00
 
@@ -327,6 +332,55 @@ main()
   } else {
     XPCC_LOG_DEBUG.printf("FAIL\n");
   }
+
+
+  ETH_MACInitTypeDef macconf;
+
+  macconf.Watchdog = ETH_WATCHDOG_ENABLE;
+  macconf.Jabber = ETH_JABBER_ENABLE;
+  macconf.InterFrameGap = ETH_INTERFRAMEGAP_96BIT;
+  macconf.CarrierSense = ETH_CARRIERSENCE_ENABLE;
+  macconf.ReceiveOwn = ETH_RECEIVEOWN_DISABLE;
+  macconf.LoopbackMode = ETH_LOOPBACKMODE_DISABLE;
+  macconf.ChecksumOffload = ETH_CHECKSUMOFFLAOD_DISABLE;
+  macconf.RetryTransmission = ETH_RETRYTRANSMISSION_DISABLE;
+  macconf.AutomaticPadCRCStrip = ETH_AUTOMATICPADCRCSTRIP_DISABLE;
+  macconf.BackOffLimit = ETH_BACKOFFLIMIT_10;
+  macconf.DeferralCheck = ETH_DEFFERRALCHECK_DISABLE;
+  macconf.ReceiveAll = ETH_RECEIVEAll_DISABLE;
+  macconf.SourceAddrFilter = ETH_SOURCEADDRFILTER_DISABLE;
+  macconf.PassControlFrames = ETH_PASSCONTROLFRAMES_FORWARDALL;
+  macconf.BroadcastFramesReception = ETH_BROADCASTFRAMESRECEPTION_ENABLE;
+  macconf.DestinationAddrFilter = ETH_DESTINATIONADDRFILTER_NORMAL;
+  macconf.PromiscuousMode = ETH_PROMISCIOUSMODE_DISABLE;
+  macconf.MulticastFramesFilter = ETH_MULTICASTFRAMESFILTER_PERFECT;
+  macconf.UnicastFramesFilter = ETH_UNICASTFRAMESFILTER_PERFECT;
+  macconf.HashTableHigh = 0x0;
+  macconf.HashTableLow = 0x0;
+  macconf.PauseTime = 0x0;
+  macconf.ZeroQuantaPause = ETH_ZEROQUANTAPAUSE_DISABLE;
+  macconf.PauseLowThreshold = ETH_PAUSELOWTHRESHOLD_MINUS4;
+  macconf.UnicastPauseFrameDetect = ETH_UNICASTPAUSEFRAMEDETECT_DISABLE;
+  macconf.ReceiveFlowControl = ETH_RECEIVEFLOWCONTROL_DISABLE;
+  macconf.TransmitFlowControl = ETH_TRANSMITFLOWCONTROL_DISABLE;
+  macconf.VLANTagComparison = ETH_VLANTAGCOMPARISON_16BIT;
+  macconf.VLANTagIdentifier = 0x0;
+  HAL_ETH_ConfigMAC(&heth, &macconf);
+
+  // Add block filtering
+  ETH->MACA1HR = ETH_MACA1HR_AE |
+    ETH_MACA1HR_MBC_HBits15_8 |
+    ETH_MACA1HR_MBC_HBits7_0 |
+    ETH_MACA1HR_MBC_LBits31_24 |
+    ETH_MACA1HR_MBC_LBits23_16 |
+    macaddress[5] << 8 |
+    macaddress[4];
+  ETH->MACA1LR =
+    macaddress[3] << 24 |
+    macaddress[2] << 16 |
+    macaddress[1] <<  8 |
+    macaddress[0];
+
 
   // Initialize the ETH low level resources through the HAL_ETH_MspInit() API:
 

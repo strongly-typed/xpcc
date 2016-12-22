@@ -21,13 +21,11 @@
 
 namespace xpcc
 {
-typedef uint8_t (*lut_function)(const Header&);
-
 template <typename Driver>
 class EthernetConnector : public BackendInterface
 {
 public:
-	EthernetConnector(Driver &ethDriver, lut_function lut ) :
+	EthernetConnector(Driver &ethDriver, container_lut_function lut) :
 		isAvailable(false),
 		driver(ethDriver),
 		lut(lut)
@@ -43,15 +41,14 @@ public:
 	{
 		XPCC_LOG_DEBUG.printf("EC::sendPacket\n");
 
-		uint8_t container = lut(header);
-		XPCC_LOG_DEBUG.printf("  component id = %02x, container id = %02x\n", header.destination, container);
+		XPCC_LOG_DEBUG.printf("  component id = %02x, packet id = %02x\n", header.destination, header.packetIdentifier);
 
 		xpcc::EthernetFrame ethFrame;
 
 		xpcc::XpccOverEthernet::ethernetFrameFromXpccPacket(
-			/* header */ header,
-			/* container */ container,
-			/* payload */payload, 
+			/* header  */ header,
+			/* payload */ payload,
+			/* lut     */ lut,
 			/* EthernetFrame */ ethFrame);
 
 		driver.sendMessage(ethFrame);
@@ -105,14 +102,12 @@ public:
 
 				// Check if valid xpcc message
 				if ((length == 64) and 
-					(message[0] = 0x8e) and
-					(message[1] = 'R') and
-					(message[2] = 'C') and
-					(message[3] = 'A') and
-					(message[6] = 0x8e) and
-					(message[7] = 'R') and
-					(message[8] = 'C') and
-					(message[9] = 'A'))
+					(message[0] = XpccOverEthernet::macPreamble[0]) and
+					(message[1] = XpccOverEthernet::macPreamble[1]) and
+					(message[2] = XpccOverEthernet::macPreamble[2]) and
+					(message[6] = XpccOverEthernet::macPreamble[0]) and
+					(message[7] = XpccOverEthernet::macPreamble[1]) and
+					(message[8] = XpccOverEthernet::macPreamble[2]))
 				{
 					// Valid
 
@@ -123,7 +118,6 @@ public:
 					uint8_t size = xpcc::XpccOverEthernet::xpccPacketHeaderFromEthernetFrame(message, header);
 
 					receiveItem = new ReceiveItem(size, header);
-					xpcc::delayMilliseconds(100);
 
 					std::memcpy(receiveItem->payload.getPointer(), message + 18, size);
 				} else {
@@ -131,7 +125,6 @@ public:
 					XPCC_LOG_DEBUG.printf("drop message \n");
 					return;
 				}
-
 			}
 		}
 	}
@@ -153,7 +146,7 @@ protected:
 	ReceiveItem *receiveItem;
 
 	Driver &driver;
-	lut_function lut; // LUT for determining the container id from component id.
+	container_lut_function lut; // Function to determine container id from component id.
 }; // EthernetConnector class
 } // xpcc namespace
 

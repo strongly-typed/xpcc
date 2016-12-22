@@ -97,7 +97,8 @@ xpcc::Dispatcher::sendAcknowledge(const Header& header)
 {
 	Header ackHeader(
 			header.type, true,
-			header.source, header.destination,
+			/* destination = */ header.source, 
+			/* source = */      header.destination,
 			header.packetIdentifier);
 	
 	this->backend->sendPacket(ackHeader);

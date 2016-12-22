@@ -27,6 +27,7 @@ cap = pcap.pcap(name='en4' , snaplen=256, promisc=True, immediate=True)
 
 packet_limit = -1
 try:
+	print('Receiving frames:')
 	cap.loop(cnt=packet_limit, callback=recv_pkts) # capture packets
 except KeyboardInterrupt:
 	pass
