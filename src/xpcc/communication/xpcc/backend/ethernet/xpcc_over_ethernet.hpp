@@ -38,7 +38,7 @@ public:
 		ethFrame[1] = macPreamble[1];
 		ethFrame[2] = macPreamble[2];
 		ethFrame[3] = lut(header.destination); // Destination container
-		ethFrame[4] = header.destination; // Destination component
+		ethFrame[4] = header.destination;      // Destination component
 		ethFrame[5] = header.packetIdentifier;
 
 		// Source MAC
@@ -46,7 +46,7 @@ public:
 		ethFrame[6 + 1] = macPreamble[1];
 		ethFrame[6 + 2] = macPreamble[2];
 		ethFrame[6 + 3] = lut(header.source); // Source container
-		ethFrame[6 + 4] = header.source; // Source component
+		ethFrame[6 + 4] = header.source;      // Source component
 		ethFrame[6 + 5] = header.packetIdentifier;
 
 		// Frame Type
@@ -59,7 +59,7 @@ public:
 		uint8_t pSize = payload.getSize();
 		ethFrame[14 + 2] = pSize;
 
-		// ethFrame[17] zero-padding
+		ethFrame[17] = 0; // zero-padding
 
 		// Payload of XPCC Message
 		memcpy(ethFrame + 18, payload.getPointer(), pSize);
