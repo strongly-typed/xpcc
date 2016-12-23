@@ -39,6 +39,15 @@ component::Sender::getPositionCallback(const xpcc::Header&,
 
 // ----------------------------------------------------------------------------
 void
+component::Sender::eventRobotLocation(const xpcc::Header& header,
+	const robot::packet::Location *payload)
+{
+	XPCC_LOG_INFO << XPCC_FILE_INFO
+		<< "event Robot Location: loc = " << *payload << xpcc::endl;
+}
+
+// ----------------------------------------------------------------------------
+void
 component::Sender::update()
 {
 	if (timer.execute())

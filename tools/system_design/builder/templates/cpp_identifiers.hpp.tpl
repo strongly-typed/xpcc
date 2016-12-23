@@ -74,6 +74,8 @@ namespace {{ namespace }}
 	{
 		switch(component)
 		{
+			case 0: // Events are broadcasts to component 0, so use container 0, too.
+				return 0;
 		{%- for container in containers %}
 			{%- for component in container.components %}
 			case component::{{ component.name | enumElement }}:

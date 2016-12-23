@@ -12,10 +12,13 @@
 #define	XPCC_LOG_LEVEL xpcc::log::DEBUG
 
 #include "receiver.hpp"
+#include <communication/communication.hpp>
+#include <communication/caller.hpp>
 
 // ----------------------------------------------------------------------------
 component::Receiver::Receiver(uint8_t id, xpcc::Dispatcher &communication) :
-	xpcc::AbstractComponent(id, communication)
+	xpcc::AbstractComponent(id, communication),
+	timer(1000)
 {
 }
 
@@ -44,4 +47,12 @@ component::Receiver::actionGetPosition(const xpcc::ResponseHandle& handle)
 void
 component::Receiver::update()
 {
+	if (timer.execute())
+	{
+		robot::packet::Location location;
+		location.x = position.x;
+		location.y = position.y;
+
+		robot::EventPublisher::robotLocation(getCommunicator(), location);
+	}
 }

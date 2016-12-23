@@ -29,7 +29,7 @@ public:
 		/* out */ EthernetFrame &ethFrame)
 	{
 		// Destination MAC
-		ethFrame[0] = macPreamble[0] | 0x01; // Multicast
+		ethFrame[0] = macPreamble[0] | 0x01; // Send as Multicast
 		ethFrame[1] = macPreamble[1];
 		ethFrame[2] = macPreamble[2];
 		ethFrame[3] = lut(header.destination); // Destination container

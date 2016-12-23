@@ -24,6 +24,10 @@ namespace component
 		void
 		update();
 		
+		void
+		eventRobotLocation(const xpcc::Header& header,
+			const robot::packet::Location *payload);
+
 	private:
 		void
 		getPositionCallback(const xpcc::Header& header,

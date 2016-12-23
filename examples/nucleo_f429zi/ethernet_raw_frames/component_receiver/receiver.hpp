@@ -9,6 +9,7 @@
 #define COMPONENT__RECEIVER_HPP
 
 #include <xpcc/communication/xpcc/abstract_component.hpp>
+#include <xpcc/processing/timer.hpp>
 
 #include "communication/packets.hpp"
 
@@ -31,6 +32,7 @@ namespace component
 		
 	private:
 		robot::packet::Position position;
+		xpcc::ShortPeriodicTimer timer;
 	};
 }
 

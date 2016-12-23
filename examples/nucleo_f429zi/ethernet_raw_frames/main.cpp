@@ -16,6 +16,9 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_eth.h"
 
+#undef XPCC_LOG_LEVEL
+#define XPCC_LOG_LEVEL xpcc::log::DEBUG
+
 // Declare a ETH_HandleTypeDef handle structure, for example:
 ETH_HandleTypeDef  heth;
 
@@ -280,15 +283,15 @@ main()
 
   // Sender
 	uint8_t macaddress[6]= { 'R', 'C', 'A',
-    0 /* container */ ,
+    0x10 /* container */ ,
     robot::component::Identifier::SENDER /* component */,
-    0 /* packetId */ };
+    0x00 /* packetId */ };
 
   // Receiver
   // uint8_t macaddress[6]= {'R', 'C', 'A', 
-  // 0 /* container */
+  //   0x20, /* container */
   //   robot::component::Identifier::RECEIVER,
-  // 0 /* packetId */ };
+  //   0 /* packetId */ };
 
 	#define LAN8742A_PHY_ADDRESS            0x00
 
@@ -298,8 +301,8 @@ main()
   heth.Instance = ETH;  
   heth.Init.MACAddr = macaddress;
   heth.Init.AutoNegotiation = ETH_AUTONEGOTIATION_ENABLE;
-  heth.Init.Speed = ETH_SPEED_100M;
-  heth.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
+  heth.Init.Speed = ETH_SPEED_10M;
+  heth.Init.DuplexMode = ETH_MODE_HALFDUPLEX;
   heth.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
   heth.Init.RxMode = ETH_RXINTERRUPT_MODE;
   heth.Init.ChecksumMode = ETH_CHECKSUM_BY_HARDWARE;
@@ -313,6 +316,49 @@ main()
     XPCC_LOG_DEBUG.printf("FAIL\n");
   }
 
+  /**
+   * Filter strategy:
+   *
+   * What to filter:
+   * - ACKs and RESPs from call actions.
+   *
+   *   They are addressed to                 53:43:41:10:01:01
+   *   Mask prefix and container:            ff:ff:ff:ff
+   *   Don't care is component and packet_id             ff:ff
+   *
+   *   These are multicast packets 0x53 = 0x52 | 0x01
+   *   So implement perfect multicast filtering with ignoring the last two bytes
+   *   of the destination MAC address.
+   *
+   *   Perfect multicast filtering can be done with MAC1 (not with MAC0).
+   *   See ETH_MACA1HR Mask byte control.
+   *
+   *   All packets address to this container are matched.
+   *
+   *
+   * - Events subscribed by any of the components in this container.
+   *
+   *   There might be more that two events so perfect filtering is not possible.
+   *   Instead, imperfect, hash table based filtering is used.
+   *   Events are address to container 0 and component 0: 53:43:41:00:00:ii.
+   *   ii is the unique event identifier.
+   *   The hash index of the destination MAC address must be computed and the
+   *   corresponding bit in HTH / HTL must be set.
+   *
+   *   All events are sent as multicast packets so mutlicast hash based filtering
+   *   must be enabled. Together with ACKs and RESPs, ETH_MULTICASTFRAMESFILTER_PERFECTHASHTABLE
+   *   must be selected.
+   *
+   */
+
+  /*
+   * Generalised filter interface
+   * prefix without multicast bit
+   * HTH and HTL both work for STM32F4 and ENC28J60
+
+   setFilters(uint8_t[3] prefix, uint8_t container, uint8_t HTH, uint8_t HTL)
+
+   */
 
   ETH_MACInitTypeDef macconf;
 
@@ -331,11 +377,21 @@ main()
   macconf.SourceAddrFilter = ETH_SOURCEADDRFILTER_DISABLE;
   macconf.PassControlFrames = ETH_PASSCONTROLFRAMES_FORWARDALL;
   macconf.BroadcastFramesReception = ETH_BROADCASTFRAMESRECEPTION_ENABLE;
+  
+  // Not inverse, OK
   macconf.DestinationAddrFilter = ETH_DESTINATIONADDRFILTER_NORMAL;
   macconf.PromiscuousMode = ETH_PROMISCIOUSMODE_DISABLE;
-  macconf.MulticastFramesFilter = ETH_MULTICASTFRAMESFILTER_PERFECT;
-  macconf.UnicastFramesFilter = ETH_UNICASTFRAMESFILTER_PERFECT;
-  macconf.HashTableHigh = 0x0;
+
+  // Multicast:
+  // NONE = PAM = Pass all multicast
+  // PERFECT = Only multicast to corresponding MAC
+  // Perfect for group filter
+  // Hashtable for Events
+  macconf.MulticastFramesFilter = ETH_MULTICASTFRAMESFILTER_PERFECTHASHTABLE; // NONE;
+
+  // Unicast: Virtually unused
+  macconf.UnicastFramesFilter = ETH_UNICASTFRAMESFILTER_PERFECT; // ETH_UNICASTFRAMESFILTER_HASHTABLE;
+  macconf.HashTableHigh = 0x00000200;
   macconf.HashTableLow = 0x0;
   macconf.PauseTime = 0x0;
   macconf.ZeroQuantaPause = ETH_ZEROQUANTAPAUSE_DISABLE;
@@ -347,19 +403,29 @@ main()
   macconf.VLANTagIdentifier = 0x0;
   HAL_ETH_ConfigMAC(&heth, &macconf);
 
-  // Add block filtering
+  // Add block filtering for container
+  // Bit set = does NOT compare, so only upper 32 bits are compared, stored in MAC1LR
   ETH->MACA1HR = ETH_MACA1HR_AE |
     ETH_MACA1HR_MBC_HBits15_8 |
     ETH_MACA1HR_MBC_HBits7_0 |
-    ETH_MACA1HR_MBC_LBits31_24 |
-    ETH_MACA1HR_MBC_LBits23_16 |
-    macaddress[5] << 8 |
+    // ETH_MACA1HR_MBC_LBits31_24 |
+    // ETH_MACA1HR_MBC_LBits23_16 |
+    // ETH_MACA1HR_MBC_LBits15_8 |
+    // ETH_MACA1HR_MBC_LBits7_0 |
+    macaddress[5] << 8 | 
     macaddress[4];
   ETH->MACA1LR =
     macaddress[3] << 24 |
     macaddress[2] << 16 |
     macaddress[1] <<  8 |
-    macaddress[0];
+    (macaddress[0] | 0x01); // listen for multicast
+
+  XPCC_LOG_DEBUG.printf("MACFFR      %08x\n", ETH->MACFFR);
+  XPCC_LOG_DEBUG.printf("MAC0 H / L: %08x %08x\n", ETH->MACA0HR, ETH->MACA0LR);
+  XPCC_LOG_DEBUG.printf("MAC1 H / L: %08x %08x\n", ETH->MACA1HR, ETH->MACA1LR);
+
+  // uint32_t m = ETH->MACA1HR;
+  // XPCC_LOG_DEBUG.printf("%02x-%02x-%02x %02x-%02x-%02x\n", )
 
 
   // Initialize the ETH low level resources through the HAL_ETH_MspInit() API:
@@ -394,12 +460,15 @@ main()
 	while (true)
 	{
 		Leds::write(1 << (counter % Leds::width));
+    ++counter;
 
     // deliver received messages
     dispatcher.update();
 
     // component::receiver.update();
     component::sender.update();
+
+    xpcc::delayMilliseconds(50);
 
 		// xpcc::delayMilliseconds(Button::read() ? 100 : 500);
 
