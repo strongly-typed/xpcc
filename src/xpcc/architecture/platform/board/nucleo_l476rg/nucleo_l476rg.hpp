@@ -17,9 +17,9 @@
 #define XPCC_STM32_NUCLEO_L476RG_HPP
 
 #include <xpcc/architecture/platform.hpp>
+#include <xpcc/debug/logger.hpp>
 
 using namespace xpcc::stm32;
-
 
 namespace Board
 {
@@ -33,6 +33,13 @@ struct systemClock {
 	static constexpr uint32_t Ahb  = Frequency;
 	static constexpr uint32_t Apb1 = Frequency;
 	static constexpr uint32_t Apb2 = Frequency;
+
+	static constexpr uint32_t Usart1 = Apb2;
+
+	static constexpr uint32_t Usart2 = Apb1;
+	static constexpr uint32_t Usart3 = Apb1;
+	static constexpr uint32_t Usart4 = Apb1;
+	static constexpr uint32_t Usart5 = Apb1;
 
 	static bool inline
 	enable()
@@ -56,12 +63,24 @@ using Button = xpcc::GpioInverted<GpioInputC13>;
 
 // User LD2
 using LedGreen = GpioOutputA5;
+using Leds = xpcc::SoftwareGpioPort< LedGreen >;
+
+namespace stlink
+{
+using Tx = GpioOutputA2;
+using Rx = GpioInputA3;
+using Uart = Usart2;
+}
 
 inline void
 initialize()
 {
 	systemClock::enable();
 	xpcc::cortex::SysTickTimer::initialize<systemClock>();
+
+	stlink::Tx::connect(stlink::Uart::Tx);
+	stlink::Rx::connect(stlink::Uart::Rx, Gpio::InputType::PullUp);
+	stlink::Uart::initialize<systemClock, 115200>(12);
 
 	LedGreen::setOutput(xpcc::Gpio::Low);
 
