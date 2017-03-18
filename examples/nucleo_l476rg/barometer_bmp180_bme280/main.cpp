@@ -3,6 +3,7 @@
 #include <xpcc/io/iostream.hpp>
 #include <xpcc/architecture/interface/gpio.hpp>
 #include <xpcc/driver/pressure/bmp085.hpp>
+#include <xpcc/driver/display/ssd1306.hpp>
 
 xpcc::IODeviceWrapper< Board::stlink::Uart, xpcc::IOBuffer::BlockIfFull > device;
 xpcc::IOStream stream(device);
@@ -33,6 +34,9 @@ public:
 	update()
 	{
 		PT_BEGIN()
+
+		PT_CALL(display.initialize());
+		display.setFont(xpcc::font::Assertion);
 
 		stream << "Ping the device from ThreadOne" << xpcc::endl;
 
@@ -77,7 +81,7 @@ public:
 		stream.printf(" mc %d\n", cal.mc);
 		stream.printf(" md %d\n", cal.md);
 
-		while (1)
+		while (true)
 		{
 			static xpcc::ShortPeriodicTimer timer(250);
 
@@ -92,6 +96,21 @@ public:
 
 				stream.printf("Calibrated temperature in 0.1 degree Celsius is: %d\n",   temp  );
 				stream.printf("Calibrated pressure in Pa is                   : %d\n\n", press );
+
+				display.clear();
+
+				display.drawPixel(0,0);
+				display.drawPixel(127,0);
+				display.drawPixel(0,31);
+				display.drawPixel(127,31);
+
+				display.setCursor(0, 0);
+				display.printf("T = %2d.%1d C", temp/10, temp %10);
+
+				display.setCursor(0, 16);
+				display.printf("P = %6d Pa", press);
+
+				display.update();
 			}
 		}
 
@@ -103,6 +122,8 @@ private:
 
 	xpcc::bmp085::Data data;
 	xpcc::Bmp085<MyI2cMaster> barometer;
+
+	xpcc::Ssd1306<MyI2cMaster> display;
 };
 
 
