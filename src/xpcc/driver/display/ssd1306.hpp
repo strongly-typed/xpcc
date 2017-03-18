@@ -123,7 +123,7 @@ public:
 		{ commands = buffer; }
 
 		bool
-		configureDisplayWrite(uint8_t (*buffer)[8], std::size_t size);
+		configureDisplayWrite(uint8_t (*buffer)[4], std::size_t size);
 
 	protected:
 		virtual Writing
@@ -149,7 +149,7 @@ public:
  * @ingroup	driver_display
  */
 template < class I2cMaster >
-class Ssd1306 : public ssd1306, public BufferedGraphicDisplay<128, 64>,
+class Ssd1306 : public ssd1306, public BufferedGraphicDisplay<128, 32>,
 				public I2cDevice<I2cMaster, 2, ssd1306::DataTransmissionAdapter>
 {
 public:

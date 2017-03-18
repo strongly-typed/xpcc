@@ -37,7 +37,7 @@ xpcc::Ssd1306<I2cMaster>::initialize()
 	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetMemoryMode, 0x01));
 	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetSegmentRemap127));
 	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetComOutputScanDirectionDecrement));
-	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetComPins, 0x12));
+	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetComPins, 0x02));
 	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetContrastControl, 0xCE));
 	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetPreChargePeriod, 0xF1));
 	commandBuffer[11] &= RF_CALL(writeCommand(Command::SetV_DeselectLevel, 0x40));
@@ -57,7 +57,7 @@ xpcc::Ssd1306<I2cMaster>::startWriteDisplay()
 {
 	RF_BEGIN();
 
-	RF_WAIT_UNTIL( this->transaction.configureDisplayWrite(buffer, 1024) and this->startTransaction() );
+	RF_WAIT_UNTIL( this->transaction.configureDisplayWrite(buffer, 512) and this->startTransaction() );
 
 	RF_END();
 }

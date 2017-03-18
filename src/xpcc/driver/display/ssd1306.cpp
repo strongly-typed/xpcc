@@ -15,7 +15,7 @@ xpcc::ssd1306::DataTransmissionAdapter::DataTransmissionAdapter(uint8_t address)
 {}
 
 bool
-xpcc::ssd1306::DataTransmissionAdapter::configureDisplayWrite(uint8_t (*buffer)[8], std::size_t size)
+xpcc::ssd1306::DataTransmissionAdapter::configureDisplayWrite(uint8_t (*buffer)[4], std::size_t size)
 {
 	if (I2cWriteTransaction::configureWrite(&buffer[0][0], size))
 	{
@@ -42,7 +42,7 @@ xpcc::ssd1306::DataTransmissionAdapter::writing()
 	if (commands[13] == 0xfd)
 	{
 		commands[1] = Command::SetPageAddress;
-		commands[3] = 0;
+		commands[3] = 4;
 		commands[5] = 7;
 		commands[13] = 0xfc;
 		return Writing(commands, 6, OperationAfterWrite::Restart);
@@ -62,7 +62,7 @@ void
 xpcc::ssd1306::DataTransmissionAdapter::detaching(xpcc::I2c::DetachCause cause)
 {
 	I2cWriteTransaction::detaching(cause);
-	if (commands[13] == 0x40 or cause != xpcc::I2c::DetachCause::NormalStop)
+	if ((commands[13] == 0x40) or (cause != xpcc::I2c::DetachCause::NormalStop))
 	{
 		commands[13] = 0;
 		writeable = true;
