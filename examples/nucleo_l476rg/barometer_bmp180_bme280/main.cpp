@@ -105,7 +105,7 @@ public:
 				display.drawPixel(127,31);
 
 				display.setCursor(0, 0);
-				display.printf("T = %2d.%1d C", temp/10, temp %10);
+				display.printf("T = %2d.%1d C xpcc", temp/10, temp %10);
 
 				display.setCursor(0, 16);
 				display.printf("P = %6d Pa", press);
@@ -123,7 +123,7 @@ private:
 	xpcc::bmp085::Data data;
 	xpcc::Bmp085<MyI2cMaster> barometer;
 
-	xpcc::Ssd1306<MyI2cMaster> display;
+	xpcc::Ssd1306<MyI2cMaster, 32> display;
 };
 
 
