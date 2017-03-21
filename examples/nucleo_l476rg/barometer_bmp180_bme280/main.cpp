@@ -4,6 +4,8 @@
 #include <xpcc/architecture/interface/gpio.hpp>
 #include <xpcc/driver/pressure/bmp085.hpp>
 #include <xpcc/driver/display/ssd1306.hpp>
+#include <xpcc/driver/display/nokia5110.hpp>
+#include <xpcc/ui/display/image/home_16x16.hpp>
 
 xpcc::IODeviceWrapper< Board::stlink::Uart, xpcc::IOBuffer::BlockIfFull > device;
 xpcc::IOStream stream(device);
@@ -22,6 +24,19 @@ xpcc::IOStream stream(device);
 // typedef I2cMaster1 MyI2cMaster;
 typedef xpcc::SoftwareI2cMaster</* SCL */ GpioC2, /* SDA */ GpioC3> MyI2cMaster;
 
+namespace lcd
+{
+	using Clk = xpcc::stm32::GpioA5;
+	using Din = xpcc::stm32::GpioA7;
+
+	using Dc = xpcc::stm32::GpioOutputB6;
+	using Ce = xpcc::stm32::GpioOutputC7;
+	using Reset = xpcc::stm32::GpioOutputA9;
+}
+
+// typedef xpcc::SoftwareSpiMaster< lcd::Clk, lcd::Din> mySpiMaster;
+typedef SpiMaster1 mySpiMaster;
+
 class ThreadOne : public xpcc::pt::Protothread
 {
 public:
@@ -34,6 +49,20 @@ public:
 	update()
 	{
 		PT_BEGIN()
+
+		lcd::Reset::setOutput(xpcc::Gpio::Low);
+		lcd::Ce::setOutput(xpcc::Gpio::High);
+		lcd::Dc::setOutput(xpcc::Gpio::Low);
+
+		// Initialize
+		lcd::Reset::set();
+		lcDisplay.initialize();
+
+		lcDisplay.setCursor(0, 0);
+
+		// Write the standard welcome message ;-)
+		lcDisplay << "Hello xpcc.io";
+		lcDisplay.update();
 
 		PT_CALL(display.initialize());
 		display.setFont(xpcc::font::Assertion);
@@ -110,6 +139,28 @@ public:
 				display.setCursor(0, 16);
 				display.printf("P = %6d Pa", press);
 
+				if (true) {
+					lcDisplay.clear();
+
+					lcDisplay.drawPixel(0,0);
+					lcDisplay.drawPixel(83,0);
+					lcDisplay.drawPixel(83,47);
+					lcDisplay.drawPixel(0,47);
+
+					lcDisplay.setCursor(0,0);
+					lcDisplay.printf("T = %2d.%1d C", temp/10, temp %10);
+
+					lcDisplay.setCursor(0, 10);
+					lcDisplay.printf("P = %6d Pa", press);
+
+					lcDisplay.setCursor(0, 20);
+					lcDisplay.printf("xpcc");
+
+					lcDisplay.drawImage(xpcc::glcd::Point(0, 32), xpcc::accessor::asFlash(bitmap::home_16x16));
+
+					lcDisplay.update();
+				}
+
 				display.update();
 			}
 		}
@@ -124,6 +175,8 @@ private:
 	xpcc::Bmp085<MyI2cMaster> barometer;
 
 	xpcc::Ssd1306<MyI2cMaster, 32> display;
+
+	xpcc::Nokia5110< mySpiMaster, lcd::Ce, lcd::Dc, lcd::Reset > lcDisplay;
 };
 
 
@@ -138,6 +191,12 @@ main()
 	GpioC3::connect(MyI2cMaster::Sda, Gpio::InputType::PullUp);
 	GpioC2::connect(MyI2cMaster::Scl, Gpio::InputType::PullUp);
     MyI2cMaster::initialize<Board::systemClock, MyI2cMaster::Baudrate::Standard>();
+
+	lcd::Din::connect(SpiMaster1::Mosi);
+	lcd::Clk::connect(SpiMaster1::Sck);
+	// lcd::Clk::setOutput();
+	// lcd::Din::setOutput();
+	mySpiMaster::initialize<Board::systemClock, 3000000ul>();
 
 	stream << "\n\nWelcome to BMP085 demo!\n\n";
 
