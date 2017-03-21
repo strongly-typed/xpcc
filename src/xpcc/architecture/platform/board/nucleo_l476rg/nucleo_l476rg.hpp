@@ -34,6 +34,11 @@ struct systemClock {
 	static constexpr uint32_t Apb1 = Frequency;
 	static constexpr uint32_t Apb2 = Frequency;
 
+	static constexpr uint32_t Spi1 = Apb2;
+
+	static constexpr uint32_t Spi2 = Apb1;
+	static constexpr uint32_t Spi3 = Apb1;
+
 	static constexpr uint32_t Can1 = Apb1;
 
 	static constexpr uint32_t Usart1 = Apb2;
