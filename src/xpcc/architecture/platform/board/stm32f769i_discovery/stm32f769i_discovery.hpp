@@ -118,6 +118,32 @@ using Rx = GpioInputA10;
 using Uart = Usart1;
 }
 
+// Onboard MicroSD card slot
+namespace usd
+{
+
+// SDIO interface
+namespace sdio
+{
+using Cmd = GpioOutputD7;
+using Clk = GpioOutputD7;
+using D3  = GpioB4;
+using D2  = GpioB3;
+using D1  = GpioG10;
+using D0  = GpioG9;
+}
+
+// SPI interface
+namespace spi
+{
+using Mosi = usd_sdio::Cmd;
+using Clk  = usd_sdio::Clk;
+using Cs   = usd_sdio::D3;
+using Irq  = usd_sdio::D1;
+using Miso = usd_sdio::D0;
+}
+}
+
 inline void
 initialize()
 {
