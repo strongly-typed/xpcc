@@ -53,7 +53,7 @@ main()
 		indicator.update();
 		strobe.update();
 
-		// udpate the custoom animations
+		// udpate the custom animations
 		animator.update();
 		pulsePeriod.update();
 
