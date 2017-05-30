@@ -10,13 +10,14 @@
 
 #define XPCC_LOG_LEVEL xpcc::log::DEBUG
 
-// namespace usd
-// {
-// 	using Cs   = xpcc::stm32::GpioB4;  // LA Ch 0
-// 	using Sck  = xpcc::stm32::GpioB5;  // LA Ch 1
-// 	using Mosi = xpcc::stm32::GpioB3;  // LA Ch 2
-// 	using Miso = xpcc::stm32::GpioA10; // LA Ch 3
-// }
+/*namespace usd
+{
+	using Cs   = xpcc::stm32::GpioA10;  // LA Ch 0
+	using Sck  = xpcc::stm32::GpioB3;  // LA Ch 1
+	using Mosi = xpcc::stm32::GpioB5;  // LA Ch 2
+	using Miso = xpcc::stm32::GpioB4; // LA Ch 3
+}*/
+
 
 namespace usd
 {
@@ -44,7 +45,7 @@ struct sdcard_spi
 		ReadOcr          = 58,
 
 		// ACMD: Commands that must be prepend with CMD55 = AppCmd
-		SdV2Initialize  = 41,
+		SdV2Initialize  = 0x80+41,
 
 	};
 
@@ -286,22 +287,22 @@ main()
 			if ((receiveBuffer[2] = 0x01) /* voltage range */ and 
 			    (receiveBuffer[3] = 0xaa) /* check pattern */)
 			{
-				// Read OCR
-				res = sdcard::sendCommand(sdcard::Command::ReadOcr, 0x00, receiveBuffer);
-				XPCC_LOG_DEBUG.printf("OCR = %02x %02x %02x %02x\n", receiveBuffer[0], receiveBuffer[1], receiveBuffer[2], receiveBuffer[3]);
-				// OCR is not valid if OCR[31] is not set.
-			
-				// Card is SDv2 and works from 2.7 to 3.6 volts ??
-
 				// Initialize SDv2
 				do {
-					res = sdcard::sendCommand(sdcard::Command::SdV2Initialize, 0x00); // 1 << 30);// | 0x100000);
+					res = sdcard::sendCommand(sdcard::Command::SdV2Initialize,  1 << 30);// | 0x100000);
 					xpcc::delayMilliseconds(50);
 				} while ( (res & 0x01) != 0x00); // Wait until card is not in idle anymore
 
 				if (res != 0x00) {
 					XPCC_LOG_ERROR.printf("SdV2Initialize returned %d\n", res);
 				}
+				
+				// Read OCR
+				res = sdcard::sendCommand(sdcard::Command::ReadOcr, 0x00, receiveBuffer);
+				XPCC_LOG_DEBUG.printf("OCR = %02x %02x %02x %02x\n", receiveBuffer[0], receiveBuffer[1], receiveBuffer[2], receiveBuffer[3]);
+				// OCR is not valid if OCR[31] is not set.
+			
+				// Card is SDv2 and works from 2.7 to 3.6 volts ??
 
 				res = sdcard::sendCommand(sdcard::Command::ReadOcr, 0x00, receiveBuffer);
 				// if (res != 0x00) {
