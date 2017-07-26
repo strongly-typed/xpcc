@@ -27,7 +27,7 @@ using namespace xpcc::stm32;
 namespace Board
 {
 
-/// STM32F103 running at 72MHz generated from the external 8MHz crystal
+/// STM32F108 running at 72MHz generated from the external 25MHz oscillator
 // Dummy clock for devices
 struct systemClock {
 	static constexpr uint32_t Frequency = MHz72;
@@ -58,16 +58,21 @@ struct systemClock {
 	static bool inline
 	enable()
 	{
-		ClockControl::enableExternalCrystal();
+		ClockControl::enableExternalClock();
 
-		// external clock * 9 = 72MHz, => 72/1.5 = 48 => good for USB
-		ClockControl::enablePll(ClockControl::PllSource::ExternalCrystal, ClockControl::UsbPrescaler::Div1_5, 9);
+		// PllMull = 4 ... 9
+		// 
+		// ClockControl::enablePll(
+			// /* PllSource */ ClockControl::PllSource::ExternalClock,
+			// /* PllMul    */ 6,
+			// /* PllPrediv */ 2 , ClockControl::UsbPrescaler::Div1_5 , 3);
 
 		// set flash latency for 72MHz
 		ClockControl::setFlashLatency(Frequency);
 
 		// switch system clock to PLL output
-		ClockControl::enableSystemClock(ClockControl::SystemClockSource::Pll);
+		// ClockControl::enableSystemClock(ClockControl::SystemClockSource::Pll);
+		ClockControl::enableSystemClock(ClockControl::SystemClockSource::ExternalClock);
 
 		// AHB has max 72MHz
 		ClockControl::setAhbPrescaler(ClockControl::AhbPrescaler::Div1);
@@ -77,8 +82,6 @@ struct systemClock {
 
 		// APB2 has max. 72MHz
 		ClockControl::setApb2Prescaler(ClockControl::Apb2Prescaler::Div1);
-		// update frequencies for busy-wait delay functions
-
 
 		// update frequencies for busy-wait delay functions
 		xpcc::clock::fcpu     = Frequency;
@@ -95,8 +98,8 @@ struct systemClock {
 // using systemClock = SystemClock<Pll<ExternalCrystal<MHz8>, MHz72> >;
 
 // User LED (inverted, because connected to 3V3)
-using LedGreen = xpcc::GpioInverted< GpioOutputC13 >;
-using Leds = xpcc::SoftwareGpioPort< LedGreen >;
+// using LedGreen = xpcc::GpioInverted< GpioOutputC13 >;
+// using Leds = xpcc::SoftwareGpioPort< LedGreen >;
 
 using Button = xpcc::GpioUnused;
 
@@ -106,7 +109,7 @@ initialize()
 	systemClock::enable();
 	xpcc::cortex::SysTickTimer::initialize<systemClock>();
 
-	LedGreen::setOutput(xpcc::Gpio::Low);
+	// LedGreen::setOutput(xpcc::Gpio::Low);
 }
 
 } // Board namespace

@@ -62,6 +62,10 @@ public:
 		Hsi = 0,
 		/// High speed external clock (see HseConfig)
 		Hse = RCC_CFGR_PLLSRC,
+		// #if defined(RCC_CFGR2_PREDIV1SRC) /// STM32F1 Connectivity line devices with PLL2 and PLL3
+		// /// Pll2
+		// Pll2 = RCC_CFGR2_PREDIV1SRC,
+		// #endif
 %% endif
 %% if hsi48 is defined
 		/// High speed internal clock (48 MHz)
@@ -76,6 +80,13 @@ public:
 		InternalClock = Hsi,
 		ExternalClock = Hse,
 		ExternalCrystal = Hse,
+	};
+
+	enum class
+	Prediv1Source : uint32_t
+	{
+		Hse = RCC_CFGR2_PREDIV1SRC_HSE,
+		Pll2 = RCC_CFGR2_PREDIV1SRC_PLL2,
 	};
 
 	enum class
@@ -208,6 +219,11 @@ public:
 	%% endif
 	%% if target is stm32f1
 		Pll = RCC_CFGR_MCO_PLLCLK_DIV2,	///< divided by 2
+		#if defined (RCC_CFGR2_PREDIV1) // Connectivity line devices with PLL2 and PLL3
+		Pll2     = RCC_CFGR_MCO_PLL2CLK, ///< PLL2 clock
+		Pll3Div2 = RCC_CFGR_MCO_PLL3CLK_DIV2, ///< PLL3 clock divided by 2
+		Pll3     = RCC_CFGR_MCO_PLL3CLK, ///< PLL3 clock
+		#endif
 	%% else
 		Pll = RCC_CFGR_MCO_PLL,	///< divided by 2
 	%% endif
@@ -320,6 +336,55 @@ public:
 	%% else
 				uint8_t pllMul, uint32_t waitCycles = 2048);
 	%% endif
+%% endif
+
+%% if target is stm32f1
+#if defined (RCC_CFGR2_PREDIV1) // Connectivity line
+	static bool
+	setPrediv1Source(Prediv1Source prediv1source)
+	{
+		RCC->CFGR2 = (RCC->CFGR2 & ~(RCC_CFGR2_PREDIV1SRC)) | (uint32_t(prediv1source) & RCC_CFGR2_PREDIV1SRC);
+		return true;
+	};
+
+	static bool
+	setPll2Pll3Prescaler(uint8_t prediv2) {
+		RCC->CFGR2 = (RCC->CFGR2 & ~(RCC_CFGR2_PREDIV2)) | ((uint32_t(prediv2 - 1) << 4) & RCC_CFGR2_PREDIV2);
+		return true;
+	};
+
+	static bool
+	enablePll2(uint8_t pll2Mul, uint32_t waitCycles = 2048) {
+		RCC->CFGR2 = (RCC->CFGR2 & ~(RCC_CFGR2_PLL2MUL)) | ((uint32_t(pll2Mul - 2) << RCC_CFGR2_PLL2MUL_Pos) & RCC_CFGR2_PLL2MUL);
+
+		// enable pll2
+		RCC->CR |= RCC_CR_PLL2ON;
+
+		bool tmp;
+
+		while (not (tmp = (RCC->CR & RCC_CR_PLL2RDY)) and --waitCycles)
+			;
+
+		return tmp;
+	};
+
+	static bool
+	enablePll3(uint8_t pll3Mul, uint32_t waitCycles = 2048)
+	{
+		RCC->CFGR2 = (RCC->CFGR2 & ~(RCC_CFGR2_PLL3MUL)) | ((uint32_t(pll3Mul - 2) << RCC_CFGR2_PLL3MUL_Pos) & RCC_CFGR2_PLL3MUL);
+
+		// enable pll3
+		RCC->CR |= RCC_CR_PLL3ON;
+
+		bool tmp;
+
+		while (not (tmp = (RCC->CR & RCC_CR_PLL3RDY)) and --waitCycles)
+			;
+
+		return tmp;
+	};
+
+#endif
 %% endif
 
 	// sinks
