@@ -1,9 +1,25 @@
 #include <xpcc/architecture/platform.hpp>
+#include <xpcc/debug/logger.hpp>
 
 #include <xpcc/processing/timer.hpp>
 #include <xpcc/processing/protothread.hpp>
 
+#include <xpcc/driver/can/mcp2515.hpp>
+
 using namespace Board;
+
+// Set the log level
+#undef	XPCC_LOG_LEVEL
+#define	XPCC_LOG_LEVEL xpcc::log::DEBUG
+
+// Create an IODeviceWrapper around the Uart Peripheral we want to use
+xpcc::IODeviceWrapper< Usart1, xpcc::IOBuffer::BlockIfFull > loggerDevice;
+
+// Set all four logger streams to use the UART
+xpcc::log::Logger xpcc::log::debug(loggerDevice);
+xpcc::log::Logger xpcc::log::info(loggerDevice);
+xpcc::log::Logger xpcc::log::warning(loggerDevice);
+xpcc::log::Logger xpcc::log::error(loggerDevice);
 
 /*
  * Blinks the green user LED with 1 Hz.
@@ -73,7 +89,9 @@ main()
 	// Init CAN
 	GpioOutputB9::connect(Can1::Tx, Gpio::OutputType::PushPull);
 	GpioInputB8::connect(Can1::Rx, Gpio::InputType::PullUp);
-	Can1::initialize<Board::systemClock, Can1::Bitrate::kBps125>(12);
+
+	static constexpr xpcc::Can::Bitrate can_bitrate = xpcc::Can::Bitrate::kBps125;
+	Can1::initialize<Board::systemClock, can_bitrate>(12);
 
 	// Receive every CAN message
 	CanFilter::setFilter(0, CanFilter::FIFO0,
@@ -187,19 +205,98 @@ main()
 	while(true)
 	{
 		LedGreen::toggle();
+		Usart1::write('s');
 		// GpioOutputB9::toggle();
 		xpcc::delayMilliseconds(500);
 	}
 
-	while (true)
+	// Unusable (debug pins)
+	// GpioOutputB4::disconnect();
+	// GpioOutputB3::disconnect();
+
+	XPCC_LOG_DEBUG << "Hello at MCP2515 demo" << xpcc::endl;
+
+	// xpcc::can::Message msg1(1, 1);
+ //    msg1.setExtended(true);
+ //    msg1.data[0] = 0x11;
+ //    Can1::sendMessage(msg1);
+
+	// GpioOutputB9::setOutput();
+
+	while(true)
+	{
+		GpioOutputC10::connect(SpiMaster3::Sck);
+		GpioOutputC12::connect(SpiMaster3::Mosi);
+		GpioInputC11::connect(SpiMaster3::Miso);
+		using Cs = GpioOutputD2;
+		Cs::setOutput();
+
+		SpiMaster3::initialize<Board::systemClock, 4500000ul>();
+
+		xpcc::Mcp2515< SpiMaster3, Cs, xpcc::GpioUnused> mcp;
+
+		
+		if (not mcp.initialize<xpcc::clock::MHz8, can_bitrate>())
+		{
+			LedRed::toggle();
+			xpcc::delayMilliseconds(100);
+		}
+
+		FLASH_STORAGE(uint8_t lala[]) = {0x11, 0x22};
+
+		FLASH_STORAGE(uint8_t can_filter[]) =
+ 		{
+			MCP2515_FILTER_EXTENDED(0),	// Filter 0
+			MCP2515_FILTER_EXTENDED(0),	// Filter 1
+
+			MCP2515_FILTER_EXTENDED(0),	// Filter 2
+			MCP2515_FILTER_EXTENDED(0),	// Filter 3
+			MCP2515_FILTER_EXTENDED(0),	// Filter 4
+			MCP2515_FILTER_EXTENDED(0),	// Filter 5
+
+			MCP2515_MASK_EXTENDED(0),	// Mask 0
+			MCP2515_MASK_EXTENDED(0),	// Mask 1
+		};
+
+		mcp.setFilter(xpcc::accessor::asFlash(can_filter));
+
+		mcp.setMode(xpcc::Can::Mode::Normal);
+
+		xpcc::PeriodicTimer pt(50);
+
+		while(true)
+		{
+			if (pt.execute())
+			{
+				LedGreen::reset();
+				LedRed::reset();
+			
+				if (mcp.isReadyToSend())
+				{
+					LedGreen::set();
+					xpcc::can::Message message(0x02);
+					message.length = 2;
+					message.data[0] = 0x55;
+					message.data[1] = 0x55;
+					mcp.sendMessage(message);
+				} else {
+					LedRed::set();
+				}
+				xpcc::can::Message message(0x04);
+				message.length = 2;
+				message.data[0] = 0xaa;
+				message.data[1] = 0xaa;
+				Can1::sendMessage(message);
+
+				LedGreen::reset();
+			}
+		}
+	}
+
+	while (false)
 	{
 		Usart1::write('s');
-		xpcc::delayMilliseconds(500);
-
-		Usart1::write('t');
-		// if (not Button1::read()) { Led3::set(); }
-		// if (not Button2::read()) { Led4::set(); }
-		xpcc::delayMilliseconds(500);
+		xpcc::delayMilliseconds(100);
 
 		uint8_t cc;
 		if (Usart1::read(cc)) { 
