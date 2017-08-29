@@ -206,7 +206,7 @@ namespace xpcc
 		readStatus(uint8_t type);
 
 		static inline void
-		writeIdentifier(const uint32_t& identifier, bool isExtendedFrame);
+		writeIdentifier(uint8_t *buf, const uint32_t& identifier, const bool isExtendedFrame);
 
 		static inline bool
 		readIdentifier(uint32_t& identifier);

@@ -18,7 +18,7 @@
 
 
 #undef	XPCC_LOG_LEVEL
-#define	XPCC_LOG_LEVEL xpcc::log::DISABLED
+#define	XPCC_LOG_LEVEL xpcc::log::DEBUG
 
 // ----------------------------------------------------------------------------
 template <typename SPI, typename CS, typename INT>
@@ -96,6 +96,8 @@ xpcc::Mcp2515<SPI, CS, INT>::initializeWithPrescaler(
 
 	// reset device to normal mode and disable the clkout pin and
 	// wait until the new mode is active
+
+	// ToDo: deadlock preventer
 	writeRegister(CANCTRL, 0);
 	while ((readRegister(CANSTAT) &
 			(OPMOD2 | OPMOD1 | OPMOD0)) != 0) {
@@ -269,25 +271,25 @@ xpcc::Mcp2515<SPI, CS, INT>::sendMessage(const can::Message& message)
 		address = 0x04;		// TXB2SIDH
 	}
 	else {
-		// all buffer are in use => could not send the message
+		// all buffers are in use => could not send the message
 		return false;
 	}
 
 	chipSelect.reset();
-	spi.transferBlocking(WRITE_TX | address);
-	writeIdentifier(message.identifier, message.flags.extended);
+	uint8_t tx_buf[14] = {0};
 
-	// if the message is a rtr-frame, is has a length but no attached data
+	tx_buf[0] = WRITE_TX | address;
+	writeIdentifier(tx_buf + 1, message.identifier, message.flags.extended);
+
+	// if the message is a rtr-frame, it has a length but no attached data
 	if (message.flags.rtr) {
-		spi.transferBlocking(MCP2515_RTR | message.length);
+		tx_buf[5] = MCP2515_RTR | message.length;
 	}
 	else {
-		spi.transferBlocking(message.length);
-
-		for (uint8_t i = 0; i < message.length; ++i) {
-			spi.transferBlocking(message.data[i]);
-		}
+		tx_buf[5] = message.length;
+		memcpy(tx_buf + 6, message.data, message.length);
 	}
+	spi.transferBlocking(tx_buf, nullptr, message.flags.rtr ? 6 : 6 + message.length);
 	chipSelect.set();
 
 	xpcc::delayMicroseconds(1);
@@ -363,8 +365,9 @@ xpcc::Mcp2515<SPI, CS, INT>::readStatus(uint8_t type)
 
 template <typename SPI, typename CS, typename INT>
 void
-xpcc::Mcp2515<SPI, CS, INT>::writeIdentifier(const uint32_t& identifier,
-											 bool isExtendedFrame)
+xpcc::Mcp2515<SPI, CS, INT>::writeIdentifier(uint8_t *buf,
+											 const uint32_t& identifier,
+											 const bool isExtendedFrame)
 {
 	using namespace mcp2515;
 
@@ -372,7 +375,7 @@ xpcc::Mcp2515<SPI, CS, INT>::writeIdentifier(const uint32_t& identifier,
 
 	if (isExtendedFrame)
 	{
-		spi.transferBlocking(*((uint16_t *) ptr + 1) >> 5);
+		buf[0] = *((uint16_t *) ptr + 1) >> 5;
 
 		// calculate the next values
 		uint8_t temp;
@@ -380,16 +383,16 @@ xpcc::Mcp2515<SPI, CS, INT>::writeIdentifier(const uint32_t& identifier,
 		temp |= MCP2515_IDE;
 		temp |= (*((uint8_t *) ptr + 2)) & 0x03;
 
-		spi.transferBlocking(temp);
-		spi.transferBlocking(*((uint8_t *) ptr + 1));
-		spi.transferBlocking(*((uint8_t *) ptr));
+		buf[1] = temp;
+		buf[2] = *((uint8_t *) ptr + 1);
+		buf[3] = *((uint8_t *) ptr);
 	}
 	else
 	{
-		spi.transferBlocking(*((uint16_t *) ptr) >> 3);
-		spi.transferBlocking(*((uint8_t *) ptr) << 5);
-		spi.transferBlocking(0);
-		spi.transferBlocking(0);
+		buf[0] = *((uint16_t *) ptr) >> 3;
+		buf[1] = *((uint8_t *) ptr) << 5;
+		buf[2] = 0;
+		buf[3] = 0;
 	}
 }
 

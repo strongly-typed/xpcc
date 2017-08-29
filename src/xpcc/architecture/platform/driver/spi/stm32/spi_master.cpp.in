@@ -58,6 +58,24 @@ xpcc::stm32::SpiMaster{{ id }}::release(void *ctx)
 }
 // ----------------------------------------------------------------------------
 
+xpcc::ResumableResult<void>
+xpcc::stm32::SpiMaster{{ id }}::transferTxOnly(uint8_t data)
+{
+	if ( !(state & Bit0) )
+	{
+		if (!SpiHal{{ id }}::isTransmitRegisterEmpty()) {
+			return {xpcc::rf::Running};
+		}
+
+		SpiHal{{ id }}::write(data);
+
+		state |= Bit0;
+	}
+
+	state &= ~Bit0;
+	return {xpcc::rf::Stop};
+}
+
 xpcc::ResumableResult<uint8_t>
 xpcc::stm32::SpiMaster{{ id }}::transfer(uint8_t data)
 {
@@ -71,8 +89,9 @@ xpcc::stm32::SpiMaster{{ id }}::transfer(uint8_t data)
 	if ( !(state & Bit0) )
 	{
 		// wait for previous transfer to finish
-		if (!SpiHal{{ id }}::isTransmitRegisterEmpty())
+		if (!SpiHal{{ id }}::isTransmitRegisterEmpty()) {
 			return {xpcc::rf::Running};
+		}
 
 		// start transfer by copying data into register
 		SpiHal{{ id }}::write(data);
@@ -93,7 +112,7 @@ xpcc::stm32::SpiMaster{{ id }}::transfer(uint8_t data)
 
 xpcc::ResumableResult<void>
 xpcc::stm32::SpiMaster{{ id }}::transfer(
-		uint8_t * tx, uint8_t * rx, std::size_t length)
+		const uint8_t * tx, uint8_t * rx, std::size_t length)
 {
 	// this is a manually implemented "fast resumable function"
 	// there is no context or nesting protection, since we don't need it.
@@ -117,17 +136,28 @@ xpcc::stm32::SpiMaster{{ id }}::transfer(
 			{
 		default:
 		{
-				// if tx == 0, we use a dummy byte 0x00
+				// if tx == nullptr, we use a dummy byte 0x00
 				// else we copy it from the array
 				// call the resumable function
-				xpcc::ResumableResult<uint8_t> result = transfer(tx ? tx[index] : 0);
+				// if (rx) {
+					xpcc::ResumableResult<uint8_t> result = transfer(tx ? tx[index] : 0);
 
-				// if the resumable function is still running, so are we
-				if (result.getState() > xpcc::rf::NestingError)
-					return {xpcc::rf::Running};
+					// if the resumable function is still running, so are we
+					if (result.getState() > xpcc::rf::NestingError) {
+						return {xpcc::rf::Running};
+					}
 
-				// if rx != 0, we copy the result into the array
-				if (rx) rx[index] = result.getResult();
+					// if rx != 0, we copy the result into the array
+					if (rx) { rx[index] = result.getResult(); }
+				// } else {
+				// 	xpcc::ResumableResult<void> result = transferTxOnly(tx ? tx[index] : 0);
+
+				// 	// if the resumable function is still running, so are we
+				// 	if (result.getState() > xpcc::rf::NestingError) {
+				// 		return {xpcc::rf::Running};
+				// 	}
+				// }
+
 		}
 				index++;
 			}
