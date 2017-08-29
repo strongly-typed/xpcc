@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE rca SYSTEM "../../xml/driver.dtd">
+<rca version="1.0">
+	<driver type="eth" name="stm32">
+		<static>type_ids.hpp</static>
+		<static>eth.hpp</static>
+	</driver>
+</rca>

@@ -176,7 +176,7 @@ public:
 			xpcc::delayMicroseconds(10);
 
 			Mdc::set();
-			xpcc::delayMicroseconds(10);			
+			xpcc::delayMicroseconds(10);
 		}
 		// XPCC_LOG_DEBUG << xpcc::endl;
 
@@ -442,7 +442,7 @@ main()
 		}
 	}
 
-	while (true)
+	while (false)
 	{
 		XPCC_LOG_DEBUG << "STM32F107 LAN8720 Ethernet Demo" << xpcc::endl;
 		xpcc::delayMilliseconds(500);
@@ -472,6 +472,55 @@ main()
 		while(true)
 			{};
 	}
+
+#define ETH_MACMIIAR_CR_MASK    ((uint32_t)0xFFFFFFE3U)
+
+	while (true)
+	{
+		// ETH_MACMIIAR
+		// ETH_MACMIIDR
+
+		// Ethernet MAC clock enable
+		RCC->AHBENR |= RCC_AHBENR_ETHMACEN;
+
+		// Alternate functions
+		GpioOutputC1::connect(Eth::Mdc);
+		GpioOutputA2::connect(Eth::Mdio);
+
+for (uint8_t reg_address = 0; reg_address < 32; ++reg_address)
+{		uint32_t tmp = ETH->MACMIIAR;
+		// XPCC_LOG_DEBUG.printf("0x%04x\n", tmp);
+
+		tmp &= ~ETH_MACMIIAR_CR_MASK;
+
+		uint8_t phy_address = 0;
+		tmp |= (phy_address << 11U) & ETH_MACMIIAR_PA;
+
+		// uint8_t reg_address = 0;
+		tmp |= (reg_address << 6U) & ETH_MACMIIAR_MR;
+
+		tmp &= ~ETH_MACMIIAR_MW;
+		tmp |=  ETH_MACMIIAR_MB;
+
+		// XPCC_LOG_DEBUG.printf("0x%04x\n", tmp);
+		ETH->MACMIIAR = tmp;
+
+		while((tmp & ETH_MACMIIAR_MB) == ETH_MACMIIAR_MB)
+		{
+			// XPCC_LOG_DEBUG.printf("busy\n");
+			tmp = ETH->MACMIIAR;
+		}
+
+		tmp = ETH->MACMIIDR;
+		XPCC_LOG_DEBUG.printf("%02x = %04x\n", reg_address, tmp);
+}
+		while (true)
+			{};
+
+	}
+
+
+
 
 	return 0;
 }

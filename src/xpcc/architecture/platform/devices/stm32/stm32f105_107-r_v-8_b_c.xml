@@ -90,6 +90,7 @@
     <driver type="clock" name="stm32"/>
     <driver type="i2c" name="stm32" instances="1"/>
     <driver device-name="105" type="i2c" name="stm32" instances="2"/>
+    <driver type="eth" name="stm32"/>
     <driver type="spi" name="stm32" instances="1,2,3"/>
     <driver type="spi" name="stm32_uart" instances="1,2,3,4,5"/>
     <driver type="timer" name="stm32" instances="1,2,3,4,5,6,7"/>
@@ -118,6 +119,7 @@
         <af peripheral="Adc1" name="Channel2" type="analog"/>
         <af peripheral="Adc2" name="Channel2" type="analog"/>
         <af peripheral="Timer5" name="Channel3"/>
+        <af peripheral="Eth" name="Mdio" type="out"/>
       </gpio>
       <gpio port="A" id="3">
         <af id="3,1,0" peripheral="Uart2" name="Rx" type="in"/>
@@ -281,6 +283,7 @@
       <gpio port="C" id="1">
         <af peripheral="Adc1" name="Channel11" type="analog"/>
         <af peripheral="Adc2" name="Channel11" type="analog"/>
+        <af peripheral="Eth" name="Mdc" type="out"/>
       </gpio>
       <gpio port="C" id="2">
         <af peripheral="Adc1" name="Channel12" type="analog"/>
