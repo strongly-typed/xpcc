@@ -36,6 +36,9 @@ public:
 
 	static uint16_t
 	readPhy(const uint8_t reg_address);
+
+	static void
+	writePhy(const uint8_t reg_address, const uint16_t value);
 };
 
 } // stm32 namespace

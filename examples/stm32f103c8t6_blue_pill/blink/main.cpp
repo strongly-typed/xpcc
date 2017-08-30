@@ -490,6 +490,12 @@ main()
 			XPCC_LOG_DEBUG.printf("%02x -> %04x\n", reg_address, Eth::readPhy(reg_address));
 		}
 
+		// Loopback
+		Eth::writePhy(0x00, 0x3000 | (1 << 14));
+
+		uint8_t reg_address = 0;
+		XPCC_LOG_DEBUG.printf("%02x -> %04x\n", reg_address, Eth::readPhy(reg_address));
+
 		while (true)
 			{};
 
