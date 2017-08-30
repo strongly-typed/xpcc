@@ -4,5 +4,6 @@
 	<driver type="eth" name="stm32">
 		<static>type_ids.hpp</static>
 		<static>eth.hpp</static>
+		<static>eth_impl.hpp</static>
 	</driver>
 </rca>

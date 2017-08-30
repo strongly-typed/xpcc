@@ -473,47 +473,23 @@ main()
 			{};
 	}
 
-#define ETH_MACMIIAR_CR_MASK    ((uint32_t)0xFFFFFFE3U)
-
 	while (true)
 	{
-		// ETH_MACMIIAR
-		// ETH_MACMIIDR
-
-		// Ethernet MAC clock enable
-		RCC->AHBENR |= RCC_AHBENR_ETHMACEN;
+		Eth::initialize();
 
 		// Alternate functions
 		GpioOutputC1::connect(Eth::Mdc);
 		GpioOutputA2::connect(Eth::Mdio);
 
-for (uint8_t reg_address = 0; reg_address < 32; ++reg_address)
-{		uint32_t tmp = ETH->MACMIIAR;
-		// XPCC_LOG_DEBUG.printf("0x%04x\n", tmp);
+		GpioOutputB11::connect(Eth::TxEn);
+		GpioOutputB12::connect(Eth::TxD0);
+		GpioOutputB13::connect(Eth::TxD1);
 
-		tmp &= ~ETH_MACMIIAR_CR_MASK;
-
-		uint8_t phy_address = 0;
-		tmp |= (phy_address << 11U) & ETH_MACMIIAR_PA;
-
-		// uint8_t reg_address = 0;
-		tmp |= (reg_address << 6U) & ETH_MACMIIAR_MR;
-
-		tmp &= ~ETH_MACMIIAR_MW;
-		tmp |=  ETH_MACMIIAR_MB;
-
-		// XPCC_LOG_DEBUG.printf("0x%04x\n", tmp);
-		ETH->MACMIIAR = tmp;
-
-		while((tmp & ETH_MACMIIAR_MB) == ETH_MACMIIAR_MB)
+		for (uint8_t reg_address = 0; reg_address < 32; ++reg_address)
 		{
-			// XPCC_LOG_DEBUG.printf("busy\n");
-			tmp = ETH->MACMIIAR;
+			XPCC_LOG_DEBUG.printf("%02x -> %04x\n", reg_address, Eth::readPhy(reg_address));
 		}
 
-		tmp = ETH->MACMIIDR;
-		XPCC_LOG_DEBUG.printf("%02x = %04x\n", reg_address, tmp);
-}
 		while (true)
 			{};
 

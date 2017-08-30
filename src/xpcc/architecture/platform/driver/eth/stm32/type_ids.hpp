@@ -20,6 +20,12 @@ namespace TypeId
 {
 	typedef struct{} EthMdc;
 	typedef struct{} EthMdio;
+
+	typedef struct{} EthTxEn;
+	typedef struct{} EthTxD0;
+	typedef struct{} EthTxD1;
+
+	typedef struct{} EthPps;
 }
 
 } // namespace stm32
