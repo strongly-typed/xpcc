@@ -96,12 +96,10 @@ def size_action(target, source, env):
 				heapSections[section] = 1
 
 	# create lists of the used sections for Flash and RAM
-	flashSections = flashSections.keys()
-	flashSections.sort()
-	ramSections = ramSections.keys() + stackSections.keys()
+	flashSections = sorted(flashSections.keys())
+	ramSections = list(ramSections.keys()) + list(stackSections.keys())
 	ramSections.sort()
-	heapSections = heapSections.keys()
-	heapSections.sort()
+	heapSections = sorted(heapSections.keys())
 
 	flashPercentage = flashSize / float(env['DEVICE_SIZE']['flash']) * 100.0
 	ramPercentage = ramSize / float(env['DEVICE_SIZE']['ram']) * 100.0

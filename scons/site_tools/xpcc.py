@@ -83,8 +83,7 @@ def check_architecture(env, architecture):
 
 def show_defines_action(target, source, env):
 	projectConfig = env['XPCC_CONFIG']['defines'].keys()
-	keys = env['XPCC_LIBRARY_DEFINES'].keys()
-	keys.sort()
+	keys = sorted(env['XPCC_LIBRARY_DEFINES'].keys())
 
 	print("")
 	print("XPCC:")
