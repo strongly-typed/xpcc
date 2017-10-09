@@ -62,7 +62,7 @@ def size_action(target, source, env):
 	cmd = [env['SIZE'], '-A', str(source[0])]
 
 	# Run the default nm command (`arm-none-eabi-nm` in this case)
-	p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
 	stdout, stderr = p.communicate()
 
 	if stderr is not None:
@@ -78,7 +78,7 @@ def size_action(target, source, env):
 	stackSections = {}
 	heapSections = {}
 
-	for line in stdout.decode().splitlines():
+	for line in stdout.splitlines():
 		match = filter.match(line)
 		if match:
 			section = match.group('section')
