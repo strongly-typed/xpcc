@@ -38,6 +38,7 @@ before_install:
  - pip install --upgrade pip wheel
  - pip install jinja2 lxml
  - pip install scons==2.5.1
+ - pip install configparser future
 
 cache:
  directories:
