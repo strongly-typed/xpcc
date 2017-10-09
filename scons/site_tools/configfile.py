@@ -43,15 +43,15 @@ class ParserException(Exception):
 
 class Parser(configparser.RawConfigParser):
 
-	def read(self, filename):
+	def read(self, filename, **kwargs):
 		try:
-			return configparser.RawConfigParser.read(self, filename)
+			return configparser.RawConfigParser.read(self, filename, **kwargs)
 		except configparser.ParsingError as e:
 			raise SCons.Errors.UserError(str(e) + '\n')
 
-	def get(self, section, option, default=None):
+	def get(self, section, option, default=None, **kwargs):
 		try:
-			return configparser.RawConfigParser.get(self, section, option)
+			return configparser.RawConfigParser.get(self, section, option, **kwargs)
 		except (configparser.NoOptionError,
 				configparser.NoSectionError) as e:
 			if default != None:
@@ -59,9 +59,9 @@ class Parser(configparser.RawConfigParser):
 			else:
 				raise ParserException(e)
 
-	def getboolean(self, section, option, default=None):
+	def getboolean(self, section, option, default=None, **kwargs):
 		try:
-			return configparser.RawConfigParser.getboolean(self, section, option)
+			return configparser.RawConfigParser.getboolean(self, section, option, **kwargs)
 		except (configparser.NoOptionError,
 				configparser.NoSectionError,
 				ParserException) as e:
@@ -70,9 +70,9 @@ class Parser(configparser.RawConfigParser):
 			else:
 				raise ParserException(e)
 
-	def items(self, section):
+	def items(self, section, **kwargs):
 		try:
-			return configparser.RawConfigParser.items(self, section)
+			return configparser.RawConfigParser.items(self, section, **kwargs)
 		except (configparser.NoOptionError,
 				configparser.NoSectionError) as e:
 			raise ParserException(e)
@@ -279,7 +279,7 @@ def generate(env, **kw):
 	def generate_configparser(env):
 		return Parser()
 
-	env.AddMethod(generate_configparser, 'configparser')
+	env.AddMethod(generate_configparser, 'ConfigParser')
 
 	def find_files(env, path, unittest=None, ignore=None):
 		scanner = Scanner(env, unittest)
