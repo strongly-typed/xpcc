@@ -29,7 +29,7 @@
 import re, os, sys
 import xml.etree.ElementTree as et
 import xml.parsers.expat
-import ConfigParser
+import configparser
 import SCons.Node
 import SCons.Errors
 
@@ -41,19 +41,19 @@ def listify(node):
 class ParserException(Exception):
 	pass
 
-class Parser(ConfigParser.RawConfigParser):
+class Parser(configparser.RawConfigParser):
 
 	def read(self, filename):
 		try:
-			return ConfigParser.RawConfigParser.read(self, filename)
-		except ConfigParser.ParsingError as e:
+			return configparser.RawConfigParser.read(self, filename)
+		except configparser.ParsingError as e:
 			raise SCons.Errors.UserError(str(e) + '\n')
 
 	def get(self, section, option, default=None):
 		try:
-			return ConfigParser.RawConfigParser.get(self, section, option)
-		except (ConfigParser.NoOptionError,
-				ConfigParser.NoSectionError), e:
+			return configparser.RawConfigParser.get(self, section, option)
+		except (configparser.NoOptionError,
+				configparser.NoSectionError) as e:
 			if default != None:
 				return default
 			else:
@@ -61,10 +61,10 @@ class Parser(ConfigParser.RawConfigParser):
 
 	def getboolean(self, section, option, default=None):
 		try:
-			return ConfigParser.RawConfigParser.getboolean(self, section, option)
-		except (ConfigParser.NoOptionError,
-				ConfigParser.NoSectionError,
-				ParserException), e:
+			return configparser.RawConfigParser.getboolean(self, section, option)
+		except (configparser.NoOptionError,
+				configparser.NoSectionError,
+				ParserException) as e:
 			if default != None:
 				return default
 			else:
@@ -72,9 +72,9 @@ class Parser(ConfigParser.RawConfigParser):
 
 	def items(self, section):
 		try:
-			return ConfigParser.RawConfigParser.items(self, section)
-		except (ConfigParser.NoOptionError,
-				ConfigParser.NoSectionError), e:
+			return configparser.RawConfigParser.items(self, section)
+		except (configparser.NoOptionError,
+				configparser.NoSectionError) as e:
 			raise ParserException(e)
 
 # -----------------------------------------------------------------------------
@@ -279,7 +279,7 @@ def generate(env, **kw):
 	def generate_configparser(env):
 		return Parser()
 
-	env.AddMethod(generate_configparser, 'ConfigParser')
+	env.AddMethod(generate_configparser, 'configparser')
 
 	def find_files(env, path, unittest=None, ignore=None):
 		scanner = Scanner(env, unittest)

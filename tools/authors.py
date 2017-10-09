@@ -44,7 +44,7 @@ def get_author_log(since = None, until = None, handles = True, count = False):
     if until is not None:
         sl_command += " --until=\"{}\"".format(until)
     # get the shortlog summary
-    output = subprocess.Popen(sl_command, shell=True, stdout=subprocess.PIPE).stdout.read()
+    output = subprocess.Popen(sl_command, shell=True, stdout=subprocess.PIPE).stdout.read().decode()
     # parse the shortlog
     shortlog = defaultdict(int)
     for line in output.splitlines():
@@ -97,4 +97,4 @@ if __name__ == "__main__":
         if any(a in author for a in new_authors):
             author += " 🎉🎊"
         authors.append(author)
-    print "\n".join(authors)
+    print("\n".join(authors))

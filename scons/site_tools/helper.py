@@ -78,7 +78,7 @@ def size_action(target, source, env):
 	stackSections = {}
 	heapSections = {}
 
-	for line in stdout.splitlines():
+	for line in stdout.decode().splitlines():
 		match = filter.match(line)
 		if match:
 			section = match.group('section')
@@ -110,7 +110,7 @@ def size_action(target, source, env):
 
 	device = env['ARM_DEVICE']
 
-	print """Memory Usage
+	print("""Memory Usage
 ------------
 Device: %s
 
@@ -124,7 +124,7 @@ Heap:    %7d bytes (%2.1f%% available)
 (%s)
 """ % (device, flashSize, flashPercentage, ' + '.join(flashSections),
 	   ramSize + stackSize, ramPercentage + stackPercentage, ramSize, ramPercentage, stackSize, stackPercentage, ' + '.join(ramSections),
-	   heapSize, heapPercentage, ' + '.join(heapSections))
+	   heapSize, heapPercentage, ' + '.join(heapSections)))
 
 # -----------------------------------------------------------------------------
 def show_size(env, source, alias='__size'):
