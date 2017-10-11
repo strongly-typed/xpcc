@@ -29,7 +29,7 @@
 from SCons.Script import *
 
 import re
-import subprocess
+import subprocess, locale
 
 # -----------------------------------------------------------------------------
 # Output of 'arm-none-eabi-size -A build/stm32_p103.elf':
@@ -62,7 +62,7 @@ def size_action(target, source, env):
 	cmd = [env['SIZE'], '-A', str(source[0])]
 
 	# Run the default nm command (`arm-none-eabi-nm` in this case)
-	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 	stdout, stderr = p.communicate()
 
 	if stderr is not None:
@@ -78,7 +78,7 @@ def size_action(target, source, env):
 	stackSections = {}
 	heapSections = {}
 
-	for line in stdout.splitlines():
+	for line in stdout.decode(locale.getpreferredencoding()).splitlines():
 		match = filter.match(line)
 		if match:
 			section = match.group('section')

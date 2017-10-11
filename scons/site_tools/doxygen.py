@@ -102,7 +102,7 @@ def DoxySourceScan(node, env, path):
 
 	sources = []
 
-	data = DoxyfileParse(node.get_contents().decode())
+	data = DoxyfileParse(node.get_contents().decode('UTF-8'))
 
 	if data.get("RECURSIVE", "NO") == "YES":
 		recursive = True
@@ -149,7 +149,7 @@ def DoxyEmitter(source, target, env):
 		"XML": ("NO", "xml"),
 	}
 
-	data = DoxyfileParse(source[0].get_contents().decode())
+	data = DoxyfileParse(source[0].get_contents().decode('UTF-8'))
 
 	targets = []
 	out_dir = data.get("OUTPUT_DIRECTORY", ".")

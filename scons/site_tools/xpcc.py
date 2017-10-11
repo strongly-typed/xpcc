@@ -35,6 +35,7 @@ import configfile as configparser
 import textwrap
 import getpass, subprocess
 import glob
+import locale
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'tools', 'device_files'))
 from device_identifier import DeviceIdentifier
@@ -265,7 +266,7 @@ def build_info_header(env):
 	defines['XPCC_BUILD_OS'] = env.CStringLiteral(os)
 	# This contains the version of the compiler that is used to build the project
 	try:
-		c = subprocess.check_output([env['CXX'], '--version'], universal_newlines=True).split('\n', 1)[0]
+		c = subprocess.check_output([env['CXX'], '--version']).decode(locale.getpreferredencoding()).split('\n', 1)[0]
 	except Exception as e:
 		env.Error("[CXX] compiler " + env['CXX'] + " is not in path or could not be executed")
 		Exit(1)

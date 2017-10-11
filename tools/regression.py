@@ -33,6 +33,7 @@ import re
 import sys
 import subprocess
 import optparse
+import locale
 
 COLOR_GREEN = ";32"
 COLOR_RED = ";31"
@@ -205,11 +206,11 @@ if __name__ == '__main__':
 			if stderr is not None:
 				set_color(COLOR_YELLOW)
 				print("ERROR: Failure when compiling '%s':" % path)
-				print(stderr.decode())
+				print(stderr)
 				set_color(COLOR_DEFAULT)
 			else:
 				try:
-					result = stdout.decode()
+					result = stdout.decode(locale.getpreferredencoding())
 					flash = int(re.search("\nProgram:\s+(\d+)", result).group(1))
 					ram = int(re.search("\nData:\s+(\d+)", result).group(1))
 					

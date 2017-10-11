@@ -7,7 +7,7 @@
 # license. See the file `LICENSE` for the full license governing this code.
 # -----------------------------------------------------------------------------
 
-import subprocess
+import subprocess, locale
 from collections import defaultdict
 import argparse
 
@@ -44,7 +44,8 @@ def get_author_log(since = None, until = None, handles = True, count = False):
     if until is not None:
         sl_command += " --until=\"{}\"".format(until)
     # get the shortlog summary
-    output = subprocess.Popen(sl_command, shell=True, stdout=subprocess.PIPE).stdout.read().decode()
+    output = subprocess.Popen(sl_command, shell=True, stdout=subprocess.PIPE)\
+            .stdout.read().decode(locale.getpreferredencoding())
     # parse the shortlog
     shortlog = defaultdict(int)
     for line in output.splitlines():
