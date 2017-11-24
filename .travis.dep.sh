@@ -1,7 +1,7 @@
 # Preparing the cache
 if [ ! -f "$HOME/cache/avr-gcc.tar.bz2" ]; then
 	echo "Downloading AVR toolchain..."
-	(cd $HOME/cache && wget -q http://box.xpcc.io/avr-gcc.tar.bz2) &
+	(cd $HOME/cache && wget -q https://github.com/strongly-typed/build-atmel-avr-gnu-toolchain/releases/download/v3.6.1/avr-gcc.tar.bz2) &
 fi
 if [ ! -f "$HOME/cache/cortex-m.tar.bz2" ]; then
 	echo "Downloading Cortex-M toolchain..."
